@@ -74,3 +74,17 @@ QUEUE_KEY = "queue"
 def get_queue_settings(db: Session) -> QueueSettings:
     row = db.get(Setting, QUEUE_KEY)
     return QueueSettings(**(row.value_json if row else {}))
+
+
+class DentalSettings(BaseModel):
+    """A visit can be edited by its doctor for this long; afterwards changes are addenda (SPEC 8.4)."""
+
+    edit_hours: int = Field(24, ge=0, le=720)
+
+
+DENTAL_KEY = "dental"
+
+
+def get_dental_settings(db: Session) -> DentalSettings:
+    row = db.get(Setting, DENTAL_KEY)
+    return DentalSettings(**(row.value_json if row else {}))

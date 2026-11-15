@@ -66,6 +66,7 @@ import { ageParts, formatDate, formatDateTime, formatMoney } from '../lib/format
 import { useUnsavedGuard } from '../lib/useUnsavedGuard';
 import { nameOf, useDoctors } from '../master/queries';
 import { PatientAppointments, UpcomingCard } from '../appointments/PatientAppointments';
+import { DentalTab } from '../dental/DentalTab';
 import { SendToDoctorModal, type SendTarget } from '../queue/SendToDoctorModal';
 import { DuplicateAlert, PatientFields, toBody, toForm, useDuplicates, validate, type PatientFormValues } from './PatientForm';
 import { patientKeys, usePatient } from './queries';
@@ -82,7 +83,7 @@ const TABS: TabDef[] = [
   { key: 'overview', icon: IconLayoutDashboard },
   { key: 'personal', icon: IconId },
   { key: 'health', icon: IconHeartbeat, perm: 'patient.medical_view' },
-  { key: 'dental', icon: IconDental, milestone: 'M6', perm: 'dental.view' },
+  { key: 'dental', icon: IconDental, perm: 'dental.view' },
   { key: 'plans', icon: IconClipboardList, milestone: 'M7', perm: 'plan.view' },
   { key: 'appointments', icon: IconCalendarEvent, perm: 'appointment.view' },
   { key: 'billing', icon: IconReceipt, milestone: 'M7–M8' },
@@ -131,6 +132,7 @@ export function PatientProfilePage() {
           {tab === 'health' && can('patient.medical_view') && <HealthTab patient={p} />}
           {tab === 'activity' && can('audit.view') && <ActivityTab patientId={p.id} />}
           {tab === 'appointments' && can('appointment.view') && <PatientAppointments patientId={p.id} />}
+          {tab === 'dental' && can('dental.view') && <DentalTab patient={p} />}
           {TABS.filter((x) => x.milestone).map(
             (x) =>
               tab === x.key && (

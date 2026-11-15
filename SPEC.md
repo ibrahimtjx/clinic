@@ -672,3 +672,9 @@ The pilot can start in the browser after M9, before the Tauri app (M10) is finis
 - 2026-11-15: Queue steps drive the linked appointment's status: send → Arrived, start → With doctor, finish → Completed. "Left without being seen" is an extra end state for the table and totals.
 - 2026-11-15: Minutes waited = from received until the doctor started (or until now while waiting). Thresholds (15/30 by default) are a setting.
 - 2026-11-15: "Finishing prompts reception if a payment order was created" (SPEC 7.3) waits for payment orders (M7).
+- 2026-11-15 (M6): Visit teeth are an FDI `smallint[]` on the visit (GIN index) instead of a separate `dental_visit_teeth` table: one row per visit, and "visits on tooth 36" still uses an index.
+- 2026-11-15: The edit window (24 h default) is a setting (`dental.edit_hours`). "Its doctor" = the user linked to the visit's doctor, or the user who wrote it. Nobody, including Admin, edits after the window; addenda only.
+- 2026-11-15: Tooth chart markers come from `tooth_findings` (category + optional description), recorded per tooth; removing one is a soft delete.
+- 2026-11-15: The chart is always drawn in the conventional orientation (patient's right on the viewer's left), also in the Arabic UI.
+- 2026-11-15: Opening the dental record logs a read, like the Health tab. History search is debounced so typing does not log one read per keystroke.
+- 2026-11-15: "Procedure: add services to a quotation" and "Treatment plan note: link to a plan" come with M7.

@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router';
 
 import { CalendarPage } from '../appointments/CalendarPage';
 import { DesignPage } from '../pages/DesignPage';
+import { DentalPrint } from '../print/DentalPrint';
 import { AppointmentSlip, DaySchedule } from '../print/PrintPages';
 import { HomePage } from '../pages/HomePage';
 import { PlaceholderPage } from '../pages/PlaceholderPage';
@@ -16,6 +17,7 @@ export const routes = [
   // Print pages render without the app shell.
   { path: '/print/slip/:id', element: <AppointmentSlip /> },
   { path: '/print/day', element: <DaySchedule /> },
+  { path: '/print/dental/:id', element: <DentalPrint /> },
   {
     path: '/',
     element: <AppLayout />,
