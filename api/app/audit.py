@@ -51,10 +51,9 @@ def _jsonable(v: Any) -> Any:
 
 
 def _pk(obj: Any) -> str:
-    ident = inspect(obj).identity
-    if ident is None:
-        return ""
-    return ident[0] if len(ident) == 1 else "/".join(str(i) for i in ident)
+    # Read from the instance: right after an INSERT the identity key is not assigned yet.
+    ident = inspect(obj).mapper.primary_key_from_instance(obj)
+    return "/".join(str(i) for i in ident)
 
 
 def _columns(obj: Any) -> list[str]:

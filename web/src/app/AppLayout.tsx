@@ -41,6 +41,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router';
 
+import { useClinicInfo } from '../master/queries';
 import { CommandPalette } from './CommandPalette';
 import { useConnection } from './connection';
 import { displayName, useAuth } from '../auth/AuthProvider';
@@ -97,6 +98,9 @@ export function AppLayout() {
 function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const { t, i18n } = useTranslation();
   const { canAny } = useAuth();
+  const { lang } = usePrefs();
+  const clinic = useClinicInfo();
+  const clinicName = (lang === 'ar' ? clinic.data?.name_ar || clinic.data?.name_en : clinic.data?.name_en || clinic.data?.name_ar) || t('app.name');
   const rtl = i18n.dir() === 'rtl';
   // Chevron points toward the edge the sidebar collapses to.
   const CollapseIcon = collapsed === rtl ? IconChevronsRight : IconChevronsLeft;
@@ -109,8 +113,8 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         </ThemeIcon>
         {!collapsed && (
           <Box>
-            <Text fw={600} size="md" lh={1.2}>
-              {t('app.name')}
+            <Text fw={600} size="md" lh={1.2} lineClamp={1} data-testid="clinic-name">
+              {clinicName}
             </Text>
             <Text size="xs" c="dimmed" lh={1.2}>
               {t('app.tagline')}

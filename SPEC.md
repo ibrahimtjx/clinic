@@ -645,3 +645,11 @@ The pilot can start in the browser after M9, before the Tauri app (M10) is finis
 - 2026-11-15: Sign-in counters and UI preferences are written without bumping the record `version`, so they never cause false edit conflicts.
 - 2026-11-15: Users are created with a temporary password and must change it at first sign-in. Usernames are unique ignoring case and never reused.
 - 2026-11-15: The audit "machine" is the X-Client-Machine header: per-browser name for now (editable on the sign-in page); the Tauri app will send the Windows PC name (M10).
+- 2026-11-15 (M2, pending clinic answers to section 17 Q1–5): the spec's starting lists are seeded as editable defaults. Statuses carry a `key`; the 8 starting ones are built-in (renamable and recolorable, not deletable or disableable) because later modules act on them.
+- 2026-11-15: The 20 seeded services have prices 0 and start **inactive**, so nothing is sold at a placeholder price. Staff set prices and activate them. Services default to VAT applicable until the VAT rule is confirmed (Q8).
+- 2026-11-15: Number formats default to `PREFIX-YYYY-000001` with a yearly reset, editable in Settings → Document numbering (prefix, yearly reset, digits). Year is by server time in Asia/Riyadh. Allocation locks the sequence row inside the issuing transaction; a rollback returns the number.
+- 2026-11-15: Clinics and departments are separate lists (a department may belong to a clinic). Doctors may exist without a user account and link to one later.
+- 2026-11-15: Doctor schedules are weekly periods (`work`) and breaks (`break`), weekday 0 = Sunday. Commission rules: a general rate plus optional per-department or per-service rates; the most specific applies. Commission rates are returned only to users with `settings.manage` or `report.financial`.
+- 2026-11-15: Settings lists are deactivated or soft-deleted, never hard deleted; `record.view_deleted` shows deleted rows with Restore.
+- 2026-11-15: Clinic logo upload is deferred to the printing work (letterhead), since it needs file storage.
+- 2026-11-15: CI runs `alembic check` so the models and migrations cannot drift (autogenerate once silently dropped an index declared only in a migration).

@@ -29,3 +29,33 @@ def save_security(db: Session, value: SecuritySettings, user_id: int) -> Setting
         row.value_json = value.model_dump()
         row.updated_by = user_id
     return row
+
+
+class ClinicInfo(BaseModel):
+    """Clinic details for the app header, letterhead and invoices (SPEC 12, 10.7)."""
+
+    name_ar: str = Field("", max_length=200)
+    name_en: str = Field("", max_length=200)
+    address_ar: str = Field("", max_length=500)
+    address_en: str = Field("", max_length=500)
+    phone: str = Field("", max_length=40)
+    email: str = Field("", max_length=120)
+    vat_number: str = Field("", max_length=15, pattern=r"^(\d{15})?$")
+    cr_number: str = Field("", max_length=20, pattern=r"^(\d{10})?$")
+
+
+CLINIC_KEY = "clinic"
+
+
+def get_clinic_info(db: Session) -> ClinicInfo:
+    row = db.get(Setting, CLINIC_KEY)
+    return ClinicInfo(**(row.value_json if row else {}))
+
+
+def save_setting(db: Session, key: str, value: BaseModel, user_id: int) -> None:
+    row = db.get(Setting, key)
+    if row is None:
+        db.add(Setting(key=key, value_json=value.model_dump(), updated_by=user_id))
+    else:
+        row.value_json = value.model_dump()
+        row.updated_by = user_id

@@ -3,17 +3,23 @@ import { IconQuote } from '@tabler/icons-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { usePhrases } from '../master/queries';
+import type { PhraseField } from '../master/types';
+
 /**
  * Free-text field with a saved-phrase picker (SPEC 3.7). The chosen phrase is inserted at the cursor.
- * Phrases come from settings per field_key from M2; here they are passed in.
+ * Phrases come from Settings → Saved phrases for `fieldKey`, or can be passed in.
  */
 export function PhraseTextarea({
-  phrases,
+  phrases: given,
+  fieldKey,
   value,
   onChange,
   ...props
-}: { phrases: string[]; value: string; onChange: (v: string) => void } & Omit<TextareaProps, 'value' | 'onChange'>) {
+}: { phrases?: string[]; fieldKey?: PhraseField; value: string; onChange: (v: string) => void } & Omit<TextareaProps, 'value' | 'onChange'>) {
   const { t } = useTranslation();
+  const saved = usePhrases(given ? undefined : fieldKey);
+  const phrases = given ?? (saved.data ?? []).map((p) => p.text);
   const ref = useRef<HTMLTextAreaElement>(null);
   const [search, setSearch] = useState('');
   const combobox = useCombobox({ onDropdownClose: () => setSearch('') });
