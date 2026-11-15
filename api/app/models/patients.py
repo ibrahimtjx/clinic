@@ -102,7 +102,12 @@ class Patient(TimestampMixin, VersionMixin, SoftDeleteMixin, Base):
     referral_source: Mapped[str | None] = mapped_column(String(100))
     notes: Mapped[str] = mapped_column(Text, default="", server_default="")
     # Maintained by billing (M8) and visits (M4–M6); read-only here.
+    # What the patient owes on final invoices, and money held on account (deposits). Maintained by
+    # billing with atomic UPDATEs that do not bump `version` (no false edit conflicts).
     balance: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal(0), server_default="0")
+    deposit_balance: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), default=Decimal(0), server_default="0"
+    )
     last_visit_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     search_text: Mapped[str] = mapped_column(Text, Computed(SEARCH_TEXT, persisted=True))

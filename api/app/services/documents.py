@@ -4,19 +4,23 @@ Clients send only what a person chooses (service, price, quantity, discount, tee
 derived (VAT rate, VAT, totals, insurance and patient shares) is computed here, every time.
 """
 
-from datetime import date
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.deps import Principal
 from app.models import (
+    CreditNote,
     DraftLine,
     InsuranceClass,
     InsuranceCompany,
+    Invoice,
+    InvoiceLine,
     Patient,
     PatientInsurance,
     Service,
@@ -24,6 +28,7 @@ from app.models import (
 )
 from app.services import pricing
 
+RIYADH = ZoneInfo("Asia/Riyadh")
 Money = Field(ge=0, max_digits=12, decimal_places=2)
 
 
@@ -130,9 +135,29 @@ def insurance_snapshot(
     return snap, rules
 
 
-def insurer_used_today(db: Session, patient_id: int, day: date) -> Decimal:
-    """Insurer's share (before VAT) already used on final invoices today. Final invoices arrive in M8."""
-    return Decimal(0)
+def insurer_used_today(
+    db: Session, patient_id: int, day: date, company_id: int | None = None
+) -> Decimal:
+    """Insurer's share before VAT already used on today's final invoices for this patient, less credit
+    notes on them (SPEC 10.4 daily limit). Counted per insurance company when one is given."""
+    start = datetime.combine(day, time(0), tzinfo=RIYADH)
+    end = start + timedelta(days=1)
+    inv = select(Invoice.id).where(
+        Invoice.patient_id == patient_id, Invoice.issued_at >= start, Invoice.issued_at < end
+    )
+    if company_id is not None:
+        inv = inv.where(Invoice.insurance_company_id == company_id)
+    used = db.scalar(
+        select(
+            func.coalesce(func.sum(InvoiceLine.insurance_share - InvoiceLine.insurance_vat), 0)
+        ).where(InvoiceLine.invoice_id.in_(inv))
+    )
+    credited = db.scalar(
+        select(
+            func.coalesce(func.sum(CreditNote.insurance_share - CreditNote.insurance_vat), 0)
+        ).where(CreditNote.invoice_id.in_(inv))
+    )
+    return Decimal(used) - Decimal(credited)
 
 
 def build(
@@ -206,7 +231,9 @@ def build(
         saudi=saudi,
         insurance=rules,
         on_date=on_date,
-        insurer_used_today=insurer_used_today(db, patient.id, on_date) if rules else Decimal(0),
+        insurer_used_today=insurer_used_today(db, patient.id, on_date, snap.get("company_id"))
+        if rules
+        else Decimal(0),
     )
     if snap is not None and rules is None:
         totals.notes.append("insurance_class_missing")
@@ -222,6 +249,7 @@ def build(
             line_total=lo.total,
             patient_share=lo.patient_share,
             insurance_share=lo.insurance_share,
+            insurance_vat=lo.insurance_share - lo.insurance_net if lo.covered else Decimal(0),
         )
     return rows, totals, snap, saudi
 
@@ -259,3 +287,75 @@ def lines_of(db: Session, parent_type: str, parent_id: int) -> list[DraftLine]:
             .order_by(DraftLine.seq)
         )
     )
+
+
+def recalculate(db: Session, doc, parent_type: str, patient: Patient, on_date: date) -> bool:
+    """Recalculate a saved document from its own lines (at payment time: VAT rate, nationality and the
+    insurer's daily limit may have changed since it was written). Prices and discounts stay as saved;
+    price limits are not checked again. Returns True if any amount changed."""
+    saved = lines_of(db, parent_type, doc.id)
+    services = {
+        s.id: s
+        for s in db.scalars(
+            select(Service).where(Service.id.in_([ln.service_id for ln in saved if ln.service_id]))
+        )
+    }
+    snap = doc.insurance
+    rules = None
+    if snap and snap.get("class_id"):
+        cls = db.get(InsuranceClass, snap["class_id"])
+        if cls is not None:
+            exp = snap.get("expiry")
+            rules = pricing.InsuranceRules(
+                patient_share_pct=cls.patient_share_pct,
+                max_patient_share_per_invoice=cls.max_patient_share_per_invoice,
+                consultation_max_covered=cls.consultation_max_covered,
+                daily_limit=cls.daily_limit,
+                excluded_service_ids=frozenset(cls.excluded_service_ids or []),
+                expiry=date.fromisoformat(exp) if exp else None,
+            )
+    saudi = pricing.is_saudi(patient.nationality, patient.national_id)
+    totals = pricing.calculate(
+        [
+            pricing.LineIn(
+                price=ln.price,
+                qty=ln.qty,
+                discount_amount=ln.discount_amount,
+                discount_pct=ln.discount_pct,
+                vat_applicable=services[ln.service_id].vat_applicable if ln.service_id else True,
+                is_consultation=services[ln.service_id].is_consultation if ln.service_id else False,
+                service_id=ln.service_id,
+            )
+            for ln in saved
+        ],
+        standard_vat_rate=get_billing(db).vat_rate,
+        saudi=saudi,
+        insurance=rules,
+        on_date=on_date,
+        insurer_used_today=insurer_used_today(db, patient.id, on_date, snap.get("company_id"))
+        if rules
+        else Decimal(0),
+    )
+    changed = saudi != doc.saudi
+    for ln, lo in zip(saved, totals.lines, strict=True):
+        new = {
+            "gross": lo.gross,
+            "discount": lo.discount,
+            "net": lo.net,
+            "vat_rate": lo.vat_rate,
+            "vat_amount": lo.vat,
+            "line_total": lo.total,
+            "patient_share": lo.patient_share,
+            "insurance_share": lo.insurance_share,
+            "insurance_vat": lo.insurance_share - lo.insurance_net if lo.covered else Decimal(0),
+        }
+        for k, v in new.items():
+            if getattr(ln, k) != v:
+                setattr(ln, k, v)
+                changed = True
+    doc.saudi = saudi
+    for k in ("gross", "discount", "net", "vat", "total", "insurance_share", "patient_share"):
+        if getattr(doc, k) != getattr(totals, k):
+            setattr(doc, k, getattr(totals, k))
+            changed = True
+    return changed

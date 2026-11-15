@@ -230,5 +230,6 @@ class DraftLine(Base):
     line_total: Mapped[Decimal] = mapped_column(MONEY)
     patient_share: Mapped[Decimal] = mapped_column(MONEY)
     insurance_share: Mapped[Decimal] = mapped_column(MONEY)
+    insurance_vat: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0), server_default="0")
     teeth: Mapped[list[int]] = mapped_column(ARRAY(SmallInteger), default=list, server_default="{}")
     price_overridden: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")

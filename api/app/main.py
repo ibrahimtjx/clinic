@@ -16,6 +16,7 @@ from app.routers import (
     billing,
     dental,
     doctors,
+    ledger,
     master,
     patients,
     queue,
@@ -44,6 +45,7 @@ app.include_router(queue.router)
 app.include_router(queue.settings_router)
 app.include_router(dental.router)
 app.include_router(billing.router)
+app.include_router(ledger.router)
 
 DbSession = Annotated[Session, Depends(get_db)]
 
