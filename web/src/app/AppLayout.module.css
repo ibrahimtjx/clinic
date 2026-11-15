@@ -1,0 +1,64 @@
+.header,
+.navbar {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+.main {
+  background: var(--app-bg);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  width: min(460px, 100%);
+  height: 38px;
+  padding-inline: var(--mantine-spacing-sm);
+  border: 1px solid var(--app-border);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-bg);
+  color: var(--app-muted);
+  transition: border-color 120ms ease;
+
+  &:hover {
+    border-color: var(--mantine-color-accent-4);
+  }
+}
+
+.navLink {
+  border-radius: var(--mantine-radius-md);
+  padding-block: 10px;
+  color: var(--mantine-color-text);
+
+  &[data-active] {
+    background: var(--app-nav-active-bg);
+    color: var(--app-nav-active-fg);
+    font-weight: 500;
+  }
+
+  &[data-collapsed] {
+    justify-content: center;
+
+    & :global(.mantine-NavLink-section) {
+      margin: 0;
+    }
+
+    & :global(.mantine-NavLink-body) {
+      display: none;
+    }
+  }
+}
+
+.collapse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: var(--mantine-radius-md);
+  color: var(--app-muted);
+
+  &:hover {
+    background: var(--app-bg);
+  }
+}

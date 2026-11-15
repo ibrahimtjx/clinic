@@ -1,0 +1,28 @@
+{
+	# Clinic-local certificate authority (SPEC 3.3). Its root certificate is installed once on each client PC.
+	pki {
+		ca local {
+			name "Clinic Local CA"
+		}
+	}
+}
+
+{$SERVER_NAME:localhost} {
+	tls internal
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+
+	handle_path /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
+}

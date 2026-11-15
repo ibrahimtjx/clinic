@@ -1,0 +1,9 @@
+body {
+  background: var(--app-bg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Arabic text needs a little more line height to breathe. */
+[lang='ar'] body {
+  line-height: 1.6;
+}

@@ -1,0 +1,186 @@
+{
+  "app": {
+    "name": "Clinic",
+    "tagline": "Clinic management"
+  },
+  "nav": {
+    "home": "Home",
+    "appointments": "Appointments",
+    "queue": "Queue",
+    "patients": "Patients",
+    "billing": "Billing",
+    "reports": "Reports",
+    "settings": "Settings",
+    "design": "Design system",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
+  },
+  "topbar": {
+    "search": "Search patients, appointments, invoices or actions",
+    "newAppointment": "New appointment",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications right now",
+    "userMenu": "User menu",
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "lock": "Lock screen",
+    "signOut": "Sign out"
+  },
+  "connection": {
+    "online": "Connected to server",
+    "offline": "Server unreachable",
+    "checking": "Checking connection",
+    "banner": "Cannot reach the server. Actions are disabled until the connection is back.",
+    "retry": "Retry"
+  },
+  "palette": {
+    "placeholder": "Type a command or search…",
+    "nothingFound": "Nothing found",
+    "navigation": "Go to",
+    "actions": "Actions",
+    "goTo": "Go to {{page}}",
+    "toggleTheme": "Toggle light / dark theme",
+    "switchLanguage": "التبديل إلى العربية"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "discard": "Discard",
+    "keepEditing": "Keep editing",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "search": "Search",
+    "comingSoon": "Coming soon",
+    "milestone": "In milestone {{m}}",
+    "loading": "Loading"
+  },
+  "placeholder": {
+    "title": "{{page}}",
+    "hint": "This screen is under construction and arrives in milestone {{m}}.",
+    "openDesign": "Open the design system"
+  },
+  "home": {
+    "welcome": "Welcome",
+    "hint": "The skeleton is ready. Operational screens are built in the next milestones.",
+    "serverTime": "Server time",
+    "version": "Version"
+  },
+  "design": {
+    "title": "Design system",
+    "intro": "The building blocks every screen is made from. Switch language and theme from the top bar.",
+    "colors": "Colors",
+    "accent": "Accent",
+    "neutral": "Neutral",
+    "statusColors": "Status colors",
+    "typography": "Typography",
+    "typeSample": "New patient — book a follow-up visit",
+    "numbers": "Numbers, dates and money",
+    "buttons": "Buttons",
+    "primary": "Primary",
+    "secondary": "Secondary",
+    "subtle": "Subtle",
+    "danger": "Danger",
+    "disabled": "Disabled",
+    "withIcon": "With icon",
+    "inputs": "Inputs",
+    "chips": "Status chips",
+    "table": "Table",
+    "card": "Card",
+    "drawer": "Drawer",
+    "modal": "Modal",
+    "openDrawer": "Open drawer",
+    "openModal": "Open modal",
+    "skeleton": "Skeleton loader",
+    "emptyState": "Empty state",
+    "toasts": "Toasts",
+    "toastSuccess": "Success toast",
+    "toastError": "Error toast",
+    "toastSuccessMsg": "Saved successfully",
+    "toastErrorMsg": "Could not save. Please try again.",
+    "shortcuts": "Keyboard shortcuts",
+    "spacing": "Spacing and radius",
+    "modalBody": "Modals are for quick confirmations only. Deep work happens on a full page.",
+    "drawerBody": "Drawers are for quick edits, such as the appointment form.",
+    "formHint": "Fill the form, then press Ctrl+Enter to save. Close the drawer without saving to see the unsaved-changes warning.",
+    "phrasesSample": [
+      "No pain",
+      "Pain on chewing",
+      "Sensitivity to cold",
+      "Review in two weeks"
+    ],
+    "palette": "Command palette",
+    "submitForm": "Submit form",
+    "toggleThemeKey": "Toggle theme",
+    "dateLabel": "Appointment date",
+    "typeScale": [
+      "Heading 1",
+      "Heading 2",
+      "Heading 3",
+      "Heading 4",
+      "Body text",
+      "Small text"
+    ]
+  },
+  "sample": {
+    "fileNo": "File no.",
+    "patientName": "Patient name",
+    "mobile": "Mobile",
+    "nationalId": "National ID",
+    "doctor": "Doctor",
+    "visitType": "Visit type",
+    "date": "Date",
+    "time": "Time",
+    "status": "Status",
+    "balance": "Balance",
+    "note": "Note",
+    "notePlaceholder": "Type a note or pick a saved phrase",
+    "phrases": "Saved phrases",
+    "smsOptOut": "Exclude from SMS",
+    "required": "This field is required",
+    "mobileInvalid": "Mobile must be in the format 05XXXXXXXX",
+    "patients": [
+      "Sara Ahmed Alotaibi",
+      "Mohammed Abdullah Alqahtani",
+      "Noura Saad Aldosari",
+      "Khalid Fahad Alshammari"
+    ],
+    "doctors": [
+      "Dr. Reem Alharbi",
+      "Dr. Omar Alzahrani"
+    ],
+    "visitTypes": [
+      "New",
+      "Follow-up",
+      "Consultation",
+      "Emergency"
+    ],
+    "cardTitle": "Next appointment",
+    "cardBody": "Orthodontic follow-up — Chair 2",
+    "call": "Call",
+    "emptyTitle": "No appointments today",
+    "emptyHint": "Start by adding the first appointment for today."
+  },
+  "status": {
+    "unconfirmed": "Unconfirmed",
+    "confirmed": "Confirmed",
+    "arrived": "Arrived",
+    "withDoctor": "With doctor",
+    "completed": "Completed",
+    "noShow": "No-show",
+    "cancelled": "Cancelled",
+    "postponed": "Postponed"
+  },
+  "currency": "SAR",
+  "unsaved": {
+    "title": "Unsaved changes",
+    "body": "You have changes that are not saved yet. What would you like to do?"
+  },
+  "visitBadges": {
+    "new": "New patient",
+    "insured": "Insured",
+    "balance": "Has balance"
+  }
+}
