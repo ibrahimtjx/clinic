@@ -65,6 +65,7 @@ import { errorMessage } from '../lib/errors';
 import { ageParts, formatDate, formatDateTime, formatMoney } from '../lib/format';
 import { useUnsavedGuard } from '../lib/useUnsavedGuard';
 import { nameOf, useDoctors } from '../master/queries';
+import { PatientAppointments, UpcomingCard } from '../appointments/PatientAppointments';
 import { DuplicateAlert, PatientFields, toBody, toForm, useDuplicates, validate, type PatientFormValues } from './PatientForm';
 import { patientKeys, usePatient } from './queries';
 import type { Assignment, Health, Patient } from './types';
@@ -82,7 +83,7 @@ const TABS: TabDef[] = [
   { key: 'health', icon: IconHeartbeat, perm: 'patient.medical_view' },
   { key: 'dental', icon: IconDental, milestone: 'M6', perm: 'dental.view' },
   { key: 'plans', icon: IconClipboardList, milestone: 'M7', perm: 'plan.view' },
-  { key: 'appointments', icon: IconCalendarEvent, milestone: 'M4', perm: 'appointment.view' },
+  { key: 'appointments', icon: IconCalendarEvent, perm: 'appointment.view' },
   { key: 'billing', icon: IconReceipt, milestone: 'M7–M8' },
   { key: 'files', icon: IconFiles, milestone: 'Phase 2' },
   { key: 'prescriptions', icon: IconPill, milestone: 'Phase 2' },
@@ -128,6 +129,7 @@ export function PatientProfilePage() {
           {tab === 'personal' && <PersonalTab patient={p} />}
           {tab === 'health' && can('patient.medical_view') && <HealthTab patient={p} />}
           {tab === 'activity' && can('audit.view') && <ActivityTab patientId={p.id} />}
+          {tab === 'appointments' && can('appointment.view') && <PatientAppointments patientId={p.id} />}
           {TABS.filter((x) => x.milestone).map(
             (x) =>
               tab === x.key && (
@@ -265,7 +267,15 @@ function ActionBar({ patient: p }: { patient: Patient }) {
 
   return (
     <Group gap="xs" data-testid="action-bar">
-      {soon(t('topbar.newAppointment'), <IconCalendarPlus size={16} />, 'M4', true)}
+      {can('appointment.create') && (
+        <Button
+          leftSection={<IconCalendarPlus size={16} />}
+          onClick={() => navigate(`/appointments?new=1&patient=${p.id}&label=${encodeURIComponent(`${nameOf(p, lang)} · ${p.file_no}`)}`)}
+          data-testid="profile-new-appointment"
+        >
+          {t('topbar.newAppointment')}
+        </Button>
+      )}
       {soon(t('patients.sendToDoctor'), <IconSend size={16} />, 'M5')}
       {soon(t('patients.newQuotation'), <IconFileInvoice size={16} />, 'M7')}
       {soon(t('patients.collectPayment'), <IconCash size={16} />, 'M8')}
@@ -400,6 +410,7 @@ function AssignModal({ patientId, opened, onClose }: { patientId: number; opened
 
 function OverviewTab({ patient: p }: { patient: Patient }) {
   const { t } = useTranslation();
+  const { can } = useAuth();
   const { lang, digits } = usePrefs();
   const qc = useQueryClient();
   const doctors = useDoctors({ includeInactive: true });
@@ -493,7 +504,7 @@ function OverviewTab({ patient: p }: { patient: Patient }) {
           </Text>
         </Card>
       )}
-      {later(t('patients.upcomingAppointments'), 'M4')}
+      {can('appointment.view') && <UpcomingCard patientId={p.id} />}
       {later(t('patients.openPlans'), 'M7')}
       {later(t('patients.lastVisitSummary'), 'M6')}
     </SimpleGrid>

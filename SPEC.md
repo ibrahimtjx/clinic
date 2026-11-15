@@ -660,3 +660,11 @@ The pilot can start in the browser after M9, before the Tauri app (M10) is finis
 - 2026-11-15: Duplicate check on national ID or mobile returns 409 `possible_duplicate` with the matches; the client can resend with `allow_duplicate: true` after the user confirms.
 - 2026-11-15: Patient list column choice and order are saved per user per PC (browser storage), not on the server.
 - 2026-11-15: `balance` and `last_visit_at` exist on patients now and are maintained by later milestones (M4–M8).
+- 2026-11-15 (M4): The calendar is a custom grid (MIT, no calendar library): RTL and doctor columns are simpler to get right than adapting react-big-calendar.
+- 2026-11-15: The no-overlap rule is the exclusion constraint from section 14. The API also pre-checks to name the clashing booking; the constraint still decides races.
+- 2026-11-15: Same-day and outside-hours warnings come back as 409 `needs_confirmation`; the client resends with `acknowledge`. Outside hours additionally needs `appointment.override_hours`. The default Reception role has it (all `appointment.*`); remove it in the role matrix if reception must not override.
+- 2026-11-15: Appointment times are sent with the +03:00 offset (Asia/Riyadh has no DST). These are the scheduled times the user chooses, not record timestamps, so SPEC 2 "clients never send timestamps for records" still holds.
+- 2026-11-15: "Waiting-list flag" on an appointment = the patient would take an earlier slot; the waiting list holds both such patients and patients without a booking. A freed slot is matched by doctor (or any), preferred weekday and time window.
+- 2026-11-15: Cancelling uses the Cancelled status (reason required); deleting (soft) is for entries made by mistake and needs `appointment.delete`.
+- 2026-11-15: Completing an appointment updates the patient's `last_visit_at`.
+- 2026-11-15: Printing for now is a print-preview page plus the browser's print dialog (slip and day schedule); silent printing waits for the desktop app spike (M0.5).
