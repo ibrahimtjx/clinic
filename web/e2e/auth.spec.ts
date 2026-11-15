@@ -18,8 +18,10 @@ test('lock keeps open work; unlock with PIN; quick switch to another user', asyn
   await name.fill('unsaved work');
 
   await page.getByTestId('user-menu').click();
+  const locked = page.waitForResponse((r) => r.url().endsWith('/api/auth/lock'));
   await page.getByTestId('lock').click();
   await expect(page.getByTestId('lock-screen')).toBeVisible();
+  expect((await locked).status()).toBe(204);
   // The old session is gone on the server.
   expect((await page.request.post('/api/auth/refresh')).status()).toBe(401);
 
