@@ -405,7 +405,10 @@
       "saved_phrases": "Saved phrases",
       "appointments": "Appointments",
       "waiting_list": "Waiting list",
-      "queue_entries": "Queue"
+      "queue_entries": "Queue",
+      "dental_visits": "Dental visits",
+      "dental_visit_addenda": "Addenda",
+      "tooth_findings": "Tooth chart"
     }
   },
   "errors": {
@@ -471,7 +474,11 @@
     "not_started": "The patient has not entered yet.",
     "already_with_doctor": "The patient is with the doctor.",
     "unknown_appointment": "Appointment not found.",
-    "late_before_warn": "Red must come after amber."
+    "late_before_warn": "Red must come after amber.",
+    "visit_locked": "The edit window for this visit has passed.",
+    "not_visit_doctor": "Only the visit's doctor can edit it.",
+    "visit_in_future": "The visit time is in the future.",
+    "unknown_visit": "Visit not found."
   },
   "weekdays": [
     "Sunday",
@@ -848,5 +855,52 @@
     "wait": "Wait",
     "warnAfter": "Amber after (minutes)",
     "lateAfter": "Red after (minutes)"
+  },
+  "dental": {
+    "permanent": "Permanent",
+    "primary": "Primary",
+    "mixed": "Mixed",
+    "chart": "Tooth chart",
+    "tooth": "Tooth",
+    "selected": "Selected teeth",
+    "selectHint": "Click teeth to select them for this visit",
+    "mark": "Mark selected teeth",
+    "categories": {
+      "restoration": "Restoration",
+      "extraction": "Extraction",
+      "endodontic": "Endodontic",
+      "prosthetic": "Prosthetic",
+      "orthodontic": "Orthodontic",
+      "other": "Other"
+    },
+    "history": "Visit history",
+    "printHistory": "Print history",
+    "newVisit": "New visit",
+    "noVisits": "No visits yet",
+    "visit": "Visit",
+    "editableUntil": "editable until {{time}}",
+    "lockedHint": "More than {{hours}} hours have passed, or you are not this visit's doctor. Add an addendum instead of editing.",
+    "icd10": "ICD-10 code (optional)",
+    "teeth": "Teeth",
+    "fields": {
+      "chief_complaint": "Chief complaint",
+      "diagnosis": "Diagnosis",
+      "procedure": "Procedure done",
+      "treatment_note": "Treatment plan note",
+      "preventive_advice": "Preventive advice",
+      "complications": "Complications",
+      "patient_education": "Patient and family education",
+      "next_visit": "Next visit",
+      "note": "Note"
+    },
+    "bookNow": "Book the next visit",
+    "planLater": "Linking a treatment plan and quotation comes in M7",
+    "saveAndPrint": "Save and print",
+    "addenda": "Addenda",
+    "noAddenda": "No addenda",
+    "addAddendum": "Add an addendum",
+    "addendum": "Addendum",
+    "visitReport": "Dental visit report",
+    "historyStatement": "Dental visit history"
   }
 }

@@ -405,7 +405,10 @@
       "saved_phrases": "العبارات المحفوظة",
       "appointments": "المواعيد",
       "waiting_list": "قائمة الانتظار",
-      "queue_entries": "قائمة الانتظار"
+      "queue_entries": "قائمة الانتظار",
+      "dental_visits": "زيارات الأسنان",
+      "dental_visit_addenda": "ملاحظات لاحقة",
+      "tooth_findings": "مخطط الأسنان"
     }
   },
   "errors": {
@@ -471,7 +474,11 @@
     "not_started": "لم يدخل المريض بعد.",
     "already_with_doctor": "المريض عند الطبيب.",
     "unknown_appointment": "الموعد غير موجود.",
-    "late_before_warn": "الأحمر يجب أن يكون بعد الأصفر."
+    "late_before_warn": "الأحمر يجب أن يكون بعد الأصفر.",
+    "visit_locked": "انتهت مدة تعديل الزيارة.",
+    "not_visit_doctor": "يعدّل الزيارة طبيبها فقط.",
+    "visit_in_future": "وقت الزيارة في المستقبل.",
+    "unknown_visit": "الزيارة غير موجودة."
   },
   "weekdays": [
     "الأحد",
@@ -848,5 +855,52 @@
     "wait": "الانتظار",
     "warnAfter": "اللون الأصفر بعد (دقائق)",
     "lateAfter": "اللون الأحمر بعد (دقائق)"
+  },
+  "dental": {
+    "permanent": "دائمة",
+    "primary": "لبنية",
+    "mixed": "مختلطة",
+    "chart": "مخطط الأسنان",
+    "tooth": "السن",
+    "selected": "الأسنان المحددة",
+    "selectHint": "اضغط على الأسنان لتحديدها لهذه الزيارة",
+    "mark": "تسجيل على الأسنان المحددة",
+    "categories": {
+      "restoration": "حشوة / ترميم",
+      "extraction": "خلع",
+      "endodontic": "علاج عصب",
+      "prosthetic": "تركيبات",
+      "orthodontic": "تقويم",
+      "other": "أخرى"
+    },
+    "history": "سجل الزيارات",
+    "printHistory": "طباعة السجل",
+    "newVisit": "زيارة جديدة",
+    "noVisits": "لا توجد زيارات",
+    "visit": "زيارة",
+    "editableUntil": "قابلة للتعديل حتى {{time}}",
+    "lockedHint": "مضى أكثر من {{hours}} ساعة على الزيارة، أو أنك لست طبيبها. أضف ملاحظة لاحقة بدلاً من التعديل.",
+    "icd10": "رمز ICD-10 (اختياري)",
+    "teeth": "الأسنان",
+    "fields": {
+      "chief_complaint": "الشكوى الرئيسية",
+      "diagnosis": "التشخيص",
+      "procedure": "الإجراء المنفّذ",
+      "treatment_note": "ملاحظة خطة العلاج",
+      "preventive_advice": "النصائح الوقائية",
+      "complications": "المضاعفات",
+      "patient_education": "تثقيف المريض والأسرة",
+      "next_visit": "الزيارة القادمة",
+      "note": "ملاحظة"
+    },
+    "bookNow": "احجز الزيارة القادمة",
+    "planLater": "ربط خطة العلاج وعرض السعر ضمن المرحلة M7",
+    "saveAndPrint": "حفظ وطباعة",
+    "addenda": "ملاحظات لاحقة",
+    "noAddenda": "لا توجد ملاحظات لاحقة",
+    "addAddendum": "إضافة ملاحظة لاحقة",
+    "addendum": "ملاحظة لاحقة",
+    "visitReport": "تقرير زيارة أسنان",
+    "historyStatement": "سجل زيارات الأسنان"
   }
 }
