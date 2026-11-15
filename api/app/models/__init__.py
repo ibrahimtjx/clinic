@@ -2,6 +2,7 @@ from app.models.appointments import Appointment, WaitingListEntry
 from app.models.audit import AuditLog
 from app.models.auth import AuthSession, Role, RolePermission, User, UserRole
 from app.models.base import Base
+from app.models.dental import DentalVisit, DentalVisitAddendum, ToothFinding
 from app.models.master import (
     AppointmentStatus,
     Clinic,
@@ -25,6 +26,8 @@ __all__ = [
     "AuthSession",
     "Base",
     "Clinic",
+    "DentalVisit",
+    "DentalVisitAddendum",
     "Department",
     "Doctor",
     "DoctorCommissionRule",
@@ -40,6 +43,7 @@ __all__ = [
     "SavedPhrase",
     "Service",
     "Setting",
+    "ToothFinding",
     "User",
     "UserRole",
     "VisitType",
