@@ -54,7 +54,7 @@ def engine():
 def db(engine) -> Iterator[Session]:
     conn = engine.connect()
     trans = conn.begin()
-    session = Session(bind=conn, join_transaction_mode="create_savepoint", expire_on_commit=False)
+    session = Session(bind=conn, join_transaction_mode="create_savepoint", expire_on_commit=False, autoflush=False)
     conn.exec_driver_sql("SET TIME ZONE 'Asia/Riyadh'")
     yield session
     session.close()

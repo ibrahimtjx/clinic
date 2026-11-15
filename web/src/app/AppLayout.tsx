@@ -9,7 +9,6 @@ import {
   Kbd,
   Menu,
   NavLink,
-  Popover,
   ScrollArea,
   Stack,
   Text,
@@ -21,7 +20,6 @@ import { useHotkeys, useLocalStorage } from '@mantine/hooks';
 import { useState } from 'react';
 import { spotlight } from '@mantine/spotlight';
 import {
-  IconBell,
   IconChevronsLeft,
   IconChevronsRight,
   IconDialpad,
@@ -39,10 +37,11 @@ import {
   IconWifiOff,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router';
+import { NavLink as RouterNavLink, Outlet, useLocation, useNavigate } from 'react-router';
 
 import { useClinicInfo } from '../master/queries';
 import { CommandPalette } from './CommandPalette';
+import { NotificationsPopover } from './NotificationsPopover';
 import { useConnection } from './connection';
 import { displayName, useAuth } from '../auth/AuthProvider';
 import { AccountModals, type AccountModal } from '../auth/AccountModals';
@@ -175,12 +174,14 @@ function TopBar() {
   const conn = useConnection();
   const { lang, setLang } = usePrefs();
   const { isDark, toggle } = useToggleTheme();
-  const { me, lock, logout } = useAuth();
+  const { me, lock, logout, can } = useAuth();
+  const navigate = useNavigate();
   const [modal, setModal] = useState<AccountModal>(null);
 
   useHotkeys([
     ['mod+shift+L', toggle],
     ['mod+L', () => void lock()],
+    ['alt+A', () => can('appointment.create') && navigate('/appointments?new=1')],
   ]);
 
   return (
@@ -197,26 +198,13 @@ function TopBar() {
       </UnstyledButton>
 
       <Group gap="xs" wrap="nowrap">
-        <Tooltip label={t('common.milestone', { m: 'M4' })}>
-          <Button leftSection={<IconPlus size={16} />} disabled={!conn.online} data-testid="new-appointment">
+        {can('appointment.create') && (
+          <Button leftSection={<IconPlus size={16} />} disabled={!conn.online} onClick={() => navigate('/appointments?new=1')} data-testid="new-appointment">
             {t('topbar.newAppointment')}
           </Button>
-        </Tooltip>
+        )}
 
-        <Popover position="bottom-end" shadow="md" width={260}>
-          <Popover.Target>
-            <Tooltip label={t('topbar.notifications')}>
-              <ActionIcon variant="subtle" color="neutral" size="lg" aria-label={t('topbar.notifications')}>
-                <IconBell size={20} stroke={1.6} />
-              </ActionIcon>
-            </Tooltip>
-          </Popover.Target>
-          <Popover.Dropdown>
-            <Text size="sm" c="dimmed" ta="center" py="sm">
-              {t('topbar.noNotifications')}
-            </Text>
-          </Popover.Dropdown>
-        </Popover>
+        <NotificationsPopover />
 
         <Tooltip label={t(`connection.${conn.state}`)}>
           <Indicator

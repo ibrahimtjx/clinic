@@ -1,0 +1,141 @@
+.wrap {
+  border: 1px solid var(--app-border);
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-surface);
+  overflow: auto;
+  max-height: calc(100vh - 230px);
+  position: relative;
+}
+
+.header {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--app-surface);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.colHeader {
+  flex: 1 1 0;
+  min-width: 170px;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  border-inline-start: 1px solid var(--app-border);
+}
+
+.gutter {
+  flex: 0 0 64px;
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 4;
+  background: var(--app-surface);
+}
+
+.body {
+  display: flex;
+  position: relative;
+}
+
+.body > .gutter {
+  height: 100%;
+}
+
+.hourLabel {
+  position: absolute;
+  inset-inline: 0;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--app-muted);
+}
+
+.col {
+  flex: 1 1 0;
+  min-width: 170px;
+  position: relative;
+  border-inline-start: 1px solid var(--app-border);
+  /* Outside working hours */
+  background: var(--app-bg);
+  cursor: cell;
+}
+
+.work {
+  position: absolute;
+  inset-inline: 0;
+  background-color: var(--app-surface);
+  /* quarter-hour guide lines */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(15 * 1.6px - 1px),
+    var(--app-border) calc(15 * 1.6px - 1px),
+    var(--app-border) calc(15 * 1.6px)
+  );
+  opacity: 1;
+}
+
+.break {
+  position: absolute;
+  inset-inline: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--app-bg),
+    var(--app-bg) 6px,
+    var(--app-border) 6px,
+    var(--app-border) 7px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hourLine {
+  position: absolute;
+  inset-inline: 0;
+  border-top: 1px solid var(--mantine-color-default-border);
+  pointer-events: none;
+}
+
+.now {
+  position: absolute;
+  inset-inline: 0;
+  border-top: 2px solid var(--mantine-color-red-6);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.card {
+  position: absolute;
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: var(--mantine-radius-sm);
+  border-inline-start: 3px solid;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  box-shadow: var(--mantine-shadow-xs);
+}
+
+.card:active {
+  cursor: grabbing;
+}
+
+.resize {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.ghost {
+  position: absolute;
+  inset-inline: 2px;
+  z-index: 6;
+  border: 2px dashed var(--mantine-color-accent-6);
+  border-radius: var(--mantine-radius-sm);
+  background: color-mix(in srgb, var(--mantine-color-accent-1) 70%, transparent);
+  padding: 2px 6px;
+  pointer-events: none;
+}

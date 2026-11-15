@@ -5,10 +5,10 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.audit import log_event
-from app.deps import DbSession, Principal, check_version, require
+from app.deps import CurrentUser, DbSession, Principal, check_version, require
 from app.models import AuthSession, Role, User, UserRole
 from app.routers.auth import policy_error
-from app.schemas import ResetPasswordIn, UserCreate, UserOut, UserUpdate
+from app.schemas import DirectoryEntry, ResetPasswordIn, UserCreate, UserOut, UserUpdate
 from app.security import PolicyError, check_password_policy, hash_secret
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -58,6 +58,12 @@ def _admin_count_without(db: Session, user_id: int) -> int:
 def _out(db: Session, user: User) -> UserOut:
     db.refresh(user)
     return UserOut.model_validate(user)
+
+
+@router.get("/directory", response_model=list[DirectoryEntry])
+def directory(db: DbSession, _: CurrentUser) -> list[User]:
+    """Active staff names, for pickers such as "assign patient to" (no account details)."""
+    return list(db.scalars(select(User).where(User.is_active, User.deleted_at.is_(None)).order_by(User.full_name_ar)))
 
 
 @router.get("", response_model=list[UserOut])

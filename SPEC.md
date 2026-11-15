@@ -653,3 +653,22 @@ The pilot can start in the browser after M9, before the Tauri app (M10) is finis
 - 2026-11-15: Settings lists are deactivated or soft-deleted, never hard deleted; `record.view_deleted` shows deleted rows with Restore.
 - 2026-11-15: Clinic logo upload is deferred to the printing work (letterhead), since it needs file storage.
 - 2026-11-15: CI runs `alembic check` so the models and migrations cannot drift (autogenerate once silently dropped an index declared only in a migration).
+- 2026-11-15 (M3): Patient search normalizes Arabic in the database (`clinic_normalize()`: diacritics and tatweel removed, أ/إ/آ/ٱ→ا, ة→ه, ى→ي, Arabic-Indic digits → Western, lower case) into generated columns with trigram GIN indexes; the UI highlights with the same rules. Measured 12–152 ms at 50,000 patients.
+- 2026-11-15: File numbers come from a PostgreSQL sequence: sequential and never reused (a failed insert may skip a number; file numbers are not required to be gapless, unlike invoices).
+- 2026-11-15: The patient's current insurance is one row per patient; earlier values stay in the audit log. Insurance classes and coverage rules come with M7.
+- 2026-11-15: Chronic diseases and allergies are returned with the patient (they drive the header warning badges). Medications and medical history are returned only by `/patients/{id}/health`, which needs `patient.medical_view` and logs every read. Editing health needs `patient.edit` or `dental.edit`.
+- 2026-11-15: Duplicate check on national ID or mobile returns 409 `possible_duplicate` with the matches; the client can resend with `allow_duplicate: true` after the user confirms.
+- 2026-11-15: Patient list column choice and order are saved per user per PC (browser storage), not on the server.
+- 2026-11-15: `balance` and `last_visit_at` exist on patients now and are maintained by later milestones (M4–M8).
+- 2026-11-15 (M4): The calendar is a custom grid (MIT, no calendar library): RTL and doctor columns are simpler to get right than adapting react-big-calendar.
+- 2026-11-15: The no-overlap rule is the exclusion constraint from section 14. The API also pre-checks to name the clashing booking; the constraint still decides races.
+- 2026-11-15: Same-day and outside-hours warnings come back as 409 `needs_confirmation`; the client resends with `acknowledge`. Outside hours additionally needs `appointment.override_hours`. The default Reception role has it (all `appointment.*`); remove it in the role matrix if reception must not override.
+- 2026-11-15: Appointment times are sent with the +03:00 offset (Asia/Riyadh has no DST). These are the scheduled times the user chooses, not record timestamps, so SPEC 2 "clients never send timestamps for records" still holds.
+- 2026-11-15: "Waiting-list flag" on an appointment = the patient would take an earlier slot; the waiting list holds both such patients and patients without a booking. A freed slot is matched by doctor (or any), preferred weekday and time window.
+- 2026-11-15: Cancelling uses the Cancelled status (reason required); deleting (soft) is for entries made by mistake and needs `appointment.delete`.
+- 2026-11-15: Completing an appointment updates the patient's `last_visit_at`.
+- 2026-11-15: Printing for now is a print-preview page plus the browser's print dialog (slip and day schedule); silent printing waits for the desktop app spike (M0.5).
+- 2026-11-15 (M5): Queue numbers restart daily and are allocated under a row lock (number_sequences row `queue-YYYYMMDD`). One open queue entry per patient per day.
+- 2026-11-15: Queue steps drive the linked appointment's status: send → Arrived, start → With doctor, finish → Completed. "Left without being seen" is an extra end state for the table and totals.
+- 2026-11-15: Minutes waited = from received until the doctor started (or until now while waiting). Thresholds (15/30 by default) are a setting.
+- 2026-11-15: "Finishing prompts reception if a payment order was created" (SPEC 7.3) waits for payment orders (M7).

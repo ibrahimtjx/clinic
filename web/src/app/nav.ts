@@ -23,9 +23,9 @@ export interface NavItem {
 // Sidebar order from SPEC 4.3. Role filtering arrives with permissions in M1.
 export const NAV_ITEMS: NavItem[] = [
   { key: 'home', path: '/', icon: IconHome },
-  { key: 'appointments', path: '/appointments', icon: IconCalendarEvent, milestone: 'M4', anyOf: ['appointment.view'] },
-  { key: 'queue', path: '/queue', icon: IconUsersGroup, milestone: 'M5', anyOf: ['queue.view'] },
-  { key: 'patients', path: '/patients', icon: IconUsers, milestone: 'M3', anyOf: ['patient.view'] },
+  { key: 'appointments', path: '/appointments', icon: IconCalendarEvent, anyOf: ['appointment.view'] },
+  { key: 'queue', path: '/queue', icon: IconUsersGroup, anyOf: ['queue.view'] },
+  { key: 'patients', path: '/patients', icon: IconUsers, anyOf: ['patient.view'] },
   {
     key: 'billing',
     path: '/billing',
