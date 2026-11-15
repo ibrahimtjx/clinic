@@ -668,3 +668,7 @@ The pilot can start in the browser after M9, before the Tauri app (M10) is finis
 - 2026-11-15: Cancelling uses the Cancelled status (reason required); deleting (soft) is for entries made by mistake and needs `appointment.delete`.
 - 2026-11-15: Completing an appointment updates the patient's `last_visit_at`.
 - 2026-11-15: Printing for now is a print-preview page plus the browser's print dialog (slip and day schedule); silent printing waits for the desktop app spike (M0.5).
+- 2026-11-15 (M5): Queue numbers restart daily and are allocated under a row lock (number_sequences row `queue-YYYYMMDD`). One open queue entry per patient per day.
+- 2026-11-15: Queue steps drive the linked appointment's status: send → Arrived, start → With doctor, finish → Completed. "Left without being seen" is an extra end state for the table and totals.
+- 2026-11-15: Minutes waited = from received until the doctor started (or until now while waiting). Thresholds (15/30 by default) are a setting.
+- 2026-11-15: "Finishing prompts reception if a payment order was created" (SPEC 7.3) waits for payment orders (M7).

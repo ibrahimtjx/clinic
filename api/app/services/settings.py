@@ -59,3 +59,18 @@ def save_setting(db: Session, key: str, value: BaseModel, user_id: int) -> None:
     else:
         row.value_json = value.model_dump()
         row.updated_by = user_id
+
+
+class QueueSettings(BaseModel):
+    """Wait-time colors on the queue board (SPEC 7.1)."""
+
+    warn_minutes: int = Field(15, ge=1, le=240)
+    late_minutes: int = Field(30, ge=2, le=480)
+
+
+QUEUE_KEY = "queue"
+
+
+def get_queue_settings(db: Session) -> QueueSettings:
+    row = db.get(Setting, QUEUE_KEY)
+    return QueueSettings(**(row.value_json if row else {}))

@@ -57,6 +57,7 @@ import { errorMessage } from '../lib/errors';
 import { formatDate, formatTime } from '../lib/format';
 import { nameOf, useDoctors, useServices, useStatuses, useVisitTypes } from '../master/queries';
 import type { Doctor } from '../master/types';
+import { SendToDoctorModal, type SendTarget } from '../queue/SendToDoctorModal';
 import { AppointmentDrawer } from './AppointmentDrawer';
 import { CalendarGrid, type Column, type MoveTarget } from './CalendarGrid';
 import { useAppointmentsRange, useWaitingList } from './queries';
@@ -90,6 +91,7 @@ export function CalendarPage() {
   const [waitingOpen, setWaitingOpen] = useState(false);
   const [freed, setFreed] = useState<Appointment | null>(null);
   const [typeFor, setTypeFor] = useState<Appointment | null>(null);
+  const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);
   const [nowMin, setNowMin] = useState(minutesOf(new Date().toISOString()));
 
   useEffect(() => {
@@ -231,9 +233,22 @@ export function CalendarPage() {
         <Menu.Item leftSection={<IconReceipt size={14} />} onClick={() => navigate(`/patients/${a.patient_id}/billing`)}>
           {t('appointments.viewInvoices')}
         </Menu.Item>
-        <Menu.Item leftSection={<IconSend size={14} />} disabled rightSection={<Text size="xs">M5</Text>}>
-          {t('patients.sendToDoctor')}
-        </Menu.Item>
+        {can('queue.manage') && a.blocks_slot && (
+          <Menu.Item
+            leftSection={<IconSend size={14} />}
+            onClick={() =>
+              setSendTarget({
+                patient_id: a.patient_id,
+                patient_label: a.patient ? `${nameOf(a.patient, lang)} · ${a.patient.file_no}` : '',
+                doctor_id: a.doctor_id,
+                appointment_id: a.id,
+              })
+            }
+            data-testid="menu-send"
+          >
+            {t('patients.sendToDoctor')}
+          </Menu.Item>
+        )}
         <Menu.Item leftSection={<IconMessage size={14} />} disabled rightSection={<Text size="xs">{t('common.comingSoon')}</Text>}>
           {t('appointments.smsReminder')}
         </Menu.Item>
@@ -374,6 +389,7 @@ export function CalendarPage() {
             ))}
         </Stack>
       </Modal>
+      <SendToDoctorModal target={sendTarget} onClose={() => setSendTarget(null)} />
       <CancelModal appointment={cancelling} onClose={() => setCancelling(null)} onConfirm={(a, reason) => void setStatus(a, 'cancelled', reason)} />
       <FreeSlotFinder
         opened={finder}

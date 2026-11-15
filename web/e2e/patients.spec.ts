@@ -71,6 +71,7 @@ test('duplicate mobile is flagged', async ({ page }) => {
   await page.goto('/patients');
   await page.getByTestId('patient-search').fill('محمد');
   const firstRow = page.getByTestId('patients-table').locator('tbody tr').first();
+  await expect(firstRow.locator('mark').first()).toBeVisible();
   const mobile = (await firstRow.locator('td').nth(2).innerText()).trim();
   await page.getByTestId('new-patient').click();
   await page.getByTestId('new-patient-form').locator('input[name="mobile"]').fill(mobile);

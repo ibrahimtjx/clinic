@@ -13,6 +13,7 @@ import {
   IconTag,
   IconUserShield,
   IconUsers,
+  IconUsersGroup,
   IconList,
   type Icon,
 } from '@tabler/icons-react';
@@ -27,6 +28,7 @@ import { ClinicInfoTab } from './ClinicInfoTab';
 import { DoctorsTab } from './DoctorsTab';
 import { ClinicsTab, DepartmentsTab, InsuranceCompaniesTab, PhrasesTab, StatusesTab, VisitTypesTab } from './ListTabs';
 import { NumberingTab } from './NumberingTab';
+import { QueueSettingsTab } from './QueueSettingsTab';
 import { RolesTab } from './RolesTab';
 import { SecurityTab } from './SecurityTab';
 import { ServicesTab } from './ServicesTab';
@@ -58,6 +60,7 @@ const GROUPS: { key: string; tabs: Tab[] }[] = [
       { key: 'insurance-companies', perm: 'settings.manage', icon: IconShieldCheck, el: <InsuranceCompaniesTab /> },
       { key: 'phrases', perm: 'settings.manage', icon: IconQuote, el: <PhrasesTab /> },
       { key: 'numbering', perm: 'settings.manage', icon: IconHash, el: <NumberingTab /> },
+      { key: 'queue-settings', perm: 'settings.manage', icon: IconUsersGroup, el: <QueueSettingsTab /> },
     ],
   },
   {

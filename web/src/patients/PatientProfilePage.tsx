@@ -66,6 +66,7 @@ import { ageParts, formatDate, formatDateTime, formatMoney } from '../lib/format
 import { useUnsavedGuard } from '../lib/useUnsavedGuard';
 import { nameOf, useDoctors } from '../master/queries';
 import { PatientAppointments, UpcomingCard } from '../appointments/PatientAppointments';
+import { SendToDoctorModal, type SendTarget } from '../queue/SendToDoctorModal';
 import { DuplicateAlert, PatientFields, toBody, toForm, useDuplicates, validate, type PatientFormValues } from './PatientForm';
 import { patientKeys, usePatient } from './queries';
 import type { Assignment, Health, Patient } from './types';
@@ -245,6 +246,7 @@ function ActionBar({ patient: p }: { patient: Patient }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [assigning, setAssigning] = useState(false);
+  const [sending, setSending] = useState<SendTarget | null>(null);
   const [deleting, setDeleting] = useState(false);
   const soon = (label: string, icon: ReactNode, m: string, primary = false) => (
     <Tooltip label={t('common.milestone', { m })}>
@@ -276,7 +278,16 @@ function ActionBar({ patient: p }: { patient: Patient }) {
           {t('topbar.newAppointment')}
         </Button>
       )}
-      {soon(t('patients.sendToDoctor'), <IconSend size={16} />, 'M5')}
+      {can('queue.manage') && (
+        <Button
+          variant="light"
+          leftSection={<IconSend size={16} />}
+          onClick={() => setSending({ patient_id: p.id, patient_label: `${nameOf(p, lang)} · ${p.file_no}`, doctor_id: p.default_doctor_id })}
+          data-testid="profile-send"
+        >
+          {t('patients.sendToDoctor')}
+        </Button>
+      )}
       {soon(t('patients.newQuotation'), <IconFileInvoice size={16} />, 'M7')}
       {soon(t('patients.collectPayment'), <IconCash size={16} />, 'M8')}
       <Tooltip label={t('patients.smsSoon')}>
@@ -323,6 +334,7 @@ function ActionBar({ patient: p }: { patient: Patient }) {
             ))}
         </Menu.Dropdown>
       </Menu>
+      <SendToDoctorModal target={sending} onClose={() => setSending(null)} />
       <AssignModal patientId={p.id} opened={assigning} onClose={() => setAssigning(false)} />
       <Modal opened={deleting} onClose={() => setDeleting(false)} title={t('patients.deleteTitle')} size="sm">
         <Text size="sm">{t('patients.deleteBody')}</Text>
