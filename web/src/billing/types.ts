@@ -82,6 +82,8 @@ export interface BillingDoc extends Totals {
   reception_note?: string;
   sent_at?: string | null;
   sent_by_name?: string | null;
+  invoice_id?: number | null;
+  invoice_no?: string | null;
 }
 
 export interface EditLine {

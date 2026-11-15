@@ -31,6 +31,7 @@ export interface Patient {
   referral_source: string | null;
   notes: string;
   balance: string;
+  deposit_balance?: string;
   last_visit_at: string | null;
   created_at: string;
   created_by: number | null;

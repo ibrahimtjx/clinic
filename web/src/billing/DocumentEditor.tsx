@@ -21,7 +21,7 @@ import {
 } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconCheck, IconFileInvoice, IconPlus, IconPrinter, IconSend, IconShieldCheck, IconTrash, IconX } from '@tabler/icons-react';
+import { IconCash, IconCheck, IconFileInvoice, IconPlus, IconPrinter, IconSend, IconShieldCheck, IconTrash, IconX } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -37,6 +37,7 @@ import { formatDate, formatMoney } from '../lib/format';
 import { useUnsavedGuard } from '../lib/useUnsavedGuard';
 import { nameOf, useDoctors, useServices } from '../master/queries';
 import { usePatient } from '../patients/queries';
+import { CollectModal } from './CollectModal';
 import type { BillingDoc, DocKind, EditLine, InsuranceClass, Preview } from './types';
 
 let keySeq = 0;
@@ -100,6 +101,7 @@ export function DocumentEditor() {
   const [base, setBase] = useState('');
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  const [collecting, setCollecting] = useState(false);
 
   useEffect(() => {
     if (isNew) {
@@ -157,9 +159,10 @@ export function DocumentEditor() {
     }
   }
 
-  async function action(name: string, extra: object = {}) {
-    let d = doc.data;
-    if (dirty) d = (await save()) ?? undefined;
+  async function action(name: string, extra: object = {}, saved?: BillingDoc) {
+    // `saved` is the document just created by save(): this closure still sees the old dirty state.
+    let d = saved ?? doc.data;
+    if (!saved && dirty) d = (await save()) ?? undefined;
     if (!d) return;
     try {
       const url = name === 'convert' ? `/quotations/${d.id}/convert` : `${path}/${d.id}/${name}`;
@@ -394,8 +397,18 @@ export function DocumentEditor() {
             </Button>
           )}
           {kind === 'payment_order' && editable && (!d || d.status === 'draft') && (
-            <Button leftSection={<IconSend size={16} />} onClick={() => void (d ? action('send') : save().then((x) => x && action('send')))} loading={busy} disabled={apiLines.length === 0} data-testid="send-to-reception">
+            <Button leftSection={<IconSend size={16} />} onClick={() => void (d ? action('send') : save().then((x) => x && action('send', {}, x)))} loading={busy} disabled={apiLines.length === 0} data-testid="send-to-reception">
               {t('billing.sendToReception')}
+            </Button>
+          )}
+          {kind === 'payment_order' && d?.status === 'sent' && can('payment.collect') && (
+            <Button color="green" leftSection={<IconCash size={16} />} onClick={() => setCollecting(true)} data-testid="collect-order">
+              {t('ledger.collect')}
+            </Button>
+          )}
+          {kind === 'payment_order' && d?.status === 'paid' && d.invoice_id && (
+            <Button variant="light" component={Link} to={`/billing/invoice/${d.invoice_id}`} leftSection={<IconFileInvoice size={16} />} data-testid="open-invoice">
+              {t('ledger.invoice')} <span dir="ltr" style={{ marginInlineStart: 4 }}>{d.invoice_no}</span>
             </Button>
           )}
           {kind === 'quotation' && d && can('quotation.edit') && ['draft', 'sent', 'accepted'].includes(d.status) && (
@@ -432,6 +445,7 @@ export function DocumentEditor() {
           </Stack>
         </Card>
       </Group>
+      <CollectModal order={collecting && d ? d : null} onClose={() => setCollecting(false)} />
     </Stack>
   );
 }

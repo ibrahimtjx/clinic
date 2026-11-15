@@ -4,8 +4,10 @@ import { CalendarPage } from '../appointments/CalendarPage';
 import { DesignPage } from '../pages/DesignPage';
 import { BillingPage } from '../billing/BillingPage';
 import { DocumentEditor } from '../billing/DocumentEditor';
+import { InvoicePage } from '../billing/InvoicePage';
 import { BillingPrint } from '../print/BillingPrint';
 import { DentalPrint } from '../print/DentalPrint';
+import { ClosingPrint, CreditNotePrint, InvoicePrint, ReceiptPrint } from '../print/LedgerPrint';
 import { AppointmentSlip, DaySchedule } from '../print/PrintPages';
 import { HomePage } from '../pages/HomePage';
 import { PlaceholderPage } from '../pages/PlaceholderPage';
@@ -22,6 +24,10 @@ export const routes = [
   { path: '/print/day', element: <DaySchedule /> },
   { path: '/print/dental/:id', element: <DentalPrint /> },
   { path: '/print/billing/:kind/:id', element: <BillingPrint /> },
+  { path: '/print/invoice/:id', element: <InvoicePrint /> },
+  { path: '/print/receipt/:id', element: <ReceiptPrint /> },
+  { path: '/print/credit-note/:id', element: <CreditNotePrint /> },
+  { path: '/print/closing/:id', element: <ClosingPrint /> },
   {
     path: '/',
     element: <AppLayout />,
@@ -31,7 +37,8 @@ export const routes = [
       { path: 'settings/:tab?', element: <SettingsPage /> },
       { path: 'appointments', element: <CalendarPage /> },
       { path: 'queue', element: <QueuePage /> },
-      { path: 'billing', element: <BillingPage /> },
+      { path: 'billing/:tab?', element: <BillingPage /> },
+      { path: 'billing/invoice/:id', element: <InvoicePage /> },
       { path: 'billing/:kind/:id', element: <DocumentEditor /> },
       { path: 'patients', element: <PatientsPage /> },
       { path: 'patients/:id/:tab?', element: <PatientProfilePage /> },

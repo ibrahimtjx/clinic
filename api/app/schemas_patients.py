@@ -182,6 +182,7 @@ class PatientOut(BaseModel):
     referral_source: str | None
     notes: str
     balance: MoneyOut
+    deposit_balance: MoneyOut
     last_visit_at: datetime | None
     created_at: datetime
     created_by: int | None
