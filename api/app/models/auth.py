@@ -6,10 +6,12 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -54,6 +56,8 @@ class UserRole(Base):
 
 class User(TimestampMixin, VersionMixin, SoftDeleteMixin, Base):
     __tablename__ = "users"
+    # Declared here so migration autogenerate keeps it (created in migration 0002).
+    __table_args__ = (Index("ux_users_username_lower", text("lower(username)"), unique=True),)
     __audited__ = True
     __audit_masked__ = frozenset({"password_hash", "pin_hash"})
     # Sign-in counters and UI preferences change often; sign-in events are logged explicitly instead.

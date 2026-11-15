@@ -1,53 +1,123 @@
-import { Tabs, Title } from '@mantine/core';
-import { IconHistory, IconShieldLock, IconUserShield, IconUsers } from '@tabler/icons-react';
+import { Grid, NavLink, Paper, Stack, Text, Title } from '@mantine/core';
+import {
+  IconBuildingHospital,
+  IconCalendarStats,
+  IconCategory,
+  IconHash,
+  IconHistory,
+  IconId,
+  IconQuote,
+  IconShieldLock,
+  IconStethoscope,
+  IconTag,
+  IconUserShield,
+  IconUsers,
+  IconList,
+  type Icon,
+} from '@tabler/icons-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useParams } from 'react-router';
 
 import { useAuth } from '../auth/AuthProvider';
 import { EmptyState } from '../components/EmptyState';
 import { AuditTab } from './AuditTab';
+import { ClinicInfoTab } from './ClinicInfoTab';
+import { DoctorsTab } from './DoctorsTab';
+import { ClinicsTab, DepartmentsTab, PhrasesTab, StatusesTab, VisitTypesTab } from './ListTabs';
+import { NumberingTab } from './NumberingTab';
 import { RolesTab } from './RolesTab';
 import { SecurityTab } from './SecurityTab';
+import { ServicesTab } from './ServicesTab';
 import { UsersTab } from './UsersTab';
 
-const TABS = [
-  { key: 'users', perm: 'user.manage', icon: IconUsers, el: <UsersTab /> },
-  { key: 'roles', perm: 'role.manage', icon: IconUserShield, el: <RolesTab /> },
-  { key: 'security', perm: 'settings.manage', icon: IconShieldLock, el: <SecurityTab /> },
-  { key: 'audit', perm: 'audit.view', icon: IconHistory, el: <AuditTab /> },
-] as const;
+interface Tab {
+  key: string;
+  perm: string;
+  icon: Icon;
+  el: ReactNode;
+}
 
+const GROUPS: { key: string; tabs: Tab[] }[] = [
+  {
+    key: 'clinic',
+    tabs: [
+      { key: 'clinic-info', perm: 'settings.manage', icon: IconId, el: <ClinicInfoTab /> },
+      { key: 'clinics', perm: 'settings.manage', icon: IconBuildingHospital, el: <ClinicsTab /> },
+      { key: 'departments', perm: 'settings.manage', icon: IconCategory, el: <DepartmentsTab /> },
+      { key: 'doctors', perm: 'settings.manage', icon: IconStethoscope, el: <DoctorsTab /> },
+    ],
+  },
+  {
+    key: 'lists',
+    tabs: [
+      { key: 'services', perm: 'settings.manage', icon: IconList, el: <ServicesTab /> },
+      { key: 'statuses', perm: 'settings.manage', icon: IconCalendarStats, el: <StatusesTab /> },
+      { key: 'visit-types', perm: 'settings.manage', icon: IconTag, el: <VisitTypesTab /> },
+      { key: 'phrases', perm: 'settings.manage', icon: IconQuote, el: <PhrasesTab /> },
+      { key: 'numbering', perm: 'settings.manage', icon: IconHash, el: <NumberingTab /> },
+    ],
+  },
+  {
+    key: 'access',
+    tabs: [
+      { key: 'users', perm: 'user.manage', icon: IconUsers, el: <UsersTab /> },
+      { key: 'roles', perm: 'role.manage', icon: IconUserShield, el: <RolesTab /> },
+      { key: 'security', perm: 'settings.manage', icon: IconShieldLock, el: <SecurityTab /> },
+      { key: 'audit', perm: 'audit.view', icon: IconHistory, el: <AuditTab /> },
+    ],
+  },
+];
+
+const camel = (k: string) => k.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+
+/** Settings (SPEC 12): a side list of sections, one screen per section. */
 export function SettingsPage() {
   const { t } = useTranslation();
   const { can } = useAuth();
   const { tab } = useParams();
-  const navigate = useNavigate();
-  const visible = TABS.filter((x) => can(x.perm));
+  const groups = GROUPS.map((g) => ({ ...g, tabs: g.tabs.filter((x) => can(x.perm)) })).filter((g) => g.tabs.length);
+  const all = groups.flatMap((g) => g.tabs);
 
-  if (!visible.length) {
-    return <EmptyState icon={IconShieldLock} title={t('errors.forbidden')} hint={t('settings.noAccess')} />;
-  }
-  if (!tab || !visible.some((x) => x.key === tab)) return <Navigate to={`/settings/${visible[0].key}`} replace />;
+  if (!all.length) return <EmptyState icon={IconShieldLock} title={t('errors.forbidden')} hint={t('settings.noAccess')} />;
+  const current = all.find((x) => x.key === tab);
+  if (!current) return <Navigate to={`/settings/${all[0].key}`} replace />;
 
   return (
     <>
       <Title order={1} mb="lg">
         {t('nav.settings')}
       </Title>
-      <Tabs value={tab} onChange={(v) => v && navigate(`/settings/${v}`)} keepMounted={false} variant="pills" radius="md">
-        <Tabs.List mb="lg">
-          {visible.map(({ key, icon: Icon }) => (
-            <Tabs.Tab key={key} value={key} leftSection={<Icon size={16} />}>
-              {t(`settings.tabs.${key}`)}
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
-        {visible.map(({ key, el }) => (
-          <Tabs.Panel key={key} value={key}>
-            {el}
-          </Tabs.Panel>
-        ))}
-      </Tabs>
+      <Grid gutter="lg">
+        <Grid.Col span={{ base: 12, md: 3, lg: 2.5 }}>
+          <Paper p="xs" withBorder>
+            <Stack gap="sm">
+              {groups.map((g) => (
+                <div key={g.key}>
+                  <Text size="xs" c="dimmed" fw={600} px="sm" py={4}>
+                    {t(`settings.groups.${g.key}`)}
+                  </Text>
+                  {g.tabs.map(({ key, icon: I }) => (
+                    <NavLink
+                      key={key}
+                      component={Link}
+                      to={`/settings/${key}`}
+                      label={t(`settings.tabs.${camel(key)}`)}
+                      leftSection={<I size={18} stroke={1.6} />}
+                      active={key === tab}
+                      style={{ borderRadius: 'var(--mantine-radius-md)' }}
+                      data-testid={`settings-nav-${key}`}
+                    />
+                  ))}
+                </div>
+              ))}
+            </Stack>
+          </Paper>
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, md: 9, lg: 9.5 }} key={current.key}>
+          {current.el}
+        </Grid.Col>
+      </Grid>
     </>
   );
 }

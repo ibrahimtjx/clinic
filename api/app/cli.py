@@ -1,24 +1,45 @@
 """Admin commands.
 
-    python -m app.cli create-admin --username admin --name-ar "مدير النظام"
-    python -m app.cli seed-dev        # fake users for development only
+python -m app.cli create-admin --username admin --name-ar "مدير النظام"
+python -m app.cli seed-dev        # fake users for development only
 """
 
 import argparse
 import getpass
 import sys
+from datetime import time
+from decimal import Decimal
 
 from sqlalchemy import func, select
 
 from app.audit import log_event
 from app.db import SessionLocal
-from app.models import Role, User, UserRole
+from app.models import (
+    Department,
+    Doctor,
+    DoctorCommissionRule,
+    DoctorSchedule,
+    Role,
+    SavedPhrase,
+    Service,
+    User,
+    UserRole,
+)
 from app.security import PolicyError, check_password_policy, hash_secret
+from app.services.settings import ClinicInfo, save_setting
 
 DEV_PASSWORD = "Clinic-dev-2026"
 
 
-def _create(db, username: str, name_ar: str, name_en: str, password: str, role_keys: list[str], must_change: bool):
+def _create(
+    db,
+    username: str,
+    name_ar: str,
+    name_en: str,
+    password: str,
+    role_keys: list[str],
+    must_change: bool,
+):
     if db.scalar(select(User.id).where(func.lower(User.username) == username.lower())):
         print(f"User {username} already exists", file=sys.stderr)
         return None
@@ -42,7 +63,15 @@ def create_admin(args) -> int:
     password = args.password or getpass.getpass("Password (min 10 characters): ")
     with SessionLocal() as db:
         try:
-            user = _create(db, args.username, args.name_ar, args.name_en, password, ["admin"], must_change=False)
+            user = _create(
+                db,
+                args.username,
+                args.name_ar,
+                args.name_en,
+                password,
+                ["admin"],
+                must_change=False,
+            )
         except PolicyError as e:
             print(f"Rejected: {e.code}", file=sys.stderr)
             return 1
@@ -69,8 +98,104 @@ def seed_dev(_args) -> int:
             if u is not None:
                 u.pin_hash = hash_secret("2468")
                 print(f"  {username:10} password {DEV_PASSWORD}  PIN 2468")
+        db.flush()
+        _seed_dev_master(db)
         db.commit()
     return 0
+
+
+# Fake development prices only. Real prices are set by the clinic in Settings → Services.
+DEV_PRICES = {
+    "DN001": "100",
+    "DN002": "200",
+    "DN003": "300",
+    "DN004": "50",
+    "DN005": "150",
+    "DN006": "150",
+    "DN007": "600",
+    "DN008": "1800",
+    "DN009": "1200",
+    "DN010": "2000",
+    "DN011": "2500",
+    "DN012": "150",
+    "DN013": "200",
+    "DN014": "350",
+    "DN015": "1500",
+    "DN016": "250",
+    "DN017": "1200",
+    "DN018": "400",
+    "DN019": "250",
+    "DN020": "12000",
+}
+
+
+def _seed_dev_master(db) -> None:
+    save_setting(
+        db,
+        "clinic",
+        ClinicInfo(
+            name_ar="مجمع الندى الطبي (تجريبي)",
+            name_en="Al Nada Medical Complex (demo)",
+            phone="0110000000",
+        ),
+        user_id=None,
+    )
+    for svc in db.scalars(select(Service)):
+        price = DEV_PRICES.get(svc.code)
+        if price and not svc.is_active:
+            svc.sale_price = Decimal(price)
+            svc.min_price = Decimal(price) * Decimal("0.8")
+            svc.max_price = Decimal(price) * Decimal("1.2")
+            svc.is_active = True
+    deps = {d.name_en: d for d in db.scalars(select(Department))}
+    week = [(d, time(9), time(13)) for d in range(5)] + [(d, time(16), time(21)) for d in range(5)]
+    for username, dep, color, specialty in [
+        ("dr.reem", "Orthodontics", "grape", ("أخصائية تقويم", "Orthodontist")),
+        ("dr.omar", "General dentistry", "blue", ("طبيب أسنان عام", "General dentist")),
+    ]:
+        user = db.scalar(select(User).where(User.username == username))
+        if user is None or db.scalar(select(Doctor.id).where(Doctor.user_id == user.id)):
+            continue
+        doc = Doctor(
+            user_id=user.id,
+            name_ar=user.full_name_ar,
+            name_en=user.full_name_en,
+            specialty_ar=specialty[0],
+            specialty_en=specialty[1],
+            department_id=deps[dep].id,
+            clinic_id=deps[dep].clinic_id,
+            color=color,
+            slot_minutes=20 if username == "dr.reem" else 15,
+            sort_order=10 if username == "dr.reem" else 20,
+        )
+        doc.schedules = [
+            DoctorSchedule(weekday=d, start_time=a, end_time=b, kind="work") for d, a, b in week
+        ] + [
+            DoctorSchedule(weekday=d, start_time=time(11), end_time=time(11, 30), kind="break")
+            for d in range(5)
+        ]
+        doc.commission_rules = [DoctorCommissionRule(percent=Decimal(30))]
+        db.add(doc)
+    if not db.scalar(select(SavedPhrase.id).limit(1)):
+        for i, (field, text) in enumerate(
+            [
+                ("chief_complaint", "ألم عند المضغ"),
+                ("chief_complaint", "حساسية للبارد"),
+                ("chief_complaint", "نزيف اللثة"),
+                ("diagnosis", "تسوس عميق"),
+                ("diagnosis", "التهاب لب السن"),
+                ("diagnosis", "التهاب اللثة"),
+                ("procedure", "حشوة تجميلية"),
+                ("procedure", "تنظيف وتلميع"),
+                ("next_visit", "مراجعة بعد أسبوعين"),
+                ("next_visit", "مراجعة بعد شهر"),
+                ("appointment_note", "يفضّل الفترة المسائية"),
+            ]
+        ):
+            db.add(SavedPhrase(field_key=field, text=text, sort_order=(i + 1) * 10))
+    print(
+        "  + clinic details, priced services, 2 doctors with schedules, saved phrases (fake data)"
+    )
 
 
 def main() -> int:
