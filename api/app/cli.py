@@ -10,7 +10,7 @@ import sys
 from datetime import time
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 from app.audit import log_event
 from app.db import SessionLocal
@@ -198,6 +198,32 @@ def _seed_dev_master(db) -> None:
     )
 
 
+def seed_patients(args) -> int:
+    """Bulk-insert fake patients (development and performance checks only)."""
+    import random
+
+    from sqlalchemy import insert
+
+    from app.fake_patients import fake_patient
+    from app.models import Patient
+
+    rnd = random.Random(args.seed)
+    with SessionLocal() as db:
+        start = (db.scalar(select(func.count()).select_from(Patient)) or 0) + 1
+        batch = []
+        for i in range(start, start + args.count):
+            batch.append(fake_patient(i, rnd))
+            if len(batch) == 2000:
+                db.execute(insert(Patient), batch)
+                batch = []
+        if batch:
+            db.execute(insert(Patient), batch)
+        db.execute(text("ANALYZE patients"))
+        db.commit()
+    print(f"Inserted {args.count} fake patients")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     sub = parser.add_subparsers(required=True)
@@ -209,6 +235,10 @@ def main() -> int:
     p.set_defaults(func=create_admin)
     s = sub.add_parser("seed-dev", help="Create fake development users (never in production)")
     s.set_defaults(func=seed_dev)
+    sp = sub.add_parser("seed-patients", help="Bulk fake patients for performance checks (never in production)")
+    sp.add_argument("--count", type=int, default=50_000)
+    sp.add_argument("--seed", type=int, default=2026)
+    sp.set_defaults(func=seed_patients)
     args = parser.parse_args()
     return args.func(args)
 
