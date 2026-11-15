@@ -678,3 +678,11 @@ The pilot can start in the browser after M9, before the Tauri app (M10) is finis
 - 2026-11-15: The chart is always drawn in the conventional orientation (patient's right on the viewer's left), also in the Arabic UI.
 - 2026-11-15: Opening the dental record logs a read, like the Health tab. History search is debounced so typing does not log one read per keystroke.
 - 2026-11-15: "Procedure: add services to a quotation" and "Treatment plan note: link to a plan" come with M7.
+- 2026-11-15 (M7, assumed Saudi practice, accountant to confirm): VAT 15% (setting `billing.vat_rate`). Saudi citizens are exempt on healthcare (nationality SA, or a national ID starting with 1); everyone else pays VAT. Unknown nationality charges VAT and shows a note. A service marked VAT not applicable is never taxed.
+- 2026-11-15: Insurance split order: excluded services → patient; consultations covered up to the class's consultation maximum, the rest patient; patient share % on the covered amount, capped per invoice (largest-remainder allocation to lines); the class daily limit applies to the insurer's net share; VAT split in proportion to each side's net. Expired insurance bills as cash with a note.
+- 2026-11-15: Insurance classes are a master list under the company (copay %, cap per invoice, consultation maximum, daily limit, excluded services). The patient's class must belong to the patient's company. Using a different class on a document than the patient's needs `invoice.price_override`.
+- 2026-11-15: Insurer use earlier the same day is read from final invoices, which arrive in M8; until then it is 0.
+- 2026-11-15: Prices outside a service's min–max range and free-text lines need `invoice.price_override`; overridden lines are flagged.
+- 2026-11-15: Quotations are valid 30 days by default (setting); an open quotation past its date becomes Expired when read. Quotation and payment order lines share one `draft_lines` table.
+- 2026-11-15: A treatment plan's price is locked once an option is accepted. Installments are amounts including VAT; months clamp to month end. Installments with payments cannot be regenerated.
+- 2026-11-15: Services have an `is_consultation` flag (seeded on DN001–DN003). Booking an appointment for a plan session marks it Booked; completing the appointment marks it Done.

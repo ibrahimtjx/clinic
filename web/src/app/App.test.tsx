@@ -44,9 +44,9 @@ describe('app shell', () => {
   });
 
   it('shows a placeholder for modules not built yet', async () => {
-    fakeApi();
-    renderApp('/billing', 'en');
-    expect(await screen.findByText(/milestone M7–M8/)).toBeInTheDocument();
+    fakeApi({ me: makeMe({ permissions: ['report.revenue'] }) });
+    renderApp('/reports', 'en');
+    expect(await screen.findByText(/milestone M9/)).toBeInTheDocument();
   });
 
   it('shows sidebar items by permission', async () => {

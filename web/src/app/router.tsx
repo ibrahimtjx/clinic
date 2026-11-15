@@ -2,6 +2,9 @@ import { createBrowserRouter } from 'react-router';
 
 import { CalendarPage } from '../appointments/CalendarPage';
 import { DesignPage } from '../pages/DesignPage';
+import { BillingPage } from '../billing/BillingPage';
+import { DocumentEditor } from '../billing/DocumentEditor';
+import { BillingPrint } from '../print/BillingPrint';
 import { DentalPrint } from '../print/DentalPrint';
 import { AppointmentSlip, DaySchedule } from '../print/PrintPages';
 import { HomePage } from '../pages/HomePage';
@@ -18,6 +21,7 @@ export const routes = [
   { path: '/print/slip/:id', element: <AppointmentSlip /> },
   { path: '/print/day', element: <DaySchedule /> },
   { path: '/print/dental/:id', element: <DentalPrint /> },
+  { path: '/print/billing/:kind/:id', element: <BillingPrint /> },
   {
     path: '/',
     element: <AppLayout />,
@@ -27,6 +31,8 @@ export const routes = [
       { path: 'settings/:tab?', element: <SettingsPage /> },
       { path: 'appointments', element: <CalendarPage /> },
       { path: 'queue', element: <QueuePage /> },
+      { path: 'billing', element: <BillingPage /> },
+      { path: 'billing/:kind/:id', element: <DocumentEditor /> },
       { path: 'patients', element: <PatientsPage /> },
       { path: 'patients/:id/:tab?', element: <PatientProfilePage /> },
       ...NAV_ITEMS.filter((i) => i.milestone).map((item) => ({

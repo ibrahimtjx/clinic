@@ -7,6 +7,9 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { usePrefs } from '../app/preferences';
+import { useQuery } from '@tanstack/react-query';
+
+import type { InsuranceClass } from '../billing/types';
 import { api } from '../lib/api';
 import { NATIONAL_ID, SAUDI_MOBILE } from '../lib/format';
 import { nameOf, useDoctors } from '../master/queries';
@@ -36,6 +39,7 @@ export interface PatientFormValues {
   ins_company_id: string;
   ins_policy_no: string;
   ins_class_name: string;
+  ins_class_id: string;
   ins_membership_no: string;
   ins_expiry: string;
 }
@@ -62,6 +66,7 @@ export const EMPTY_PATIENT: PatientFormValues = {
   ins_company_id: '',
   ins_policy_no: '',
   ins_class_name: '',
+  ins_class_id: '',
   ins_membership_no: '',
   ins_expiry: '',
 };
@@ -90,6 +95,7 @@ export function toForm(p: Patient): PatientFormValues {
     ins_company_id: s(p.insurance?.company_id),
     ins_policy_no: s(p.insurance?.policy_no),
     ins_class_name: s(p.insurance?.class_name),
+    ins_class_id: s((p.insurance as { class_id?: number | null } | null)?.class_id),
     ins_membership_no: s(p.insurance?.membership_no),
     ins_expiry: s(p.insurance?.expiry),
   };
@@ -126,6 +132,7 @@ export function toBody(v: PatientFormValues) {
           company_id: Number(v.ins_company_id),
           policy_no: v.ins_policy_no.trim(),
           class_name: v.ins_class_name.trim(),
+          class_id: v.ins_class_id ? Number(v.ins_class_id) : null,
           membership_no: v.ins_membership_no.trim(),
           expiry: n(v.ins_expiry),
         }
@@ -207,6 +214,7 @@ export function PatientFields({
   const { lang } = usePrefs();
   const doctors = useDoctors();
   const companies = useInsuranceCompanies();
+  const classes = useQuery({ queryKey: ['master', 'insurance-classes'], queryFn: () => api<InsuranceClass[]>('/insurance-classes') });
   const set = <K extends keyof PatientFormValues>(k: K, v: PatientFormValues[K]) => onChange({ ...value, [k]: v });
   const text = (k: keyof PatientFormValues, opts: { ltr?: boolean; required?: boolean; placeholder?: string; inputMode?: 'numeric' | 'tel' } = {}) => (
     <TextInput
@@ -282,7 +290,7 @@ export function PatientFields({
               label={t('patients.fields.ins_company_id')}
               data={(companies.data ?? []).map((c) => ({ value: String(c.id), label: nameOf(c, lang) }))}
               value={value.ins_company_id || null}
-              onChange={(v) => set('ins_company_id', v ?? '')}
+              onChange={(v) => onChange({ ...value, ins_company_id: v ?? '', ins_class_id: '', ins_class_name: '' })}
               clearable
               searchable
               description={(companies.data ?? []).length === 0 ? t('patients.noCompanies') : undefined}
@@ -290,7 +298,15 @@ export function PatientFields({
             {value.ins_company_id && (
               <>
                 {text('ins_policy_no', { ltr: true })}
-                {text('ins_class_name')}
+                <Select
+                  label={t('patients.fields.ins_class_name')}
+                  data={(classes.data ?? []).filter((c) => String(c.company_id) === value.ins_company_id).map((c) => ({ value: String(c.id), label: c.name }))}
+                  value={value.ins_class_id || null}
+                  onChange={(v) => onChange({ ...value, ins_class_id: v ?? '', ins_class_name: classes.data?.find((c) => String(c.id) === v)?.name ?? '' })}
+                  clearable
+                  description={t('billing.classPickHint')}
+                  data-testid="ins-class"
+                />
                 {text('ins_membership_no', { ltr: true })}
                 <DateInput
                   label={t('patients.fields.ins_expiry')}

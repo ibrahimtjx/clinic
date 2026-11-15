@@ -58,6 +58,7 @@ export interface Service extends Base {
   max_price: string;
   cost_price: string;
   vat_applicable: boolean;
+  is_consultation: boolean;
 }
 export interface ScheduleItem {
   id?: number;

@@ -19,6 +19,8 @@ from app.models import (
     Doctor,
     DoctorCommissionRule,
     DoctorSchedule,
+    InsuranceClass,
+    InsuranceCompany,
     Role,
     SavedPhrase,
     Service,
@@ -193,9 +195,29 @@ def _seed_dev_master(db) -> None:
             ]
         ):
             db.add(SavedPhrase(field_key=field, text=text, sort_order=(i + 1) * 10))
-    print(
-        "  + clinic details, priced services, 2 doctors with schedules, saved phrases (fake data)"
-    )
+    if not db.scalar(select(InsuranceCompany.id).where(InsuranceCompany.code == "DEMO-INS")):
+        company = InsuranceCompany(
+            code="DEMO-INS", name_ar="تأمين تجريبي", name_en="Demo Insurance", sort_order=10
+        )
+        db.add(company)
+        db.flush()
+        veneer = db.scalar(select(Service.id).where(Service.code == "DN017"))
+        for i, (name, pct, cap) in enumerate(
+            [("VIP", "0", None), ("A", "10", "50"), ("B", "20", "75")]
+        ):
+            db.add(
+                InsuranceClass(
+                    company_id=company.id,
+                    name=name,
+                    patient_share_pct=Decimal(pct),
+                    max_patient_share_per_invoice=Decimal(cap) if cap else None,
+                    consultation_max_covered=Decimal(150),
+                    daily_limit=Decimal(1500),
+                    excluded_service_ids=[veneer] if veneer else [],
+                    sort_order=(i + 1) * 10,
+                )
+            )
+    print("  + clinic details, priced services, doctors, saved phrases, demo insurer (fake data)")
 
 
 def seed_patients(args) -> int:
@@ -235,7 +257,9 @@ def main() -> int:
     p.set_defaults(func=create_admin)
     s = sub.add_parser("seed-dev", help="Create fake development users (never in production)")
     s.set_defaults(func=seed_dev)
-    sp = sub.add_parser("seed-patients", help="Bulk fake patients for performance checks (never in production)")
+    sp = sub.add_parser(
+        "seed-patients", help="Bulk fake patients for performance checks (never in production)"
+    )
     sp.add_argument("--count", type=int, default=50_000)
     sp.add_argument("--seed", type=int, default=2026)
     sp.set_defaults(func=seed_patients)

@@ -66,6 +66,8 @@ import { ageParts, formatDate, formatDateTime, formatMoney } from '../lib/format
 import { useUnsavedGuard } from '../lib/useUnsavedGuard';
 import { nameOf, useDoctors } from '../master/queries';
 import { PatientAppointments, UpcomingCard } from '../appointments/PatientAppointments';
+import { PatientBillingTab } from '../billing/BillingPage';
+import { PlansTab } from '../billing/PlansTab';
 import { DentalTab } from '../dental/DentalTab';
 import { SendToDoctorModal, type SendTarget } from '../queue/SendToDoctorModal';
 import { DuplicateAlert, PatientFields, toBody, toForm, useDuplicates, validate, type PatientFormValues } from './PatientForm';
@@ -84,9 +86,9 @@ const TABS: TabDef[] = [
   { key: 'personal', icon: IconId },
   { key: 'health', icon: IconHeartbeat, perm: 'patient.medical_view' },
   { key: 'dental', icon: IconDental, perm: 'dental.view' },
-  { key: 'plans', icon: IconClipboardList, milestone: 'M7', perm: 'plan.view' },
+  { key: 'plans', icon: IconClipboardList, perm: 'plan.view' },
   { key: 'appointments', icon: IconCalendarEvent, perm: 'appointment.view' },
-  { key: 'billing', icon: IconReceipt, milestone: 'M7–M8' },
+  { key: 'billing', icon: IconReceipt },
   { key: 'files', icon: IconFiles, milestone: 'Phase 2' },
   { key: 'prescriptions', icon: IconPill, milestone: 'Phase 2' },
   { key: 'activity', icon: IconHistory, perm: 'audit.view' },
@@ -133,6 +135,8 @@ export function PatientProfilePage() {
           {tab === 'activity' && can('audit.view') && <ActivityTab patientId={p.id} />}
           {tab === 'appointments' && can('appointment.view') && <PatientAppointments patientId={p.id} />}
           {tab === 'dental' && can('dental.view') && <DentalTab patient={p} />}
+          {tab === 'plans' && can('plan.view') && <PlansTab patient={p} />}
+          {tab === 'billing' && <PatientBillingTab patientId={p.id} />}
           {TABS.filter((x) => x.milestone).map(
             (x) =>
               tab === x.key && (
@@ -290,7 +294,11 @@ function ActionBar({ patient: p }: { patient: Patient }) {
           {t('patients.sendToDoctor')}
         </Button>
       )}
-      {soon(t('patients.newQuotation'), <IconFileInvoice size={16} />, 'M7')}
+      {can('quotation.edit') && (
+        <Button variant="light" leftSection={<IconFileInvoice size={16} />} onClick={() => navigate(`/billing/quotation/new?patient=${p.id}`)} data-testid="profile-new-quotation">
+          {t('patients.newQuotation')}
+        </Button>
+      )}
       {soon(t('patients.collectPayment'), <IconCash size={16} />, 'M8')}
       <Tooltip label={t('patients.smsSoon')}>
         <span>

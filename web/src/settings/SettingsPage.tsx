@@ -7,6 +7,7 @@ import {
   IconHistory,
   IconId,
   IconQuote,
+  IconReceipt2,
   IconShieldCheck,
   IconShieldLock,
   IconStethoscope,
@@ -27,6 +28,7 @@ import { AuditTab } from './AuditTab';
 import { ClinicInfoTab } from './ClinicInfoTab';
 import { DoctorsTab } from './DoctorsTab';
 import { ClinicsTab, DepartmentsTab, InsuranceCompaniesTab, PhrasesTab, StatusesTab, VisitTypesTab } from './ListTabs';
+import { BillingSettingsTab, InsuranceClassesTab } from './InsuranceClassesTab';
 import { NumberingTab } from './NumberingTab';
 import { QueueSettingsTab } from './QueueSettingsTab';
 import { RolesTab } from './RolesTab';
@@ -58,6 +60,8 @@ const GROUPS: { key: string; tabs: Tab[] }[] = [
       { key: 'statuses', perm: 'settings.manage', icon: IconCalendarStats, el: <StatusesTab /> },
       { key: 'visit-types', perm: 'settings.manage', icon: IconTag, el: <VisitTypesTab /> },
       { key: 'insurance-companies', perm: 'settings.manage', icon: IconShieldCheck, el: <InsuranceCompaniesTab /> },
+      { key: 'insurance-classes', perm: 'settings.manage', icon: IconShieldCheck, el: <InsuranceClassesTab /> },
+      { key: 'billing-settings', perm: 'settings.manage', icon: IconReceipt2, el: <BillingSettingsTab /> },
       { key: 'phrases', perm: 'settings.manage', icon: IconQuote, el: <PhrasesTab /> },
       { key: 'numbering', perm: 'settings.manage', icon: IconHash, el: <NumberingTab /> },
       { key: 'queue-settings', perm: 'settings.manage', icon: IconUsersGroup, el: <QueueSettingsTab /> },

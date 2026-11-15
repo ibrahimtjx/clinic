@@ -35,7 +35,7 @@ import type { Service } from '../master/types';
 
 type Form = Pick<
   Service,
-  'code' | 'name_ar' | 'name_en' | 'department_id' | 'sale_price' | 'min_price' | 'max_price' | 'cost_price' | 'vat_applicable' | 'is_active'
+  'code' | 'name_ar' | 'name_en' | 'department_id' | 'sale_price' | 'min_price' | 'max_price' | 'cost_price' | 'vat_applicable' | 'is_consultation' | 'is_active'
 >;
 
 const EMPTY: Form = {
@@ -48,6 +48,7 @@ const EMPTY: Form = {
   max_price: '0.00',
   cost_price: '0.00',
   vat_applicable: true,
+  is_consultation: false,
   is_active: true,
 };
 
@@ -278,6 +279,7 @@ function ServiceDrawer({ item, onClose }: { item: Service | 'new' | null; onClos
                 <IconInfoCircle size={16} color="var(--app-muted)" />
               </Tooltip>
             </Group>
+            <Switch label={t('services.isConsultation')} description={t('services.isConsultationHint')} checked={form.is_consultation} onChange={(e) => set('is_consultation', e.currentTarget.checked)} />
             <Switch label={t('users.active')} checked={form.is_active} onChange={(e) => set('is_active', e.currentTarget.checked)} data-testid="service-active" />
             <Group justify="flex-end" mt="md">
               <Button variant="default" onClick={requestClose}>
@@ -317,6 +319,7 @@ function pick(s: Service): Form {
     max_price: s.max_price,
     cost_price: s.cost_price,
     vat_applicable: s.vat_applicable,
+    is_consultation: s.is_consultation,
     is_active: s.is_active,
   };
 }

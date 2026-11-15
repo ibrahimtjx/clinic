@@ -30,7 +30,6 @@ export const NAV_ITEMS: NavItem[] = [
     key: 'billing',
     path: '/billing',
     icon: IconReceipt2,
-    milestone: 'M7–M8',
     anyOf: ['quotation.view', 'invoice.view', 'payment.collect'],
   },
   {
