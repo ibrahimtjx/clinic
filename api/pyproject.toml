@@ -10,6 +10,8 @@ dependencies = [
   "alembic>=1.13",
   "pydantic>=2.7",
   "pydantic-settings>=2.3",
+  "pyjwt>=2.9",
+  "bcrypt>=4.2",
 ]
 
 [project.optional-dependencies]
@@ -28,3 +30,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["app"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI dependency markers in argument defaults are the framework's idiom.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Header", "fastapi.Cookie", "app.deps.require"]

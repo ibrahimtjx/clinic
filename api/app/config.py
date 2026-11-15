@@ -8,7 +8,15 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://clinic:clinic@localhost:5432/clinic"
     timezone: str = "Asia/Riyadh"
-    app_version: str = "0.1.0"
+    app_version: str = "0.2.0"
+
+    # Auth (SPEC 3.3). The secret must be identical on primary and standby servers.
+    jwt_secret: str = "dev-only-insecure-secret-change-me-0123456789"
+    access_token_minutes: int = 15
+    refresh_token_hours: int = 12
+    cookie_secure: bool = True
+    bcrypt_rounds: int = 12
+    cookie_path: str = "/api/auth"  # path as the browser sees it, behind the proxy
 
 
 @lru_cache

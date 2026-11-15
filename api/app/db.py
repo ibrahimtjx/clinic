@@ -26,4 +26,8 @@ class Base(DeclarativeBase):
 
 def get_db() -> Iterator[Session]:
     with SessionLocal() as session:
-        yield session
+        try:
+            yield session
+        except Exception:
+            session.rollback()
+            raise
