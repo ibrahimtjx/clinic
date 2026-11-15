@@ -11,7 +11,7 @@ export function makeMe(over: Partial<Me> = {}): Me {
     full_name_ar: 'أمل الغامدي',
     full_name_en: 'Amal Alghamdi',
     roles: [{ id: 3, key: 'reception', name_ar: 'الاستقبال', name_en: 'Reception' }],
-    permissions: ['patient.view', 'appointment.view', 'queue.view', 'payment.collect'],
+    permissions: ['patient.view', 'appointment.view', 'appointment.create', 'queue.view', 'payment.collect'],
     has_pin: true,
     must_change_password: false,
     preferences: { lang: null, theme: null, digits: null },

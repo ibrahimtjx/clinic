@@ -1,3 +1,4 @@
+from app.models.appointments import Appointment, WaitingListEntry
 from app.models.audit import AuditLog
 from app.models.auth import AuthSession, Role, RolePermission, User, UserRole
 from app.models.base import Base
@@ -17,6 +18,7 @@ from app.models.patients import InsuranceCompany, Patient, PatientAssignment, Pa
 from app.models.settings import Setting
 
 __all__ = [
+    "Appointment",
     "AppointmentStatus",
     "AuditLog",
     "AuthSession",
@@ -39,4 +41,5 @@ __all__ = [
     "User",
     "UserRole",
     "VisitType",
+    "WaitingListEntry",
 ]

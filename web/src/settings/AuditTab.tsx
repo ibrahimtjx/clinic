@@ -14,6 +14,8 @@ import { fetchAudit, keys, useUsers, type AuditFilters } from './queries';
 
 const ACTIONS = ['create', 'update', 'delete', 'restore', 'read', 'export', 'login', 'login_failed', 'login_blocked', 'logout', 'lock', 'unlock'];
 const TABLES = [
+  'appointments',
+  'waiting_list',
   'patients',
   'patient_insurance',
   'patient_assignments',

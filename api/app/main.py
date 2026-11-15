@@ -9,7 +9,7 @@ from sqlalchemy.orm.exc import StaleDataError
 
 from app.config import get_settings
 from app.db import get_db
-from app.routers import audit, auth, doctors, master, patients, roles, users
+from app.routers import appointments, audit, auth, doctors, master, patients, roles, users
 from app.routers import settings as settings_router
 
 settings = get_settings()
@@ -26,6 +26,8 @@ app.include_router(master.router)
 app.include_router(doctors.router)
 app.include_router(patients.router)
 app.include_router(patients.assignments_router)
+app.include_router(appointments.router)
+app.include_router(appointments.waiting_router)
 
 DbSession = Annotated[Session, Depends(get_db)]
 

@@ -37,7 +37,7 @@ import {
   IconWifiOff,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router';
+import { NavLink as RouterNavLink, Outlet, useLocation, useNavigate } from 'react-router';
 
 import { useClinicInfo } from '../master/queries';
 import { CommandPalette } from './CommandPalette';
@@ -174,12 +174,14 @@ function TopBar() {
   const conn = useConnection();
   const { lang, setLang } = usePrefs();
   const { isDark, toggle } = useToggleTheme();
-  const { me, lock, logout } = useAuth();
+  const { me, lock, logout, can } = useAuth();
+  const navigate = useNavigate();
   const [modal, setModal] = useState<AccountModal>(null);
 
   useHotkeys([
     ['mod+shift+L', toggle],
     ['mod+L', () => void lock()],
+    ['alt+A', () => can('appointment.create') && navigate('/appointments?new=1')],
   ]);
 
   return (
@@ -196,11 +198,11 @@ function TopBar() {
       </UnstyledButton>
 
       <Group gap="xs" wrap="nowrap">
-        <Tooltip label={t('common.milestone', { m: 'M4' })}>
-          <Button leftSection={<IconPlus size={16} />} disabled={!conn.online} data-testid="new-appointment">
+        {can('appointment.create') && (
+          <Button leftSection={<IconPlus size={16} />} disabled={!conn.online} onClick={() => navigate('/appointments?new=1')} data-testid="new-appointment">
             {t('topbar.newAppointment')}
           </Button>
-        </Tooltip>
+        )}
 
         <NotificationsPopover />
 
