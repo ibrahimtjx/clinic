@@ -246,7 +246,8 @@
       "visitTypes": "Visit types",
       "phrases": "Saved phrases",
       "numbering": "Document numbering",
-      "insuranceCompanies": "Insurance companies"
+      "insuranceCompanies": "Insurance companies",
+      "queueSettings": "Queue"
     },
     "groups": {
       "clinic": "Clinic",
@@ -403,7 +404,8 @@
       "visit_types": "Visit types",
       "saved_phrases": "Saved phrases",
       "appointments": "Appointments",
-      "waiting_list": "Waiting list"
+      "waiting_list": "Waiting list",
+      "queue_entries": "Queue"
     }
   },
   "errors": {
@@ -463,7 +465,13 @@
     "unknown_visit_type": "Visit type not found.",
     "invalid_times": "The end must be after the start.",
     "range_required": "Choose a date range.",
-    "cannot_create_cancelled": "An appointment cannot be created as cancelled."
+    "cannot_create_cancelled": "An appointment cannot be created as cancelled.",
+    "already_in_queue": "The patient is already in today's queue (number {{queue_no}}).",
+    "queue_closed": "This queue entry is closed.",
+    "not_started": "The patient has not entered yet.",
+    "already_with_doctor": "The patient is with the doctor.",
+    "unknown_appointment": "Appointment not found.",
+    "late_before_warn": "Red must come after amber."
   },
   "weekdays": [
     "Sunday",
@@ -803,5 +811,42 @@
     "slipTitle": "Appointment slip",
     "slipFooter": "Please arrive 10 minutes early.",
     "dayTitle": "Day schedule"
+  },
+  "queue": {
+    "board": "Board",
+    "table": "Table",
+    "walkIn": "Send patient to doctor",
+    "sent": "Sent. Queue number {{no}}",
+    "empty": "Nobody",
+    "stages": {
+      "waiting": "Waiting",
+      "called": "Called",
+      "with_doctor": "With doctor",
+      "done": "Done",
+      "left": "Left unseen"
+    },
+    "postpone": "Postpone",
+    "transfer": "Send to another doctor",
+    "left": "Left without being seen",
+    "addNote": "Note",
+    "postponed": "Postponed",
+    "waited": "{{n}} min",
+    "since": "Since {{time}}",
+    "call": "Call",
+    "start": "Start",
+    "finish": "Finish",
+    "dates": "Dates",
+    "total": "Total",
+    "seen": "Seen",
+    "notSeen": "Not seen",
+    "avgWait": "Average wait",
+    "minutes": "{{n}} min",
+    "receivedAt": "Received",
+    "calledAt": "Called",
+    "enteredAt": "Entered",
+    "exitedAt": "Exited",
+    "wait": "Wait",
+    "warnAfter": "Amber after (minutes)",
+    "lateAfter": "Red after (minutes)"
   }
 }

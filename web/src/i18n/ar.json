@@ -246,7 +246,8 @@
       "visitTypes": "أنواع الزيارات",
       "phrases": "العبارات المحفوظة",
       "numbering": "ترقيم المستندات",
-      "insuranceCompanies": "شركات التأمين"
+      "insuranceCompanies": "شركات التأمين",
+      "queueSettings": "قائمة الانتظار"
     },
     "groups": {
       "clinic": "العيادة",
@@ -403,7 +404,8 @@
       "visit_types": "أنواع الزيارات",
       "saved_phrases": "العبارات المحفوظة",
       "appointments": "المواعيد",
-      "waiting_list": "قائمة الانتظار"
+      "waiting_list": "قائمة الانتظار",
+      "queue_entries": "قائمة الانتظار"
     }
   },
   "errors": {
@@ -463,7 +465,13 @@
     "unknown_visit_type": "نوع الزيارة غير موجود.",
     "invalid_times": "وقت النهاية يجب أن يكون بعد البداية.",
     "range_required": "حدد فترة.",
-    "cannot_create_cancelled": "لا يمكن إنشاء موعد ملغى."
+    "cannot_create_cancelled": "لا يمكن إنشاء موعد ملغى.",
+    "already_in_queue": "المريض في قائمة الانتظار اليوم (رقم {{queue_no}}).",
+    "queue_closed": "انتهى دور هذا المريض.",
+    "not_started": "لم يدخل المريض بعد.",
+    "already_with_doctor": "المريض عند الطبيب.",
+    "unknown_appointment": "الموعد غير موجود.",
+    "late_before_warn": "الأحمر يجب أن يكون بعد الأصفر."
   },
   "weekdays": [
     "الأحد",
@@ -803,5 +811,42 @@
     "slipTitle": "قسيمة موعد",
     "slipFooter": "يرجى الحضور قبل الموعد بعشر دقائق.",
     "dayTitle": "مواعيد اليوم"
+  },
+  "queue": {
+    "board": "لوحة",
+    "table": "جدول",
+    "walkIn": "إرسال مريض للطبيب",
+    "sent": "أُرسل المريض، رقمه في الانتظار {{no}}",
+    "empty": "لا أحد",
+    "stages": {
+      "waiting": "في الانتظار",
+      "called": "تم النداء",
+      "with_doctor": "عند الطبيب",
+      "done": "انتهى",
+      "left": "غادر دون كشف"
+    },
+    "postpone": "تأجيل",
+    "transfer": "إرسال لطبيب آخر",
+    "left": "غادر دون كشف",
+    "addNote": "ملاحظة",
+    "postponed": "مؤجل",
+    "waited": "{{n}} د",
+    "since": "منذ {{time}}",
+    "call": "نداء",
+    "start": "دخول",
+    "finish": "خروج",
+    "dates": "الفترة",
+    "total": "الإجمالي",
+    "seen": "تم الكشف",
+    "notSeen": "لم يُكشف",
+    "avgWait": "متوسط الانتظار",
+    "minutes": "{{n}} دقيقة",
+    "receivedAt": "الاستقبال",
+    "calledAt": "النداء",
+    "enteredAt": "الدخول",
+    "exitedAt": "الخروج",
+    "wait": "الانتظار",
+    "warnAfter": "اللون الأصفر بعد (دقائق)",
+    "lateAfter": "اللون الأحمر بعد (دقائق)"
   }
 }

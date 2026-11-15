@@ -113,7 +113,10 @@ test('find next free slot opens a prefilled booking; print slip renders', async 
   await page.getByTestId('appt-save').click();
   // The patient may already have a booking that day from an earlier run: confirm and continue.
   const cont = page.getByTestId('continue-anyway');
-  if (await cont.isVisible({ timeout: 1500 }).catch(() => false)) await cont.click();
+  await cont
+    .waitFor({ timeout: 2000 })
+    .then(() => cont.click())
+    .catch(() => {});
   await expect(page.getByTestId('appointment-form')).toBeHidden();
 });
 
