@@ -113,11 +113,14 @@ def _authenticate(db: Session, request: Request, username: str, secret: str, met
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail={"code": "pin_not_set"})
 
     if not user.is_active or not verify_secret(secret, hashed):
-        user.failed_logins += 1
-        locked = user.failed_logins >= sec.lockout_attempts
-        if locked:
-            user.locked_until = now + timedelta(minutes=sec.lockout_minutes)
-            user.failed_logins = 0
+        failed = user.failed_logins + 1
+        locked = failed >= sec.lockout_attempts
+        _set_counters(
+            db,
+            user,
+            failed_logins=0 if locked else failed,
+            locked_until=now + timedelta(minutes=sec.lockout_minutes) if locked else None,
+        )
         log_event(db, "login_failed", "users", user.id, new={"method": method, "locked": locked}, user_id=user.id)
         db.commit()
         if locked:
@@ -126,9 +129,16 @@ def _authenticate(db: Session, request: Request, username: str, secret: str, met
             )
         raise invalid
 
-    user.failed_logins = 0
-    user.locked_until = None
+    if user.failed_logins or user.locked_until:
+        _set_counters(db, user, failed_logins=0, locked_until=None)
     return user
+
+
+def _set_counters(db: Session, user: User, **values) -> None:
+    """Sign-in counters are bookkeeping, not an edit of the user: they must not bump `version`,
+    or an admin editing this user would get a false "changed by someone else" conflict."""
+    db.execute(update(User).where(User.id == user.id).values(**values).execution_options(synchronize_session=False))
+    db.refresh(user)
 
 
 def _start_session(db: Session, request: Request, response: Response, user: User, method: str) -> TokenOut:
@@ -233,8 +243,11 @@ def me(principal: CurrentUserPending, db: DbSession) -> MeOut:
 @router.patch("/me/preferences", response_model=MeOut)
 def update_preferences(body: Preferences, principal: CurrentUserPending, db: DbSession) -> MeOut:
     user = principal.user
-    user.preferences = {**(user.preferences or {}), **body.model_dump(exclude_none=True)}
+    merged = {**(user.preferences or {}), **body.model_dump(exclude_none=True)}
+    # UI preferences save in the background; like sign-in counters they do not bump `version`.
+    db.execute(update(User).where(User.id == user.id).values(preferences=merged).execution_options(synchronize_session=False))
     db.commit()
+    db.refresh(user)
     return build_me(db, user)
 
 

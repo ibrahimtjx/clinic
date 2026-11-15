@@ -1,0 +1,21 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: color-mix(in srgb, var(--app-bg) 70%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.pin {
+  letter-spacing: 0.5em;
+  text-align: center;
+  font-size: var(--mantine-font-size-lg);
+}
+
+.cover {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  background: var(--app-bg);
+}

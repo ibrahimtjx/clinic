@@ -222,3 +222,18 @@ def test_username_lookup_is_case_insensitive_and_unique(db, make_user):
     assert db.scalar(select(User.username).where(func.lower(User.username) == "amal")) == "Amal"
     with pytest.raises(IntegrityError):
         make_user("amal", ["reception"])
+
+
+def test_sign_in_bookkeeping_does_not_bump_version(client, make_user, db):
+    """Regression: failed sign-ins and preference saves must not cause false edit conflicts."""
+    user = make_user("amal", ["reception"])
+    v0 = user.version
+    client.post("/auth/login", json={"username": "amal", "password": "nope-nope-nope"})
+    login(client, "amal")
+    client.patch("/auth/me/preferences", json={"lang": "en"})
+    db.refresh(user)
+    assert user.version == v0
+    assert user.preferences == {"lang": "en"} and user.failed_logins == 0
+    # A password change right after a preferences save works (it used to fail with a stale row).
+    res = client.post("/auth/me/password", json={"current_password": PASSWORD, "new_password": "Brand-New-Pass1"})
+    assert res.status_code == 200

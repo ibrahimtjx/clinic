@@ -59,7 +59,9 @@ jobs:
         run: |
           cp .env.example .env
           sed -i "s/change-me-to-a-long-random-password/$(openssl rand -hex 16)/" .env
+          sed -i "s/change-me-to-a-long-random-secret/$(openssl rand -hex 32)/" .env
           docker compose up -d --build --wait
+          docker compose exec -T api python -m app.cli seed-dev
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: web/package.json

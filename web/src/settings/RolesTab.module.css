@@ -1,0 +1,13 @@
+.matrix td,
+.matrix th {
+  white-space: nowrap;
+}
+
+.group td {
+  background: var(--app-bg);
+  font-size: var(--mantine-font-size-sm);
+}
+
+.cell {
+  display: inline-flex;
+}

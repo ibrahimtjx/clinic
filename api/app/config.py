@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +18,13 @@ class Settings(BaseSettings):
     cookie_secure: bool = True
     bcrypt_rounds: int = 12
     cookie_path: str = "/api/auth"  # path as the browser sees it, behind the proxy
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def _long_secret(cls, v: str) -> str:
+        if len(v) < 32:
+            raise ValueError("CLINIC_JWT_SECRET must be at least 32 characters")
+        return v
 
 
 @lru_cache

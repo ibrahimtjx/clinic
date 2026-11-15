@@ -3,12 +3,15 @@
 ## Setup
 
 ```bash
-cp .env.example .env    # set POSTGRES_PASSWORD
+cp .env.example .env    # set POSTGRES_PASSWORD and JWT_SECRET
 docker compose up -d --build --wait
 docker compose ps       # proxy, api, db, web all up; api and db healthy
 ```
 
 ## Walkthrough
+
+From M1 on, sign in first (see [demo-M1.md](demo-M1.md)).
+
 
 1. **HTTPS.** Open https://localhost. After trusting the CA ([install-ca.md](install-ca.md)) there is no
    certificate warning. `http://localhost` redirects to HTTPS.
