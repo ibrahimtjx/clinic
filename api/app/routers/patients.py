@@ -239,6 +239,16 @@ def _duplicates(
     return out
 
 
+def _check_class(db: Session, ins) -> None:
+    if ins is None or ins.class_id is None:
+        return
+    from app.models import InsuranceClass
+
+    c = db.get(InsuranceClass, ins.class_id)
+    if c is None or c.company_id != ins.company_id:
+        raise _err("insurance_class_mismatch")
+
+
 def _check_refs(db: Session, doctor_id: int | None, company_id: int | None) -> None:
     if doctor_id is not None:
         d = db.get(Doctor, doctor_id)
@@ -263,6 +273,7 @@ def create_patient(
                 matches=[d.model_dump() for d in dups],
             )
     _check_refs(db, body.default_doctor_id, body.insurance.company_id if body.insurance else None)
+    _check_class(db, body.insurance)
     data = body.model_dump(exclude={"allow_duplicate", "insurance"}, exclude_none=True)
     patient = Patient(**data, created_by=p.user.id, updated_by=p.user.id)
     if body.insurance:
@@ -297,6 +308,7 @@ def update_patient(
     _check_refs(
         db, fields.get("default_doctor_id"), body.insurance.company_id if body.insurance else None
     )
+    _check_class(db, body.insurance)
     for k, v in fields.items():
         # Clearing a text field stores an empty string; nullable columns store NULL.
         setattr(

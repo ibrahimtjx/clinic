@@ -126,6 +126,7 @@ class PatientInsurance(TimestampMixin, VersionMixin, Base):
     company_id: Mapped[int] = mapped_column(ForeignKey("insurance_companies.id"), index=True)
     policy_no: Mapped[str] = mapped_column(String(60), default="", server_default="")
     class_name: Mapped[str] = mapped_column(String(60), default="", server_default="")
+    class_id: Mapped[int | None] = mapped_column(ForeignKey("insurance_classes.id"))
     membership_no: Mapped[str] = mapped_column(String(60), default="", server_default="")
     expiry: Mapped[date | None] = mapped_column(Date)
 

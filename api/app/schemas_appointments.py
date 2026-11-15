@@ -15,6 +15,7 @@ class AppointmentIn(BaseModel):
     ends_at: datetime
     visit_type_id: int | None = None
     service_id: int | None = None
+    plan_session_id: int | None = None
     status_id: int | None = None  # default: Unconfirmed
     is_waiting_list: bool = False
     note: str = Field("", max_length=2000)
@@ -36,6 +37,7 @@ class AppointmentIn(BaseModel):
 class AppointmentPatch(BaseModel):
     version: int
     doctor_id: int | None = None
+    plan_session_id: int | None = None
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     visit_type_id: int | None = None
@@ -84,6 +86,7 @@ class AppointmentOut(BaseModel):
     blocks_slot: bool
     visit_type_id: int | None
     service_id: int | None
+    plan_session_id: int | None
     is_waiting_list: bool
     note: str
     exclude_sms: bool

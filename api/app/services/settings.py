@@ -26,7 +26,7 @@ def save_security(db: Session, value: SecuritySettings, user_id: int) -> Setting
         row = Setting(key=SECURITY_KEY, value_json=value.model_dump(), updated_by=user_id)
         db.add(row)
     else:
-        row.value_json = value.model_dump()
+        row.value_json = value.model_dump(mode="json")
         row.updated_by = user_id
     return row
 
@@ -55,9 +55,9 @@ def get_clinic_info(db: Session) -> ClinicInfo:
 def save_setting(db: Session, key: str, value: BaseModel, user_id: int) -> None:
     row = db.get(Setting, key)
     if row is None:
-        db.add(Setting(key=key, value_json=value.model_dump(), updated_by=user_id))
+        db.add(Setting(key=key, value_json=value.model_dump(mode="json"), updated_by=user_id))
     else:
-        row.value_json = value.model_dump()
+        row.value_json = value.model_dump(mode="json")
         row.updated_by = user_id
 
 

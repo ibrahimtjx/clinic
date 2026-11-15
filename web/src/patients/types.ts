@@ -2,6 +2,7 @@ export interface Insurance {
   company_id: number;
   policy_no: string;
   class_name: string;
+  class_id?: number | null;
   membership_no: string;
   expiry: string | null;
   company_name_ar?: string | null;

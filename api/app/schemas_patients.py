@@ -26,6 +26,7 @@ class InsuranceIn(BaseModel):
     company_id: int
     policy_no: str = Field("", max_length=60)
     class_name: str = Field("", max_length=60)
+    class_id: int | None = None
     membership_no: str = Field("", max_length=60)
     expiry: date | None = None
 
