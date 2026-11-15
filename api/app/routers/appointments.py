@@ -14,7 +14,9 @@ from app.models import (
     Doctor,
     Patient,
     PatientInsurance,
+    PlanSession,
     Service,
+    TreatmentPlan,
     User,
     VisitType,
     WaitingListEntry,
@@ -140,6 +142,26 @@ def _out(db: Session, a: Appointment) -> AppointmentOut:
 
 
 # ---- validation ----
+def _link_session(db: Session, a: Appointment) -> None:
+    """An appointment can book a planned session of the patient's open treatment plan (SPEC 9)."""
+    if a.plan_session_id is None:
+        return
+    s = db.get(PlanSession, a.plan_session_id)
+    plan = db.get(TreatmentPlan, s.plan_id) if s else None
+    if s is None or plan is None or plan.patient_id != a.patient_id or plan.status in ("completed", "cancelled"):
+        raise _err("unknown_plan_session")
+    if s.status == "planned":
+        s.status = "booked"
+
+
+def mark_session_done(db: Session, a: Appointment) -> None:
+    """Completing the visit marks the linked plan session Done (SPEC 9)."""
+    if a.plan_session_id:
+        s = db.get(PlanSession, a.plan_session_id)
+        if s is not None:
+            s.status = "done"
+
+
 def _check_refs(db: Session, a: Appointment) -> Doctor:
     p = db.get(Patient, a.patient_id)
     if p is None or p.deleted_at is not None:
@@ -316,6 +338,7 @@ def create_appointment(
     )
     doctor = _check_refs(db, a)
     a.clinic_id = doctor.clinic_id
+    _link_session(db, a)
     if st.key == "confirmed":
         a.confirmed_by = p.user.id
         a.confirmed_at = func.now()
@@ -341,6 +364,8 @@ def update_appointment(
         raise _err("invalid_times")
     doctor = _check_refs(db, a)
     a.clinic_id = doctor.clinic_id
+    if "plan_session_id" in changes:
+        _link_session(db, a)
     if {"starts_at", "ends_at", "doctor_id"} & changes.keys():
         _check_overlap(db, a)
         _warnings(db, a, doctor, body.acknowledge, p)
@@ -370,6 +395,7 @@ def change_status(
     if st.blocks_slot and not was_blocking:
         _check_overlap(db, a)  # e.g. reinstating a cancelled booking whose slot was taken
     if st.key == "completed":
+        mark_session_done(db, a)
         patient = db.get(Patient, a.patient_id)
         if patient.last_visit_at is None or patient.last_visit_at < a.starts_at:
             patient.last_visit_at = a.starts_at

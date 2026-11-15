@@ -127,6 +127,8 @@ class Service(MasterMixin, Base):
     max_price: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0), server_default="0")
     cost_price: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0), server_default="0")
     vat_applicable: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # Consultation lines follow the insurance class's consultation limit (SPEC 10.4).
+    is_consultation: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
 class AppointmentStatus(MasterMixin, Base):

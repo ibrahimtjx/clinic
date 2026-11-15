@@ -173,6 +173,7 @@ class ServiceIn(_Base):
     max_price: Money = Decimal(0)
     cost_price: Money = Decimal(0)
     vat_applicable: bool = True
+    is_consultation: bool = False
     is_active: bool = True
 
     @field_validator("code")
@@ -192,6 +193,7 @@ class ServicePatch(_Base):
     max_price: Money | None = None
     cost_price: Money | None = None
     vat_applicable: bool | None = None
+    is_consultation: bool | None = None
     is_active: bool | None = None
 
 
@@ -206,6 +208,7 @@ class ServiceOut(_Out):
     max_price: Money
     cost_price: Money
     vat_applicable: bool
+    is_consultation: bool
 
 
 # ---- doctors ----

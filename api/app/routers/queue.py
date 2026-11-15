@@ -184,6 +184,9 @@ def _set_appt_status(
     a.blocks_slot = st.blocks_slot
     a.updated_by = user_id
     if key == "completed":
+        from app.routers.appointments import mark_session_done
+
+        mark_session_done(db, a)
         p = db.get(Patient, a.patient_id)
         if p.last_visit_at is None or p.last_visit_at < a.starts_at:
             p.last_visit_at = a.starts_at

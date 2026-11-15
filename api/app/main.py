@@ -13,6 +13,7 @@ from app.routers import (
     appointments,
     audit,
     auth,
+    billing,
     dental,
     doctors,
     master,
@@ -42,6 +43,7 @@ app.include_router(appointments.waiting_router)
 app.include_router(queue.router)
 app.include_router(queue.settings_router)
 app.include_router(dental.router)
+app.include_router(billing.router)
 
 DbSession = Annotated[Session, Depends(get_db)]
 
