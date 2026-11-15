@@ -89,6 +89,13 @@ class UserOut(ORM):
     version: int
 
 
+class DirectoryEntry(ORM):
+    id: int
+    full_name_ar: str
+    full_name_en: str
+    roles: list[RoleRef]
+
+
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50, pattern=r"^[A-Za-z0-9._-]+$")
     full_name_ar: str = Field(min_length=1, max_length=150)

@@ -42,7 +42,8 @@
     "actions": "Actions",
     "goTo": "Go to {{page}}",
     "toggleTheme": "Toggle light / dark theme",
-    "switchLanguage": "التبديل إلى العربية"
+    "switchLanguage": "التبديل إلى العربية",
+    "patients": "Patients"
   },
   "common": {
     "save": "Save",
@@ -61,7 +62,8 @@
     "actions": "Actions",
     "yes": "Yes",
     "loadMore": "Load more",
-    "no": "No"
+    "no": "No",
+    "clear": "Clear"
   },
   "placeholder": {
     "title": "{{page}}",
@@ -243,7 +245,8 @@
       "statuses": "Appointment statuses",
       "visitTypes": "Visit types",
       "phrases": "Saved phrases",
-      "numbering": "Document numbering"
+      "numbering": "Document numbering",
+      "insuranceCompanies": "Insurance companies"
     },
     "groups": {
       "clinic": "Clinic",
@@ -378,7 +381,8 @@
       "lock": "Screen lock",
       "unlock": "Unlock",
       "password_reset": "Password reset",
-      "create_admin_cli": "Admin created (CLI)"
+      "create_admin_cli": "Admin created (CLI)",
+      "export": "Export"
     },
     "tables": {
       "users": "Users",
@@ -386,7 +390,18 @@
       "role_permissions": "Role permissions",
       "user_roles": "User roles",
       "settings": "Settings",
-      "auth_sessions": "Sessions"
+      "auth_sessions": "Sessions",
+      "patients": "Patients",
+      "patient_insurance": "Patient insurance",
+      "patient_assignments": "Patient assignments",
+      "insurance_companies": "Insurance companies",
+      "clinics": "Clinics",
+      "departments": "Departments",
+      "doctors": "Doctors",
+      "services": "Services",
+      "appointment_statuses": "Appointment statuses",
+      "visit_types": "Visit types",
+      "saved_phrases": "Saved phrases"
     }
   },
   "errors": {
@@ -433,7 +448,11 @@
     "break_outside_work": "A break must be inside a working period.",
     "commission_scope": "A rule is for a department or a service, not both.",
     "commission_duplicate": "Two rules have the same scope.",
-    "constraint": "Some values are not valid."
+    "constraint": "Some values are not valid.",
+    "possible_duplicate": "This patient may already be registered.",
+    "unknown_doctor": "Doctor not found.",
+    "unknown_insurance_company": "Insurance company not found.",
+    "name_required": "Name is required."
   },
   "weekdays": [
     "Sunday",
@@ -483,7 +502,8 @@
     "departmentsHint": "Departments group services and doctors, and appear in reports.",
     "phrasesHint": "Ready-made phrases inserted into text fields with the quote button.",
     "field": "Field",
-    "phraseText": "Phrase"
+    "phraseText": "Phrase",
+    "insuranceHint": "Insurance companies. Classes and coverage rules come with quotations (M7)."
   },
   "phraseFields": {
     "appointment_note": "Appointment note",
@@ -576,6 +596,117 @@
       "invoice": "Final invoice",
       "credit_note": "Credit note",
       "receipt": "Receipt"
+    }
+  },
+  "patients": {
+    "new": "New patient",
+    "name": "Name",
+    "fileNo": "File no.",
+    "doctor": "Treating doctor",
+    "insurance": "Insurance",
+    "lastVisit": "Last visit",
+    "searchHint": "Search by file no., name, mobile or ID ( / )",
+    "export": "Export to Excel",
+    "createdRange": "Registered between",
+    "hasBalance": "Has balance",
+    "columns": "Columns",
+    "resetColumns": "Reset to default",
+    "total": "{{count}} patients",
+    "noMatch": "No matching patient",
+    "noMatchHint": "Try part of the name or the mobile number.",
+    "emptyTitle": "No patients yet",
+    "emptyHint": "Register the first patient.",
+    "created": "Patient registered, file no. {{no}}",
+    "moreDetails": "More details (insurance, emergency, allergies…)",
+    "duplicateTitle": "This patient may already be registered",
+    "duplicateConfirm": "Make sure it is not the same person before continuing.",
+    "createAnyway": "Register a new patient anyway",
+    "male": "Male",
+    "female": "Female",
+    "warnings": "Medical warnings",
+    "other": "Other",
+    "externalHint": "Referred from outside for a single service",
+    "noCompanies": "Add insurance companies in Settings.",
+    "age": "{{y}} y, {{m}} m, {{d}} d",
+    "call": "Call",
+    "smsSoon": "SMS coming soon (Phase 2)",
+    "cash": "Cash (no insurance)",
+    "external": "External",
+    "sendToDoctor": "Send to doctor",
+    "newQuotation": "New quotation",
+    "collectPayment": "Collect payment",
+    "sendSms": "Send SMS",
+    "more": "More",
+    "printStatement": "Print statement",
+    "assign": "Assign to staff",
+    "assignTo": "Assign to",
+    "assignNoteHint": "e.g. call to reschedule",
+    "assigned": "Assigned",
+    "assignedToMe": "Patients assigned to me",
+    "deleteTitle": "Delete this patient file?",
+    "deleteBody": "It is hidden from lists and kept in the records. An admin can restore it.",
+    "summary": "Summary",
+    "registered": "Registered",
+    "openAssignments": "Open tasks",
+    "noAssignments": "No open tasks",
+    "markDone": "Done",
+    "upcomingAppointments": "Upcoming appointments",
+    "openPlans": "Open treatment plans",
+    "lastVisitSummary": "Last visit summary",
+    "healthLogged": "Opening this section is recorded in the audit log.",
+    "tabs": {
+      "overview": "Overview",
+      "personal": "Personal info",
+      "health": "Health",
+      "dental": "Dental",
+      "plans": "Treatment plans",
+      "appointments": "Appointments",
+      "billing": "Billing",
+      "files": "Files",
+      "prescriptions": "Prescriptions & lab",
+      "activity": "Activity"
+    },
+    "fields": {
+      "name_ar": "Name in Arabic",
+      "name_en": "Name in English",
+      "national_id": "National ID / Iqama",
+      "nationality": "Nationality",
+      "gender": "Gender",
+      "dob": "Date of birth",
+      "mobile": "Mobile",
+      "phone": "Phone",
+      "emergency_name": "Emergency contact",
+      "emergency_phone": "Emergency number",
+      "default_doctor_id": "Treating doctor",
+      "secondary_file_no": "Secondary file no.",
+      "is_external": "External patient",
+      "sms_opt_out": "No SMS",
+      "chronic_diseases": "Chronic diseases",
+      "allergies": "Allergies",
+      "medications": "Current medications",
+      "medical_history": "Medical history",
+      "referral_source": "Referral source",
+      "notes": "Notes",
+      "ins_company_id": "Insurance company",
+      "ins_policy_no": "Policy no.",
+      "ins_class_name": "Class",
+      "ins_membership_no": "Membership no.",
+      "ins_expiry": "Insurance expiry",
+      "insurance": "Insurance",
+      "balance": "Balance",
+      "is_active": "Active",
+      "file_no": "File no.",
+      "company_id": "Insurance company",
+      "policy_no": "Policy no.",
+      "class_name": "Class",
+      "membership_no": "Membership no.",
+      "expiry": "Insurance expiry",
+      "section": "Section"
+    },
+    "errors": {
+      "name": "Name is required (at least 2 letters)",
+      "nationalId": "National ID is 10 digits",
+      "dob": "Date of birth is in the future"
     }
   }
 }

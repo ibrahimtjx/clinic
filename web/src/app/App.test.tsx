@@ -45,8 +45,8 @@ describe('app shell', () => {
 
   it('shows a placeholder for modules not built yet', async () => {
     fakeApi();
-    renderApp('/patients', 'en');
-    expect(await screen.findByText(/milestone M3/)).toBeInTheDocument();
+    renderApp('/queue', 'en');
+    expect(await screen.findByText(/milestone M5/)).toBeInTheDocument();
   });
 
   it('shows sidebar items by permission', async () => {

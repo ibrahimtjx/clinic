@@ -1,11 +1,12 @@
 import { Badge, ColorSwatch, Group, SegmentedControl, Select, Text } from '@mantine/core';
-import { IconBuildingHospital, IconCalendarStats, IconCategory, IconQuote, IconTag } from '@tabler/icons-react';
+import { IconBuildingHospital, IconCalendarStats, IconCategory, IconQuote, IconShieldCheck, IconTag } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePrefs } from '../app/preferences';
 import { MasterListTab } from '../master/MasterListTab';
 import { nameOf, useClinics } from '../master/queries';
+import type { InsuranceCompany } from '../patients/types';
 import { PHRASE_FIELDS, type AppointmentStatus, type Clinic, type Department, type PhraseField, type SavedPhrase, type VisitType } from '../master/types';
 
 function useNameFields() {
@@ -156,6 +157,27 @@ export function PhrasesTab() {
       columns={[{ label: t('master.phraseText'), render: (p) => <Text size="sm">{p.text}</Text> }]}
       defaults={{ field_key: field, text: '' }}
       testId="phrases-tab"
+    />
+  );
+}
+
+export function InsuranceCompaniesTab() {
+  const { t } = useTranslation();
+  const { lang } = usePrefs();
+  const names = useNameFields();
+  return (
+    <MasterListTab<InsuranceCompany>
+      resource="insurance-companies"
+      title={t('settings.tabs.insuranceCompanies')}
+      hint={t('master.insuranceHint')}
+      icon={IconShieldCheck}
+      fields={[{ key: 'code', kind: 'textLtr', label: t('services.code'), required: true }, ...names]}
+      columns={[
+        { label: t('services.code'), render: (c) => <Text size="sm" dir="ltr">{c.code}</Text> },
+        { label: t('master.name'), render: (c) => nameOf(c, lang) },
+      ]}
+      defaults={{ code: '', name_ar: '', name_en: '' }}
+      testId="insurance-tab"
     />
   );
 }

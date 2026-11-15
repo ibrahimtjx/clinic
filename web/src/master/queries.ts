@@ -3,7 +3,15 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { AppointmentStatus, Clinic, ClinicInfo, Department, Doctor, PhraseField, SavedPhrase, Service, VisitType } from './types';
 
-export type Resource = 'clinics' | 'departments' | 'appointment-statuses' | 'visit-types' | 'saved-phrases' | 'services' | 'doctors';
+export type Resource =
+  | 'clinics'
+  | 'departments'
+  | 'appointment-statuses'
+  | 'visit-types'
+  | 'saved-phrases'
+  | 'services'
+  | 'doctors'
+  | 'insurance-companies';
 
 interface ListOpts {
   includeInactive?: boolean;

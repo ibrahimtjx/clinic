@@ -9,7 +9,6 @@ import {
   Kbd,
   Menu,
   NavLink,
-  Popover,
   ScrollArea,
   Stack,
   Text,
@@ -21,7 +20,6 @@ import { useHotkeys, useLocalStorage } from '@mantine/hooks';
 import { useState } from 'react';
 import { spotlight } from '@mantine/spotlight';
 import {
-  IconBell,
   IconChevronsLeft,
   IconChevronsRight,
   IconDialpad,
@@ -43,6 +41,7 @@ import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router';
 
 import { useClinicInfo } from '../master/queries';
 import { CommandPalette } from './CommandPalette';
+import { NotificationsPopover } from './NotificationsPopover';
 import { useConnection } from './connection';
 import { displayName, useAuth } from '../auth/AuthProvider';
 import { AccountModals, type AccountModal } from '../auth/AccountModals';
@@ -203,20 +202,7 @@ function TopBar() {
           </Button>
         </Tooltip>
 
-        <Popover position="bottom-end" shadow="md" width={260}>
-          <Popover.Target>
-            <Tooltip label={t('topbar.notifications')}>
-              <ActionIcon variant="subtle" color="neutral" size="lg" aria-label={t('topbar.notifications')}>
-                <IconBell size={20} stroke={1.6} />
-              </ActionIcon>
-            </Tooltip>
-          </Popover.Target>
-          <Popover.Dropdown>
-            <Text size="sm" c="dimmed" ta="center" py="sm">
-              {t('topbar.noNotifications')}
-            </Text>
-          </Popover.Dropdown>
-        </Popover>
+        <NotificationsPopover />
 
         <Tooltip label={t(`connection.${conn.state}`)}>
           <Indicator

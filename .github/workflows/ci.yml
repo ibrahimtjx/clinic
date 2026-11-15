@@ -64,6 +64,7 @@ jobs:
           sed -i "s/change-me-to-a-long-random-secret/$(openssl rand -hex 32)/" .env
           docker compose up -d --build --wait
           docker compose exec -T api python -m app.cli seed-dev
+          docker compose exec -T api python -m app.cli seed-patients --count 2000
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: web/package.json

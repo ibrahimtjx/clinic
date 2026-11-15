@@ -13,6 +13,7 @@ from app.models.master import (
     Service,
     VisitType,
 )
+from app.models.patients import InsuranceCompany, Patient, PatientAssignment, PatientInsurance
 from app.models.settings import Setting
 
 __all__ = [
@@ -25,7 +26,11 @@ __all__ = [
     "Doctor",
     "DoctorCommissionRule",
     "DoctorSchedule",
+    "InsuranceCompany",
     "NumberSequence",
+    "Patient",
+    "PatientAssignment",
+    "PatientInsurance",
     "Role",
     "RolePermission",
     "SavedPhrase",

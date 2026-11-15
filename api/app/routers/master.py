@@ -5,7 +5,15 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.crud import master_router
-from app.models import AppointmentStatus, Clinic, Department, SavedPhrase, Service, VisitType
+from app.models import (
+    AppointmentStatus,
+    Clinic,
+    Department,
+    InsuranceCompany,
+    SavedPhrase,
+    Service,
+    VisitType,
+)
 from app.schemas_master import (
     ClinicIn,
     ClinicOut,
@@ -26,6 +34,7 @@ from app.schemas_master import (
     VisitTypeOut,
     VisitTypePatch,
 )
+from app.schemas_patients import InsuranceCompanyIn, InsuranceCompanyOut, InsuranceCompanyPatch
 
 
 def _err(code: str, http: int = status.HTTP_422_UNPROCESSABLE_CONTENT, **extra) -> HTTPException:
@@ -112,5 +121,15 @@ router.include_router(
         tag="services",
         validate=_validate_service,
         order_by=(Service.number,),
+    )
+)
+router.include_router(
+    master_router(
+        InsuranceCompany,
+        "/insurance-companies",
+        out=InsuranceCompanyOut,
+        create=InsuranceCompanyIn,
+        update=InsuranceCompanyPatch,
+        tag="insurance-companies",
     )
 )
