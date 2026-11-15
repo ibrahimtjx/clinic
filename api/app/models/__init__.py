@@ -15,6 +15,7 @@ from app.models.master import (
     VisitType,
 )
 from app.models.patients import InsuranceCompany, Patient, PatientAssignment, PatientInsurance
+from app.models.queue import QueueEntry
 from app.models.settings import Setting
 
 __all__ = [
@@ -33,6 +34,7 @@ __all__ = [
     "Patient",
     "PatientAssignment",
     "PatientInsurance",
+    "QueueEntry",
     "Role",
     "RolePermission",
     "SavedPhrase",
