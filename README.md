@@ -15,12 +15,21 @@ Offline-first clinic system for a dental and medical complex. Arabic first (RTL)
 ## Run the full stack
 
 ```bash
-cp .env.example .env   # then set POSTGRES_PASSWORD to a long random value
+cp .env.example .env   # then set POSTGRES_PASSWORD and JWT_SECRET to long random values
 docker compose up -d --build --wait
 ```
 
 Open https://localhost (or `https://$SERVER_NAME`). The certificate comes from the clinic's own CA.
 To trust it on a client PC, see [docs/install-ca.md](docs/install-ca.md).
+
+Create the first admin user:
+
+```bash
+docker compose exec api python -m app.cli create-admin --username admin --name-ar "مدير النظام"
+```
+
+Development only: `docker compose exec api python -m app.cli seed-dev` creates fake users for every role
+(see [docs/demo-M1.md](docs/demo-M1.md)).
 
 ## Develop
 
@@ -40,7 +49,7 @@ cd web && pnpm install
 pnpm dev          # http://localhost:5173
 pnpm test         # Vitest
 pnpm lint         # TypeScript
-pnpm e2e          # Playwright against https://localhost (set E2E_BASE_URL to change)
+pnpm e2e          # Playwright against https://localhost with seed-dev users (E2E_BASE_URL to change)
 ```
 
 ## Conventions

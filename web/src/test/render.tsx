@@ -5,6 +5,8 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { DatesLocale } from '../app/DatesLocale';
 import { makeQueryClient, Providers } from '../app/Providers';
 import { routes } from '../app/router';
+import { AuthGate } from '../auth/AuthGate';
+import { AuthProvider } from '../auth/AuthProvider';
 
 export function renderApp(path: string, lang: 'ar' | 'en' = 'ar') {
   localStorage.setItem('clinic.lang', JSON.stringify(lang));
@@ -12,7 +14,11 @@ export function renderApp(path: string, lang: 'ar' | 'en' = 'ar') {
   return render(
     <Providers queryClient={makeQueryClient()}>
       <DatesLocale>
-        <RouterProvider router={router} />
+        <AuthProvider>
+          <AuthGate>
+            <RouterProvider router={router} />
+          </AuthGate>
+        </AuthProvider>
       </DatesLocale>
     </Providers>,
   );

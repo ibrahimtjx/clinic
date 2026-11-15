@@ -1,9 +1,10 @@
 import { Spotlight, type SpotlightActionGroupData } from '@mantine/spotlight';
-import { IconLanguage, IconMoon, IconSearch } from '@tabler/icons-react';
+import { IconLanguage, IconLock, IconMoon, IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
-import { DESIGN_ITEM, NAV_ITEMS } from './nav';
+import { useAuth } from '../auth/AuthProvider';
+import { DESIGN_ITEM, visibleNav } from './nav';
 import { usePrefs, useToggleTheme } from './preferences';
 
 /**
@@ -15,11 +16,12 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const { lang, setLang } = usePrefs();
   const { toggle } = useToggleTheme();
+  const { canAny, lock } = useAuth();
 
   const actions: SpotlightActionGroupData[] = [
     {
       group: t('palette.navigation'),
-      actions: [...NAV_ITEMS, DESIGN_ITEM].map((item) => {
+      actions: [...visibleNav(canAny), DESIGN_ITEM].map((item) => {
         const Icon = item.icon;
         return {
           id: `nav-${item.key}`,
@@ -33,6 +35,7 @@ export function CommandPalette() {
     {
       group: t('palette.actions'),
       actions: [
+        { id: 'lock', label: t('topbar.lock'), leftSection: <IconLock size={20} stroke={1.6} />, onClick: () => void lock() },
         { id: 'toggle-theme', label: t('palette.toggleTheme'), leftSection: <IconMoon size={20} stroke={1.6} />, onClick: toggle },
         {
           id: 'switch-language',

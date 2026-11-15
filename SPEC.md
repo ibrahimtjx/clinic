@@ -638,3 +638,10 @@ The pilot can start in the browser after M9, before the Tauri app (M10) is finis
 - 2026-11-15: The web container is a small Caddy static server (SPA fallback); the proxy container is a separate Caddy with `tls internal`. API is served under `/api` with the prefix stripped by the proxy.
 - 2026-11-15: Postgres extensions `btree_gist` (appointment overlap constraint) and `pg_trgm` (patient search) are enabled in the first migration.
 - 2026-11-15: Until M1 (auth), language, theme and digit style are stored per browser; from M1 they move to the user profile on the server.
+- 2026-11-15: Refresh token = one server-side session per sign-in, stored hashed, sent in an HttpOnly, Secure, SameSite=Strict cookie scoped to `/api/auth`. Not rotated on each refresh (rotation logs users out when two tabs refresh at once; on a LAN with HttpOnly cookies it adds little). The session ends at 12 hours, on sign-out, on lock, on password reset and on deactivation. Every API request re-checks the session, so these take effect at once.
+- 2026-11-15: Lock ends the server session; unlocking signs in again with PIN or password. The UI stays mounted under the lock screen so open work is kept (SPEC 3.3 quick switch).
+- 2026-11-15: Failed password and PIN attempts share one lockout counter. Lockout attempts and minutes, and auto-lock minutes, are settings (defaults 5, 15, 5).
+- 2026-11-15: Audit rows are written automatically for every change to audited tables (a SQLAlchemy flush hook); sign-in events are logged explicitly. `audit_log` is append-only via a trigger. Password and PIN hashes are masked as `***`.
+- 2026-11-15: Sign-in counters and UI preferences are written without bumping the record `version`, so they never cause false edit conflicts.
+- 2026-11-15: Users are created with a temporary password and must change it at first sign-in. Usernames are unique ignoring case and never reused.
+- 2026-11-15: The audit "machine" is the X-Client-Machine header: per-browser name for now (editable on the sign-in page); the Tauri app will send the Windows PC name (M10).

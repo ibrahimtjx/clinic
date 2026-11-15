@@ -11,7 +11,7 @@ export type ConnectionState = 'checking' | 'online' | 'offline';
 export function useConnection() {
   const q = useQuery({
     queryKey: ['health'],
-    queryFn: () => apiGet<Health>('/health', { signal: AbortSignal.timeout(4000) }),
+    queryFn: () => apiGet<Health>('/health', { auth: false, signal: AbortSignal.timeout(4000) }),
     refetchInterval: (query) => (query.state.status === 'error' ? 3_000 : 10_000),
     refetchIntervalInBackground: true,
     retry: false,

@@ -18,11 +18,14 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { useHotkeys, useLocalStorage } from '@mantine/hooks';
+import { useState } from 'react';
 import { spotlight } from '@mantine/spotlight';
 import {
   IconBell,
   IconChevronsLeft,
   IconChevronsRight,
+  IconDialpad,
+  IconKey,
   IconLanguage,
   IconLock,
   IconLogout,
@@ -40,7 +43,9 @@ import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router';
 
 import { CommandPalette } from './CommandPalette';
 import { useConnection } from './connection';
-import { DESIGN_ITEM, NAV_ITEMS, type NavItem } from './nav';
+import { displayName, useAuth } from '../auth/AuthProvider';
+import { AccountModals, type AccountModal } from '../auth/AccountModals';
+import { DESIGN_ITEM, visibleNav, type NavItem } from './nav';
 import { usePrefs, useToggleTheme } from './preferences';
 import classes from './AppLayout.module.css';
 
@@ -91,6 +96,7 @@ export function AppLayout() {
 
 function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const { t, i18n } = useTranslation();
+  const { canAny } = useAuth();
   const rtl = i18n.dir() === 'rtl';
   // Chevron points toward the edge the sidebar collapses to.
   const CollapseIcon = collapsed === rtl ? IconChevronsRight : IconChevronsLeft;
@@ -115,7 +121,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 
       <ScrollArea flex={1} mt="sm">
         <Stack gap={4}>
-          {NAV_ITEMS.map((item) => (
+          {visibleNav(canAny).map((item) => (
             <SidebarLink key={item.key} item={item} collapsed={collapsed} />
           ))}
         </Stack>
@@ -165,8 +171,13 @@ function TopBar() {
   const conn = useConnection();
   const { lang, setLang } = usePrefs();
   const { isDark, toggle } = useToggleTheme();
+  const { me, lock, logout } = useAuth();
+  const [modal, setModal] = useState<AccountModal>(null);
 
-  useHotkeys([['mod+shift+L', toggle]]);
+  useHotkeys([
+    ['mod+shift+L', toggle],
+    ['mod+L', () => void lock()],
+  ]);
 
   return (
     <Group h="100%" px="lg" justify="space-between" wrap="nowrap" gap="md">
@@ -223,6 +234,26 @@ function TopBar() {
             </ActionIcon>
           </Menu.Target>
           <Menu.Dropdown>
+            {me && (
+              <>
+                <Box px="sm" py={6}>
+                  <Text size="sm" fw={600} data-testid="current-user">
+                    {displayName(me, lang)}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {me.roles.map((r) => (lang === 'ar' ? r.name_ar : r.name_en)).join('، ')}
+                  </Text>
+                </Box>
+                <Menu.Divider />
+                <Menu.Item leftSection={<IconKey size={16} />} onClick={() => setModal('password')}>
+                  {t('password.change')}
+                </Menu.Item>
+                <Menu.Item leftSection={<IconDialpad size={16} />} onClick={() => setModal('pin')} data-testid="open-pin">
+                  {me.has_pin ? t('pin.change') : t('pin.set')}
+                </Menu.Item>
+                <Menu.Divider />
+              </>
+            )}
             <Menu.Label>{t('topbar.language')}</Menu.Label>
             <Menu.Item
               leftSection={<IconLanguage size={16} />}
@@ -241,14 +272,15 @@ function TopBar() {
               {isDark ? t('topbar.light') : t('topbar.dark')}
             </Menu.Item>
             <Menu.Divider />
-            <Menu.Item leftSection={<IconLock size={16} />} disabled>
+            <Menu.Item leftSection={<IconLock size={16} />} onClick={() => void lock()} rightSection={<Kbd size="xs">Ctrl+L</Kbd>} data-testid="lock">
               {t('topbar.lock')}
             </Menu.Item>
-            <Menu.Item leftSection={<IconLogout size={16} />} disabled>
+            <Menu.Item leftSection={<IconLogout size={16} />} onClick={() => void logout()} data-testid="sign-out">
               {t('topbar.signOut')}
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>
+        <AccountModals modal={modal} onClose={() => setModal(null)} />
       </Group>
     </Group>
   );
