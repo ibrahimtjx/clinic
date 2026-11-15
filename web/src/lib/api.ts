@@ -130,3 +130,25 @@ export interface Health {
   server_time: string;
   timezone: string;
 }
+
+/**
+ * Downloads a file from an authenticated endpoint (a plain link cannot carry the bearer token)
+ * and saves it with the server's file name.
+ */
+export async function apiDownload(path: string, query?: Query, fallbackName = 'download'): Promise<void> {
+  let res = await send(path, { query }, accessToken);
+  if (res.status === 401 && refreshAccess) {
+    const token = await refreshAccess();
+    if (token) res = await send(path, { query }, token);
+  }
+  if (!res.ok) throw new ApiError(res.status, await detailOf(res));
+  const blob = await res.blob();
+  const name = res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] ?? fallbackName;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}

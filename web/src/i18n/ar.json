@@ -42,7 +42,8 @@
     "actions": "إجراءات",
     "goTo": "الانتقال إلى {{page}}",
     "toggleTheme": "تبديل المظهر الفاتح / الداكن",
-    "switchLanguage": "Switch to English"
+    "switchLanguage": "Switch to English",
+    "patients": "المرضى"
   },
   "common": {
     "save": "حفظ",
@@ -61,7 +62,8 @@
     "actions": "إجراءات",
     "yes": "نعم",
     "loadMore": "تحميل المزيد",
-    "no": "لا"
+    "no": "لا",
+    "clear": "مسح"
   },
   "placeholder": {
     "title": "{{page}}",
@@ -243,7 +245,8 @@
       "statuses": "حالات المواعيد",
       "visitTypes": "أنواع الزيارات",
       "phrases": "العبارات المحفوظة",
-      "numbering": "ترقيم المستندات"
+      "numbering": "ترقيم المستندات",
+      "insuranceCompanies": "شركات التأمين"
     },
     "groups": {
       "clinic": "العيادة",
@@ -378,7 +381,8 @@
       "lock": "قفل الشاشة",
       "unlock": "فك القفل",
       "password_reset": "إعادة تعيين كلمة المرور",
-      "create_admin_cli": "إنشاء مدير (سطر الأوامر)"
+      "create_admin_cli": "إنشاء مدير (سطر الأوامر)",
+      "export": "تصدير"
     },
     "tables": {
       "users": "المستخدمون",
@@ -386,7 +390,18 @@
       "role_permissions": "صلاحيات الأدوار",
       "user_roles": "أدوار المستخدمين",
       "settings": "الإعدادات",
-      "auth_sessions": "الجلسات"
+      "auth_sessions": "الجلسات",
+      "patients": "المرضى",
+      "patient_insurance": "تأمين المريض",
+      "patient_assignments": "إسناد المرضى",
+      "insurance_companies": "شركات التأمين",
+      "clinics": "العيادات",
+      "departments": "الأقسام",
+      "doctors": "الأطباء",
+      "services": "الخدمات",
+      "appointment_statuses": "حالات المواعيد",
+      "visit_types": "أنواع الزيارات",
+      "saved_phrases": "العبارات المحفوظة"
     }
   },
   "errors": {
@@ -433,7 +448,11 @@
     "break_outside_work": "الاستراحة يجب أن تكون داخل فترة عمل.",
     "commission_scope": "القاعدة إما لقسم أو لخدمة، وليس كليهما.",
     "commission_duplicate": "توجد قاعدتان بنفس النطاق.",
-    "constraint": "القيم المدخلة غير صالحة."
+    "constraint": "القيم المدخلة غير صالحة.",
+    "possible_duplicate": "قد يكون المريض مسجلاً من قبل.",
+    "unknown_doctor": "الطبيب غير موجود.",
+    "unknown_insurance_company": "شركة التأمين غير موجودة.",
+    "name_required": "الاسم مطلوب."
   },
   "weekdays": [
     "الأحد",
@@ -483,7 +502,8 @@
     "departmentsHint": "الأقسام تُستخدم في الخدمات والأطباء والتقارير.",
     "phrasesHint": "عبارات جاهزة تُدرج في الحقول النصية بزر الاقتباس.",
     "field": "الحقل",
-    "phraseText": "العبارة"
+    "phraseText": "العبارة",
+    "insuranceHint": "قائمة شركات التأمين. الفئات وقواعد التغطية تُضاف مع عروض الأسعار (M7)."
   },
   "phraseFields": {
     "appointment_note": "ملاحظة الموعد",
@@ -576,6 +596,117 @@
       "invoice": "فاتورة نهائية",
       "credit_note": "إشعار دائن",
       "receipt": "سند قبض"
+    }
+  },
+  "patients": {
+    "new": "مريض جديد",
+    "name": "الاسم",
+    "fileNo": "رقم الملف",
+    "doctor": "الطبيب المعالج",
+    "insurance": "التأمين",
+    "lastVisit": "آخر زيارة",
+    "searchHint": "ابحث برقم الملف أو الاسم أو الجوال أو الهوية ( / )",
+    "export": "تصدير Excel",
+    "createdRange": "تاريخ التسجيل",
+    "hasBalance": "عليه رصيد",
+    "columns": "الأعمدة",
+    "resetColumns": "استعادة الافتراضي",
+    "total": "{{count}} مريض",
+    "noMatch": "لا يوجد مريض مطابق",
+    "noMatchHint": "جرّب جزءاً من الاسم أو رقم الجوال.",
+    "emptyTitle": "لا يوجد مرضى بعد",
+    "emptyHint": "سجّل أول مريض.",
+    "created": "تم تسجيل المريض، رقم الملف {{no}}",
+    "moreDetails": "بيانات إضافية (التأمين، الطوارئ، الحساسية…)",
+    "duplicateTitle": "قد يكون المريض مسجلاً من قبل",
+    "duplicateConfirm": "تأكد أنه ليس نفس المريض قبل المتابعة.",
+    "createAnyway": "تسجيل مريض جديد على أي حال",
+    "male": "ذكر",
+    "female": "أنثى",
+    "warnings": "تنبيهات طبية",
+    "other": "أخرى",
+    "externalHint": "محال من خارج المجمع لخدمة واحدة",
+    "noCompanies": "أضف شركات التأمين من الإعدادات.",
+    "age": "{{y}} سنة، {{m}} شهر، {{d}} يوم",
+    "call": "اتصال",
+    "smsSoon": "الرسائل النصية قريباً (المرحلة الثانية)",
+    "cash": "نقدي (بدون تأمين)",
+    "external": "خارجي",
+    "sendToDoctor": "إرسال للطبيب",
+    "newQuotation": "عرض سعر جديد",
+    "collectPayment": "تحصيل دفعة",
+    "sendSms": "إرسال رسالة",
+    "more": "المزيد",
+    "printStatement": "طباعة كشف الحساب",
+    "assign": "إسناد لموظف",
+    "assignTo": "إسناد إلى",
+    "assignNoteHint": "مثال: اتصل لإعادة جدولة الموعد",
+    "assigned": "تم الإسناد",
+    "assignedToMe": "مرضى مسندون إليّ",
+    "deleteTitle": "حذف ملف المريض؟",
+    "deleteBody": "يُخفى الملف من القوائم ويبقى في السجلات. يمكن لمدير النظام استرجاعه.",
+    "summary": "ملخص",
+    "registered": "تاريخ التسجيل",
+    "openAssignments": "مهام مفتوحة",
+    "noAssignments": "لا توجد مهام مفتوحة",
+    "markDone": "تم",
+    "upcomingAppointments": "المواعيد القادمة",
+    "openPlans": "خطط العلاج المفتوحة",
+    "lastVisitSummary": "ملخص آخر زيارة",
+    "healthLogged": "يُسجَّل فتح هذا القسم في سجل التدقيق.",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "personal": "البيانات الشخصية",
+      "health": "الصحة",
+      "dental": "الأسنان",
+      "plans": "خطط العلاج",
+      "appointments": "المواعيد",
+      "billing": "الحسابات",
+      "files": "الملفات",
+      "prescriptions": "الوصفات والمختبر",
+      "activity": "السجل"
+    },
+    "fields": {
+      "name_ar": "الاسم بالعربية",
+      "name_en": "الاسم بالإنجليزية",
+      "national_id": "رقم الهوية / الإقامة",
+      "nationality": "الجنسية",
+      "gender": "الجنس",
+      "dob": "تاريخ الميلاد",
+      "mobile": "الجوال",
+      "phone": "الهاتف",
+      "emergency_name": "اسم جهة الطوارئ",
+      "emergency_phone": "رقم الطوارئ",
+      "default_doctor_id": "الطبيب المعالج",
+      "secondary_file_no": "رقم ملف ثانوي",
+      "is_external": "مريض خارجي",
+      "sms_opt_out": "لا يرغب بالرسائل",
+      "chronic_diseases": "الأمراض المزمنة",
+      "allergies": "الحساسية",
+      "medications": "الأدوية الحالية",
+      "medical_history": "التاريخ المرضي",
+      "referral_source": "مصدر الإحالة",
+      "notes": "ملاحظات",
+      "ins_company_id": "شركة التأمين",
+      "ins_policy_no": "رقم الوثيقة",
+      "ins_class_name": "الفئة",
+      "ins_membership_no": "رقم العضوية",
+      "ins_expiry": "تاريخ انتهاء التأمين",
+      "insurance": "التأمين",
+      "balance": "الرصيد",
+      "is_active": "نشط",
+      "file_no": "رقم الملف",
+      "company_id": "شركة التأمين",
+      "policy_no": "رقم الوثيقة",
+      "class_name": "الفئة",
+      "membership_no": "رقم العضوية",
+      "expiry": "انتهاء التأمين",
+      "section": "القسم"
+    },
+    "errors": {
+      "name": "الاسم مطلوب (حرفان على الأقل)",
+      "nationalId": "رقم الهوية 10 أرقام",
+      "dob": "تاريخ الميلاد في المستقبل"
     }
   }
 }

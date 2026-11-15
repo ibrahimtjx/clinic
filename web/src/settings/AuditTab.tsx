@@ -12,8 +12,26 @@ import { errorMessage } from '../lib/errors';
 import { formatDateTime } from '../lib/format';
 import { fetchAudit, keys, useUsers, type AuditFilters } from './queries';
 
-const ACTIONS = ['create', 'update', 'delete', 'restore', 'read', 'login', 'login_failed', 'login_blocked', 'logout', 'lock', 'unlock'];
-const TABLES = ['users', 'roles', 'role_permissions', 'user_roles', 'settings', 'auth_sessions'];
+const ACTIONS = ['create', 'update', 'delete', 'restore', 'read', 'export', 'login', 'login_failed', 'login_blocked', 'logout', 'lock', 'unlock'];
+const TABLES = [
+  'patients',
+  'patient_insurance',
+  'patient_assignments',
+  'users',
+  'roles',
+  'role_permissions',
+  'user_roles',
+  'settings',
+  'auth_sessions',
+  'doctors',
+  'services',
+  'appointment_statuses',
+  'visit_types',
+  'saved_phrases',
+  'clinics',
+  'departments',
+  'insurance_companies',
+];
 const ACTION_COLOR: Record<string, string> = {
   create: 'green',
   update: 'blue',

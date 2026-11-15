@@ -653,3 +653,10 @@ The pilot can start in the browser after M9, before the Tauri app (M10) is finis
 - 2026-11-15: Settings lists are deactivated or soft-deleted, never hard deleted; `record.view_deleted` shows deleted rows with Restore.
 - 2026-11-15: Clinic logo upload is deferred to the printing work (letterhead), since it needs file storage.
 - 2026-11-15: CI runs `alembic check` so the models and migrations cannot drift (autogenerate once silently dropped an index declared only in a migration).
+- 2026-11-15 (M3): Patient search normalizes Arabic in the database (`clinic_normalize()`: diacritics and tatweel removed, أ/إ/آ/ٱ→ا, ة→ه, ى→ي, Arabic-Indic digits → Western, lower case) into generated columns with trigram GIN indexes; the UI highlights with the same rules. Measured 12–152 ms at 50,000 patients.
+- 2026-11-15: File numbers come from a PostgreSQL sequence: sequential and never reused (a failed insert may skip a number; file numbers are not required to be gapless, unlike invoices).
+- 2026-11-15: The patient's current insurance is one row per patient; earlier values stay in the audit log. Insurance classes and coverage rules come with M7.
+- 2026-11-15: Chronic diseases and allergies are returned with the patient (they drive the header warning badges). Medications and medical history are returned only by `/patients/{id}/health`, which needs `patient.medical_view` and logs every read. Editing health needs `patient.edit` or `dental.edit`.
+- 2026-11-15: Duplicate check on national ID or mobile returns 409 `possible_duplicate` with the matches; the client can resend with `allow_duplicate: true` after the user confirms.
+- 2026-11-15: Patient list column choice and order are saved per user per PC (browser storage), not on the server.
+- 2026-11-15: `balance` and `last_visit_at` exist on patients now and are maintained by later milestones (M4–M8).
