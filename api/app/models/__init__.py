@@ -13,6 +13,16 @@ from app.models.billing import (
     TreatmentPlan,
 )
 from app.models.dental import DentalVisit, DentalVisitAddendum, ToothFinding
+from app.models.ledger import (
+    CashClosing,
+    CreditNote,
+    CreditNoteLine,
+    Invoice,
+    InvoiceLine,
+    Receipt,
+    ReceiptAllocation,
+    ReceiptPayment,
+)
 from app.models.master import (
     AppointmentStatus,
     Clinic,
@@ -35,7 +45,10 @@ __all__ = [
     "AuditLog",
     "AuthSession",
     "Base",
+    "CashClosing",
     "Clinic",
+    "CreditNote",
+    "CreditNoteLine",
     "DentalVisit",
     "DentalVisitAddendum",
     "Department",
@@ -45,6 +58,8 @@ __all__ = [
     "DraftLine",
     "InsuranceClass",
     "InsuranceCompany",
+    "Invoice",
+    "InvoiceLine",
     "NumberSequence",
     "Patient",
     "PatientAssignment",
@@ -55,6 +70,9 @@ __all__ = [
     "PlanSession",
     "QueueEntry",
     "Quotation",
+    "Receipt",
+    "ReceiptAllocation",
+    "ReceiptPayment",
     "Role",
     "RolePermission",
     "SavedPhrase",

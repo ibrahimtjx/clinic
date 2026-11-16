@@ -39,6 +39,6 @@ test('settings sections, seeded statuses and numbering', async ({ page }) => {
   await page.goto('/settings/statuses');
   await expect(page.getByTestId('statuses-tab')).toContainText('عند الطبيب');
   await page.getByTestId('settings-nav-numbering').click();
-  await expect(page.getByTestId('numbering-table')).toContainText(/INV-\d{4}-000001/);
+  await expect(page.getByTestId('numbering-table')).toContainText(/INV-\d{4}-\d{6}/);
   await expect(page.getByTestId('clinic-name')).toContainText('مجمع الندى');
 });

@@ -17,6 +17,7 @@ from app.models import (
     Doctor,
     InsuranceClass,
     InsuranceCompany,
+    Invoice,
     Patient,
     PaymentOrder,
     PlanInstallment,
@@ -253,6 +254,8 @@ class PaymentOrderOut(DocOutBase):
     sent_at: datetime | None
     sent_by: int | None
     sent_by_name: str | None = None
+    invoice_id: int | None = None
+    invoice_no: str | None = None
 
 
 def _doc_out(
@@ -266,6 +269,10 @@ def _doc_out(
     o.created_by_name = names.get(doc.created_by)
     if kind == "payment_order":
         o.sent_by_name = names.get(doc.sent_by)
+        if doc.status == "paid":
+            o.invoice_id, o.invoice_no = db.execute(
+                select(Invoice.id, Invoice.invoice_no).where(Invoice.payment_order_id == doc.id)
+            ).one()
     if with_lines:
         o.lines = [LineOut.model_validate(ln) for ln in documents.lines_of(db, kind, doc.id)]
     return o

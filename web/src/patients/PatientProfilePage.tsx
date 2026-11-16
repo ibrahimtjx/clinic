@@ -239,6 +239,11 @@ function HeaderCard({ patient: p }: { patient: Patient }) {
           <Badge color={owes ? 'red' : 'green'} size="lg" variant={owes ? 'filled' : 'light'} data-testid="balance-badge">
             {t('sample.balance')}: {formatMoney(p.balance, lang, digits)}
           </Badge>
+          {p.deposit_balance && p.deposit_balance !== '0.00' && (
+            <Badge color="grape" size="lg" variant="light" data-testid="deposit-badge">
+              {t('ledger.onAccount')}: {formatMoney(p.deposit_balance, lang, digits)}
+            </Badge>
+          )}
         </Stack>
       </Group>
     </Card>
@@ -254,15 +259,6 @@ function ActionBar({ patient: p }: { patient: Patient }) {
   const [assigning, setAssigning] = useState(false);
   const [sending, setSending] = useState<SendTarget | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const soon = (label: string, icon: ReactNode, m: string, primary = false) => (
-    <Tooltip label={t('common.milestone', { m })}>
-      <span>
-        <Button variant={primary ? 'filled' : 'light'} leftSection={icon} disabled>
-          {label}
-        </Button>
-      </span>
-    </Tooltip>
-  );
   const act = async (path: string, method: 'POST' | 'DELETE' = 'POST') => {
     try {
       await api(`/patients/${p.id}${path}`, { method });
@@ -299,7 +295,11 @@ function ActionBar({ patient: p }: { patient: Patient }) {
           {t('patients.newQuotation')}
         </Button>
       )}
-      {soon(t('patients.collectPayment'), <IconCash size={16} />, 'M8')}
+      {can('payment.collect') && (
+        <Button variant="light" leftSection={<IconCash size={16} />} onClick={() => navigate(`/patients/${p.id}/billing`)} data-testid="profile-collect">
+          {t('patients.collectPayment')}
+        </Button>
+      )}
       <Tooltip label={t('patients.smsSoon')}>
         <span>
           <Button variant="light" leftSection={<IconMessage size={16} />} disabled>
