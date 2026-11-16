@@ -155,12 +155,30 @@ function Add-DemoData($vars) {
   } finally { Pop-Location }
 }
 
+# Reinstalling after an uninstall (the data was kept) takes the upgrade path, but the uninstall removed
+# the database service and the firewall rule: put back whatever is missing.
+function Restore-Missing {
+  if (-not (Get-Service ClinicDB -ErrorAction SilentlyContinue)) {
+    Say 'Registering the database service again'
+    $pgdata = Join-Path $Data 'pgdata'
+    foreach ($d in $pgdata, (Join-Path $Data 'wal-staging')) {
+      if (Test-Path $d) { icacls $d /grant '*S-1-5-20:(OI)(CI)F' /T /Q | Out-Null }
+    }
+    Invoke-Native (Join-Path $PgBin 'pg_ctl.exe') @('register', '-N', 'ClinicDB', '-U', 'NT AUTHORITY\NetworkService', '-D', $pgdata, '-S', 'auto', '-w') 'registering the database service'
+  }
+  netsh advfirewall firewall show rule 'name=Clinic Server (web)' | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    Invoke-Native 'netsh.exe' @('advfirewall', 'firewall', 'add', 'rule', 'name=Clinic Server (web)', 'dir=in', 'action=allow', 'protocol=TCP', 'localport=80,443', 'profile=private,domain') 'opening the firewall'
+  }
+}
+
 # ------------------------------------------------------------------ upgrade
 if (Test-Path $EnvFile) {
   Say 'Existing clinic data found: upgrading'
   Stop-All
   $vars = Read-Env
   Install-WinswServices
+  Restore-Missing
   Start-All $vars
   if ($ParamsFile -and (Test-Path $ParamsFile)) {
     $up = Get-Content $ParamsFile -Raw -Encoding UTF8 | ConvertFrom-Json

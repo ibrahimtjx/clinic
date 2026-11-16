@@ -91,6 +91,17 @@ keeps all data and settings, and the database is updated when the application st
 
 Settings → Apps → Clinic Server → Uninstall. The services are removed; the clinic's data stays in
 `C:\ProgramData\ClinicServer` (delete it yourself only if you are sure).
+Installing again later keeps using that data: the installer treats it as an update and puts back the
+services and the firewall rule.
+
+## If the other PCs cannot connect
+
+- On the server: Settings → Network & internet → the network → **Private network**. The firewall rule
+  only opens the clinic on private and work networks, not on networks marked Public.
+- Use the server's address (`ipconfig` on the server) or a name the router knows; `localhost` only works on
+  the server itself. Check from a PC with `Test-NetConnection <server address> -Port 443`.
+- On the server, `Get-Service Clinic*` should show four services Running (ClinicDB, ClinicAPI, ClinicWeb,
+  ClinicOps); `Start-Service ClinicDB, ClinicAPI, ClinicOps, ClinicWeb` starts them.
 
 ## Standby server
 

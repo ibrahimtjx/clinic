@@ -82,7 +82,9 @@ Say 'Reset a forgotten password'
 & "$App\server\clinic-ops.cmd" reset-password admin 'Temp-Reset-2026!' | Out-Host
 $reset = Invoke-RestMethod -Method Post https://localhost/api/auth/login -ContentType 'application/json' -Body (@{ username = 'admin'; password = 'Temp-Reset-2026!' } | ConvertTo-Json)
 Check ($reset.user.must_change_password -eq $true) 'admin signs in with the temporary password and must change it'
-$Password = 'Temp-Reset-2026!'
+# Choose a new password, as the sign-in screen would ask.
+$Password = 'After-Reset-2026!'
+Invoke-RestMethod -Method Post https://localhost/api/auth/me/password -Headers @{ Authorization = "Bearer $($reset.access_token)" } -ContentType 'application/json' -Body (@{ current_password = 'Temp-Reset-2026!'; new_password = $Password } | ConvertTo-Json) | Out-Null
 
 Say 'Upgrade (run the installer again)'
 Install @('/DemoData=1')   # demo data is offered on updates too; already added, so nothing changes
@@ -94,4 +96,14 @@ $p = Start-Process -FilePath "$App\unins000.exe" -ArgumentList '/VERYSILENT', '/
 Check ($p.ExitCode -eq 0) 'uninstaller exit code 0'
 Check (-not (Get-Service ClinicAPI -ErrorAction SilentlyContinue)) 'services removed'
 Check (Test-Path "$Data\pgdata") 'clinic data kept after uninstall'
+
+Say 'Install again over the kept data'
+Install @()
+Check ((Get-Service ClinicDB).Status -eq 'Running') 'database service registered again'
+Check ((Invoke-RestMethod https://localhost/api/health).status -eq 'ok') 'healthy after reinstall'
+$login = Invoke-RestMethod -Method Post https://localhost/api/auth/login -ContentType 'application/json' -Body (@{ username = 'admin'; password = $Password } | ConvertTo-Json)
+$script:H = @{ Authorization = "Bearer $($login.access_token)" }
+Check ((Api Get '/patients?page_size=1').total -ge 400) 'patients still there after reinstall'
+netsh advfirewall firewall show rule 'name=Clinic Server (web)' | Out-Null
+Check ($LASTEXITCODE -eq 0) 'firewall rule back'
 Say 'All checks passed'
