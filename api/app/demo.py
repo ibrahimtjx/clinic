@@ -1,6 +1,6 @@
 """Rich FAKE demo data for trying the system (installer "Demo data" option, `python -m app.cli seed-demo`).
 
-Builds on seed-dev (users, doctors, prices, demo insurer) and adds about five weeks of clinic life:
+Builds on seed-dev (users, doctors, prices, demo insurer) and adds about three months of clinic life:
 patients, appointments, today's queue, dental visits, prescriptions, lab results, reports, images,
 quotations, treatment plans with installments, paid / part-paid / unpaid invoices, deposits and credit
 notes. Everything goes through the same code the app uses, so the numbers are consistent.
@@ -47,6 +47,12 @@ from app.permissions import PERMISSION_KEYS
 from app.services.scheduling import TZ
 
 DEMO_KEY = "demo_data"
+# How much fake activity: about 400 patients and three months of history plus three weeks ahead.
+PATIENTS = 400
+DAYS_BACK = 90
+DAYS_AHEAD = 21
+# Refuse when the database already looks like a real clinic's.
+REAL_DATA_PATIENTS = 30
 COMPLAINTS = [
     "ألم عند المضغ",
     "حساسية للبارد",
@@ -145,8 +151,10 @@ class _Demo:
                     membership_no=f"M{pt.id:07d}",
                     expiry=self.today + timedelta(days=rnd.randint(60, 500)),
                 )
-            # Registered over the last two months (shows in New patients).
-            pt.created_at = self.now - timedelta(days=rnd.randint(0, 60), hours=rnd.randint(0, 8))
+            # Registered over the last four months (shows in New patients).
+            pt.created_at = self.now - timedelta(
+                days=rnd.randint(0, DAYS_BACK + 30), hours=rnd.randint(0, 8)
+            )
         db.commit()
         self.add("patients", n)
         return out
@@ -157,12 +165,12 @@ class _Demo:
         slots = [(9, 0), (9, 40), (10, 20), (11, 40), (16, 0), (16, 40), (17, 20), (18, 0)]
         done = []
         self.p(self.reception)
-        for offset in range(-21, 15):
+        for offset in range(-DAYS_BACK, DAYS_AHEAD + 1):
             day = self.today + timedelta(days=offset)
             if day.isoweekday() in (5, 6):  # Friday, Saturday: closed
                 continue
             for doc in self.doctors:
-                for hh, mm in rnd.sample(slots, rnd.randint(4, 6)):
+                for hh, mm in rnd.sample(slots, rnd.randint(4, 7)):
                     pt = rnd.choice(patients)
                     start = self.at(day, hh, mm)
                     if offset < 0:
@@ -282,7 +290,7 @@ class _Demo:
         db, rnd = self.db, self.rnd
         meds = list(db.scalars(select(Medication)))
         tests = list(db.scalars(select(LabTest)))
-        for v in rnd.sample(visits, min(25, len(visits))):
+        for v in rnd.sample(visits, min(90, len(visits))):
             p = self.p(self.doc_user[v.doctor_id])
             items = [
                 c.RxItemIn(
@@ -303,7 +311,7 @@ class _Demo:
             )
             self._backdate("prescriptions", rx.id, "issued_at", v.visit_at)
             self.add("prescriptions")
-        for v in rnd.sample(visits, min(8, len(visits))):
+        for v in rnd.sample(visits, min(30, len(visits))):
             p = self.p(self.doc_user[v.doctor_id])
             chosen = rnd.sample(tests, rnd.randint(1, 3))
             req = c.create_lab_request(
@@ -338,7 +346,7 @@ class _Demo:
                 c.enter_results(req.id, c.ResultsIn(version=req.version, results=res), db, p)
             self._backdate("lab_requests", req.id, "issued_at", v.visit_at)
             self.add("lab requests")
-        for v in rnd.sample(visits, min(5, len(visits))):
+        for v in rnd.sample(visits, min(18, len(visits))):
             p = self.p(self.doc_user[v.doctor_id])
             kind = rnd.choice(["report", "referral", "attendance"])
             body = {
@@ -369,7 +377,7 @@ class _Demo:
             from PIL import Image, ImageDraw
         except ImportError:  # pragma: no cover
             return
-        for v in rnd.sample(visits, min(12, len(visits))):
+        for v in rnd.sample(visits, min(40, len(visits))):
             kind = rnd.choice(["panoramic", "xray", "intraoral"])
             w, h = (1600, 800) if kind == "panoramic" else (900, 700)
             im = Image.new(
@@ -490,7 +498,7 @@ class _Demo:
         db, rnd = self.db, self.rnd
         events: list[tuple[datetime, str, tuple]] = []
 
-        for i in range(10):
+        for i in range(30):
             doc = rnd.choice(self.doctors)
             p = self.p(self.doc_user[doc.id])
             q = b.create_quotation(
@@ -515,7 +523,7 @@ class _Demo:
             ("زراعة الضرس 36", [("زرعة مع تاج زيركون", 5500)], 0),
             ("تركيبات أمامية", [("ثلاث تيجان زيركون", 4200), ("فينير خزفي", 6000)], None),
         ]
-        for title, options, pick in plans:
+        for title, options, pick in plans * 3:
             p = self.p(self.doc_user[ortho.id])
             plan = b.create_plan(
                 b.PlanIn(
@@ -552,7 +560,7 @@ class _Demo:
             )
             events.append((datetime.combine(first, time(10), TZ), "po", (po.id, "transfer")))
 
-        credit_slots = 2
+        credit_slots = 6
         for a, pt in sorted(done, key=lambda x: x[0].starts_at):
             if rnd.random() > 0.55 or a.starts_at > self.now:
                 continue
@@ -567,7 +575,7 @@ class _Demo:
             ):
                 events.append((when + timedelta(days=1), "credit", (a.id, credit_slots == 1)))
                 credit_slots -= 1
-        for pt in rnd.sample(patients, 3):
+        for pt in rnd.sample(patients, 10):
             events.append(
                 (
                     self.now - timedelta(days=rnd.randint(1, 10), hours=rnd.randint(1, 5)),
@@ -727,13 +735,26 @@ def _more_doctors(db: Session) -> None:
     db.flush()
 
 
+def demo_present(db: Session) -> bool:
+    return db.get(Setting, DEMO_KEY) is not None
+
+
+def refuse_real_data(db: Session) -> None:
+    real = db.scalar(select(func.count()).select_from(Patient).where(Patient.deleted_at.is_(None)))
+    if (real or 0) > REAL_DATA_PATIENTS:
+        raise SystemExit(
+            f"This database already has {real} patients: demo data is only for an empty test server."
+        )
+
+
 def seed_demo(db: Session, seed: int = 2026) -> dict[str, int]:
     if db.get(Setting, DEMO_KEY) is not None:
         return {}
+    refuse_real_data(db)
     _more_doctors(db)
     d = _Demo(db, seed)
     d._pending = []
-    pts = d.patients(150)
+    pts = d.patients(PATIENTS)
     done = d.schedule(pts)
     d.queue_today()
     visits = d.visits(done)

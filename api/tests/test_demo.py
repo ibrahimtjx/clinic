@@ -23,7 +23,7 @@ def test_demo_data(db, make_user):
     _seed_dev_master(db)
     db.commit()
     counts = seed_demo(db, seed=7)
-    assert counts["patients"] == 150 and counts["invoices"] > 20 and counts["images"] > 0
+    assert counts["patients"] == 400 and counts["invoices"] > 20 and counts["images"] > 0
     assert db.scalar(select(func.count()).select_from(Prescription)) == counts["prescriptions"]
     assert db.scalar(select(func.count()).select_from(PatientFile)) == counts["images"]
     # What patients owe equals what is outstanding on their invoices.
@@ -36,3 +36,13 @@ def test_demo_data(db, make_user):
     rcs = list(db.execute(select(Receipt.id, Receipt.received_at).order_by(Receipt.id)).all())
     assert all(a[1] <= b[1] for a, b in itertools.pairwise(rcs))
     assert seed_demo(db) == {}  # only once
+
+
+def test_demo_data_refused_on_a_real_database(db):
+    import pytest
+
+    for i in range(31):
+        db.add(Patient(name_ar=f"مريض {i}"))
+    db.commit()
+    with pytest.raises(SystemExit, match="31 patients"):
+        seed_demo(db)

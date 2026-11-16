@@ -45,7 +45,7 @@ Check ($head -eq '%PDF' -and (Get-Item report.pdf).Length -gt 5000) 'report PDF 
 
 Say 'Demo data and patient files'
 $page = Api Get '/patients?page_size=5'
-Check ($page.total -ge 150) "demo patients ($($page.total))"
+Check ($page.total -ge 400) "demo patients ($($page.total))"
 $demoInv = Api Get '/invoices?limit=500'
 Check (@($demoInv).Count -ge 20) "demo invoices ($(@($demoInv).Count))"
 Add-Type -AssemblyName System.Drawing
@@ -85,7 +85,7 @@ Check ($reset.user.must_change_password -eq $true) 'admin signs in with the temp
 $Password = 'Temp-Reset-2026!'
 
 Say 'Upgrade (run the installer again)'
-Install @()
+Install @('/DemoData=1')   # demo data is offered on updates too; already added, so nothing changes
 Check ((Invoke-RestMethod https://localhost/api/health).status -eq 'ok') 'healthy after upgrade, data kept'
 Check (Test-Path "$Data\config\clinic.env") 'settings kept'
 
