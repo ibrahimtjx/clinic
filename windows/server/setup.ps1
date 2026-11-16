@@ -271,6 +271,7 @@ Backup key:        $($vars['BACKUP_KEY_FILE'])
 Logs:              $Data\logs
 Settings:          $EnvFile
 Backups/restore:   "$App\server\clinic-ops.cmd" backup-now | restore-dump FILE | restore-pitr BASE [TIME]
+Forgot a password: Start menu > Clinic Server > Reset a password (right-click, Run as administrator)
 "@
 [System.IO.File]::WriteAllText((Join-Path $Data 'README.txt'), $readme, (New-Object System.Text.UTF8Encoding $true))
 Say "Done. Open https://$serverName"

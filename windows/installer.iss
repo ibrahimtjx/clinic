@@ -50,6 +50,7 @@ Filename: "{group}\Clinic system.url"; Section: "InternetShortcut"; Key: "URL"; 
 Name: "{group}\Clinic Server folder (backups, logs, settings)"; Filename: "{commonappdata}\ClinicServer"
 Name: "{group}\Read me (address, backup key)"; Filename: "{commonappdata}\ClinicServer\README.txt"
 Name: "{group}\Back up now"; Filename: "{app}\server\clinic-ops.cmd"; Parameters: "backup-now"
+Name: "{group}\Reset a password (run as administrator)"; Filename: "{app}\server\reset-password.cmd"
 Name: "{group}\Uninstall Clinic Server"; Filename: "{uninstallexe}"
 
 [Run]

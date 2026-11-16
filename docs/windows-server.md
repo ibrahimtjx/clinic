@@ -67,6 +67,19 @@ clinic-ops decrypt FILE.enc FILE
 
 `restore-pitr` keeps the previous database folder next to the new one (`pgdata-before-restore-…`).
 
+## Forgotten password
+
+Any administrator can reset another person's password in Settings → Users. If the only administrator
+forgot theirs: on the server, Start menu → Clinic Server → **Reset a password**, right-click → **Run as
+administrator**, type the username, then a temporary password (at least 10 characters). Sign in with it;
+the system asks for a new password straight away. Or from an administrator command prompt:
+
+```bat
+"C:\Program Files\Clinic Server\server\clinic-ops.cmd" reset-password admin
+```
+
+On the Linux (Docker) server: `docker compose exec api python -m app.cli reset-password --username admin`.
+
 ## Updating
 
 Run the newer installer. It skips the questions, keeps all data and settings, and the database is

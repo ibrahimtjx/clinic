@@ -78,6 +78,12 @@ $found = Api Get "/patients?q=$([uri]::EscapeDataString('مريض اختبار �
 $after = Api Get "/patients?q=$([uri]::EscapeDataString('بعد النسخة'))"
 Check (@($found.items).Count -ge 1 -and @($after.items).Count -eq 0) 'restored to the backup (later patient gone)'
 
+Say 'Reset a forgotten password'
+& "$App\server\clinic-ops.cmd" reset-password admin 'Temp-Reset-2026!' | Out-Host
+$reset = Invoke-RestMethod -Method Post https://localhost/api/auth/login -ContentType 'application/json' -Body (@{ username = 'admin'; password = 'Temp-Reset-2026!' } | ConvertTo-Json)
+Check ($reset.user.must_change_password -eq $true) 'admin signs in with the temporary password and must change it'
+$Password = 'Temp-Reset-2026!'
+
 Say 'Upgrade (run the installer again)'
 Install @()
 Check ((Invoke-RestMethod https://localhost/api/health).status -eq 'ok') 'healthy after upgrade, data kept'
