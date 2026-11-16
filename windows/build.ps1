@@ -48,10 +48,12 @@ $pyZip = Join-Path $Dl "python-$PyVersion-embed-amd64.zip"
 Get-File "https://www.python.org/ftp/python/$PyVersion/python-$PyVersion-embed-amd64.zip" $pyZip
 Expand-Archive $pyZip (Join-Path $B 'python')
 $pth = Get-ChildItem (Join-Path $B 'python') -Filter 'python*._pth' | Select-Object -First 1
+# Embedded Python ignores the current folder: put the API code on its path for every command.
 Set-Content -Path $pth.FullName -Encoding ASCII -Value @"
 $($pth.BaseName).zip
 .
 Lib\site-packages
+..\api
 import site
 "@
 Say 'Installing the API dependencies'
