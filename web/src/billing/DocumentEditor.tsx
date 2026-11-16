@@ -39,6 +39,7 @@ import { nameOf, useDoctors, useServices } from '../master/queries';
 import { usePatient } from '../patients/queries';
 import { CollectModal } from './CollectModal';
 import type { BillingDoc, DocKind, EditLine, InsuranceClass, Preview } from './types';
+import { printDoc } from '../lib/print';
 
 let keySeq = 0;
 const newKey = () => `l${++keySeq}`;
@@ -206,7 +207,7 @@ export function DocumentEditor() {
           {d && <Badge color={STATUS_COLOR[d.status]}>{t(`billing.status.${d.status}`)}</Badge>}
         </Group>
         {d && (
-          <Button variant="default" leftSection={<IconPrinter size={16} />} onClick={() => window.open(`/print/billing/${kind}/${d.id}`, '_blank', 'noopener')}>
+          <Button variant="default" leftSection={<IconPrinter size={16} />} onClick={() => void printDoc(`/print/billing/${kind}/${d.id}`)}>
             {t('print.print')}
           </Button>
         )}

@@ -63,6 +63,7 @@ import { CalendarGrid, type Column, type MoveTarget } from './CalendarGrid';
 import { useAppointmentsRange, useWaitingList } from './queries';
 import { addDays, isoAt, local, localDate, minutesOf, todayStr, weekStart } from './time';
 import type { Appointment, DraftAppointment, FreeSlot, WaitingEntry } from './types';
+import { printDoc } from '../lib/print';
 
 type View = 'day' | 'week' | 'list';
 
@@ -252,7 +253,7 @@ export function CalendarPage() {
         <Menu.Item leftSection={<IconMessage size={14} />} disabled rightSection={<Text size="xs">{t('common.comingSoon')}</Text>}>
           {t('appointments.smsReminder')}
         </Menu.Item>
-        <Menu.Item leftSection={<IconPrinter size={14} />} onClick={() => window.open(`/print/slip/${a.id}`, '_blank', 'noopener')}>
+        <Menu.Item leftSection={<IconPrinter size={14} />} onClick={() => void printDoc(`/print/slip/${a.id}`)}>
           {t('appointments.printSlip')}
         </Menu.Item>
       </Menu.Dropdown>
@@ -327,7 +328,7 @@ export function CalendarPage() {
             <ActionIcon
               variant="default"
               size="lg"
-              onClick={() => window.open(`/print/day?date=${date}${doctorFilter.length ? `&doctors=${doctorFilter.join(',')}` : ''}`, '_blank', 'noopener')}
+              onClick={() => void printDoc(`/print/day?date=${date}${doctorFilter.length ? `&doctors=${doctorFilter.join(',')}` : ''}`)}
               aria-label={t('appointments.printDay')}
             >
               <IconPrinter size={18} />

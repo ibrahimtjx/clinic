@@ -13,6 +13,7 @@ services:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data # holds the internal CA; back this up
       - caddy_config:/config
+      - desktop_updates:/srv/desktop # desktop installer and update files (docs/desktop.md)
     depends_on:
       api:
         condition: service_healthy
@@ -65,3 +66,4 @@ volumes:
   pg_data:
   caddy_data:
   caddy_config:
+  desktop_updates:

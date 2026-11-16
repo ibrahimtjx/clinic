@@ -229,3 +229,50 @@ def test_revenue_counts_only_cash_movements(client, setup, make_user):
     s = summary(rep)
     assert s["Total collected"] == "1380.00" and s["Refunds paid out"] == "0.00"
     assert s["Paid from money on account"] == "500.00" and s["Credit kept on account"] == "1380.00"
+
+
+def test_pdf_export_renders_arabic_and_english(client, setup, make_user):
+    _activity(client, setup, make_user)
+    login(client, "faisal")
+    for lang in ("ar", "en"):
+        res = client.get("/reports/revenue/pdf", params={**RANGE, "lang": lang})
+        assert res.status_code == 200 and res.headers["content-type"] == "application/pdf"
+        assert res.content.startswith(b"%PDF") and len(res.content) > 5000
+        assert "revenue-report-" in res.headers["content-disposition"]
+
+
+def test_pdf_html_is_rtl_and_escaped():
+    from datetime import datetime as dt
+
+    from app.reports.engine import REGISTRY, Col, Report, Section
+    from app.reports.pdf import to_html
+
+    rep = Report(
+        [
+            Section(
+                "s",
+                "قسم",
+                "Section",
+                [Col("name_ar", "الاسم", "Name"), Col("amount", "المبلغ", "Amount", "money")],
+                [{"name_ar": "<b>سارة</b>", "name_en": "Sara", "amount": Decimal("1234.5")}],
+            )
+        ]
+    )
+    html = to_html(
+        REGISTRY["revenue"],
+        rep,
+        {"name_ar": "عيادة"},
+        "01/11/2026",
+        "ar",
+        dt(2026, 11, 16, tzinfo=ZoneInfo("Asia/Riyadh")),
+    )
+    assert 'dir="rtl"' in html and "&lt;b&gt;سارة&lt;/b&gt;" in html and "1,234.50 ر.س" in html
+    en = to_html(
+        REGISTRY["revenue"],
+        rep,
+        {"name_ar": "عيادة"},
+        "",
+        "en",
+        dt(2026, 11, 16, tzinfo=ZoneInfo("Asia/Riyadh")),
+    )
+    assert 'dir="ltr"' in en and ">Sara<" in en and "SAR 1,234.50" in en

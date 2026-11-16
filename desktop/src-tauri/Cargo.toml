@@ -1,0 +1,39 @@
+[package]
+name = "clinic-desktop"
+version = "0.10.0"
+description = "Clinic system desktop app"
+edition = "2021"
+rust-version = "1.80"
+license = "UNLICENSED"
+
+[lib]
+name = "clinic_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-updater = { version = "2", default-features = false, features = ["native-tls", "zip"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# native-tls = Windows schannel: trusts what Windows trusts (the clinic CA once installed).
+reqwest = { version = "0.12", default-features = false, features = ["native-tls"] }
+sha2 = "0.10"
+tokio = { version = "1", features = ["time", "sync"] }
+url = "2"
+
+[target.'cfg(windows)'.dependencies]
+# Same versions Tauri's WebView2 runtime uses, so the COM types match.
+webview2-com = "0.39"
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_System_Com"] }
+windows-core = "0.62"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

@@ -10,7 +10,7 @@ import { DentalPrint } from '../print/DentalPrint';
 import { ReportPrint } from '../print/ReportPrint';
 import { ReportsPage } from '../reports/ReportsPage';
 import { ClosingPrint, CreditNotePrint, InvoicePrint, ReceiptPrint } from '../print/LedgerPrint';
-import { AppointmentSlip, DaySchedule } from '../print/PrintPages';
+import { AppointmentSlip, DaySchedule, TestPrint } from '../print/PrintPages';
 import { HomePage } from '../pages/HomePage';
 import { PlaceholderPage } from '../pages/PlaceholderPage';
 import { QueuePage } from '../queue/QueuePage';
@@ -31,6 +31,7 @@ export const routes = [
   { path: '/print/credit-note/:id', element: <CreditNotePrint /> },
   { path: '/print/closing/:id', element: <ClosingPrint /> },
   { path: '/print/report/:key', element: <ReportPrint /> },
+  { path: '/print/test/:kind', element: <TestPrint /> },
   {
     path: '/',
     element: <AppLayout />,

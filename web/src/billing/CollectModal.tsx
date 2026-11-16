@@ -10,11 +10,13 @@ import { api, ApiError } from '../lib/api';
 import { errorMessage } from '../lib/errors';
 import { formatMoney } from '../lib/format';
 import { subMoney, toCents } from '../lib/money';
+import { printDoc } from '../lib/print';
 import type { Account, Invoice, Receipt } from './ledgerTypes';
 import { paymentRow, PaymentRows, rowsTotal, toPayments } from './PaymentRows';
 import type { BillingDoc } from './types';
 
-export const openPrint = (path: string) => window.open(path, '_blank', 'noopener');
+/** Print a document page: silently in the desktop app, via the preview in a browser. */
+export const openPrint = (path: string) => void printDoc(path);
 
 /** Reception takes payment for a payment order: issues the final invoice and receipt (SPEC 10.5). */
 export function CollectModal({ order, onClose }: { order: BillingDoc | null; onClose: () => void }) {

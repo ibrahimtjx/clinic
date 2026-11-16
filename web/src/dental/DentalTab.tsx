@@ -35,6 +35,7 @@ import type { PhraseField } from '../master/types';
 import type { Patient } from '../patients/types';
 import { CATEGORY_COLORS, ToothChart, type Dentition } from './ToothChart';
 import { TEXT_FIELDS, type DentalRecord, type DentalVisit, type TextField } from './types';
+import { printDoc } from '../lib/print';
 
 const PHRASE_KEYS: Partial<Record<TextField, PhraseField>> = {
   chief_complaint: 'chief_complaint',
@@ -134,7 +135,7 @@ export function DentalTab({ patient }: { patient: Patient }) {
       await qc.invalidateQueries({ queryKey: ['dental', patient.id] });
       openVisit(saved);
       notifications.show({ color: 'green', icon: <IconCheck size={18} />, message: t('common.saved') });
-      if (print) window.open(`/print/dental/${patient.id}?visit=${saved.id}`, '_blank', 'noopener');
+      if (print) void printDoc(`/print/dental/${patient.id}?visit=${saved.id}`);
       return true;
     } catch (e) {
       setError(e);
@@ -217,7 +218,7 @@ export function DentalTab({ patient }: { patient: Patient }) {
             <Group justify="space-between" mb="xs">
               <Text fw={600}>{t('dental.history')}</Text>
               <Group gap={4}>
-                <Button size="compact-xs" variant="subtle" leftSection={<IconPrinter size={12} />} onClick={() => window.open(`/print/dental/${patient.id}`, '_blank', 'noopener')}>
+                <Button size="compact-xs" variant="subtle" leftSection={<IconPrinter size={12} />} onClick={() => void printDoc(`/print/dental/${patient.id}`)}>
                   {t('dental.printHistory')}
                 </Button>
                 {can('dental.edit') && (

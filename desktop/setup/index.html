@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>إعداد البرنامج / Setup</title>
+    <link rel="stylesheet" href="setup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>نظام العيادة <span>Clinic system</span></h1>
+      <p class="muted">إعداد هذا الجهاز لأول مرة · First-time setup of this PC</p>
+
+      <section id="step-server">
+        <label for="server">عنوان الخادم · Server address</label>
+        <input id="server" dir="ltr" placeholder="clinic-server" autocomplete="off" />
+        <p class="muted">مثال: clinic-server أو 192.168.1.10 · e.g. clinic-server or 192.168.1.10</p>
+        <button id="connect">متابعة · Continue</button>
+      </section>
+
+      <section id="step-ca" hidden>
+        <h2>شهادة العيادة · Clinic certificate</h2>
+        <p>
+          قارن هذه البصمة بالبصمة الظاهرة على الخادم قبل الموافقة. ستطلب Windows تأكيدًا.<br />
+          Compare this fingerprint with the one shown on the server before you trust it. Windows will ask you to confirm.
+        </p>
+        <code id="fingerprint" dir="ltr"></code>
+        <div class="row">
+          <button id="trust">الثقة بالشهادة · Trust certificate</button>
+          <button id="back" class="secondary">رجوع · Back</button>
+        </div>
+      </section>
+
+      <p id="status" role="status"></p>
+    </main>
+    <script src="setup.js"></script>
+  </body>
+</html>

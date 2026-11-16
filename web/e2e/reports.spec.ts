@@ -18,6 +18,9 @@ test('cashier runs the revenue report, prints it and downloads Excel; statement 
   const download = page.waitForEvent('download');
   await page.getByTestId('report-excel').click();
   expect((await download).suggestedFilename()).toMatch(/^revenue-report-\d{8}\.xlsx$/);
+  const pdf = page.waitForEvent('download');
+  await page.getByTestId('report-pdf').click();
+  expect((await pdf).suggestedFilename()).toMatch(/^revenue-report-\d{8}\.pdf$/);
 
   await page.goto('/reports/account_statement');
   await page.getByTestId('filter-patient').fill('خالد');
