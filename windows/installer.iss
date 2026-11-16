@@ -66,6 +66,7 @@ Type: filesandordirs; Name: "{app}\services\*.log"
 
 [Code]
 var
+  SetupFailed: Boolean;
   ServerPage, AdminPage: TInputQueryWizardPage;
   BackupPage: TInputDirWizardPage;
   DemoPage: TInputOptionWizardPage;
@@ -143,6 +144,12 @@ begin
   Result := S;
 end;
 
+// Silent installs (IT, tests) see the failure as exit code 1.
+function GetCustomSetupExitCode(): Integer;
+begin
+  if SetupFailed then Result := 1 else Result := 0;
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   Code: Integer;
@@ -181,8 +188,8 @@ begin
     DeleteFile(ParamsFile);
     SuppressibleMsgBox('Setting up the clinic server failed. The details are in ' +
       ExpandConstant('{commonappdata}\ClinicServer\logs') + ' (setup-*.log).', mbError, MB_OK, IDOK);
-    // Make the failure visible to silent installs too.
-    RaiseException('Clinic Server setup failed (exit code ' + IntToStr(Code) + ').');
+    SetupFailed := True;
+    Exit;
   end;
   DeleteFile(ParamsFile);
 end;

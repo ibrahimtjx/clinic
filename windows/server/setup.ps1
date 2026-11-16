@@ -53,6 +53,14 @@ function New-Secret([int]$bytes) {
   return -join ($buf | ForEach-Object { $_.ToString('x2') })
 }
 
+# Runs a program and shows all its output (stderr too) in the log; throws if it fails.
+function Invoke-Native([string]$exe, [string[]]$argList, [string]$what) {
+  $old = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try { & $exe @argList 2>&1 | ForEach-Object { "$_" } | Out-Host } finally { $ErrorActionPreference = $old }
+  if ($LASTEXITCODE -ne 0) { throw "$what failed (exit code $LASTEXITCODE)" }
+}
+
 function Test-PortFree([int]$port) {
   try {
     $l = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $port)
@@ -190,8 +198,12 @@ Say 'Creating the database'
 $pw = Join-Path $Config 'pg.pw'
 [System.IO.File]::WriteAllText($pw, $pgPassword, (New-Object System.Text.ASCIIEncoding))
 $pgdata = Join-Path $Data 'pgdata'
-& (Join-Path $PgBin 'initdb.exe') -D $pgdata -U clinic --pwfile=$pw -E UTF8 --locale=C --auth=scram-sha-256 | Out-Host
-if ($LASTEXITCODE -ne 0) { throw 'initdb failed' }
+# initdb drops administrator rights (a restricted token) before it runs, so the installing user needs
+# its own rights on the folder; Administrators-group rights alone are not enough.
+$me = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+icacls $pgdata /grant "*$($me):(OI)(CI)F" | Out-Null
+icacls $Config /grant "*$($me):(OI)(CI)F" | Out-Null
+Invoke-Native (Join-Path $PgBin 'initdb.exe') @('-D', $pgdata, '-U', 'clinic', "--pwfile=$pw", '-E', 'UTF8', '--locale=C', '--auth=scram-sha-256') 'initdb'
 Remove-Item $pw -Force
 $staging = (Join-Path $Data 'wal-staging') -replace '\\', '\\'
 Add-Content -Path (Join-Path $pgdata 'postgresql.conf') -Encoding ASCII -Value @"
@@ -211,13 +223,11 @@ restore_command = 'copy "$staging\\restore\\%f" "%p"'
 foreach ($d in $pgdata, (Join-Path $Data 'wal-staging')) {
   icacls $d /grant '*S-1-5-20:(OI)(CI)F' /T /Q | Out-Null
 }
-& (Join-Path $PgBin 'pg_ctl.exe') register -N ClinicDB -U 'NT AUTHORITY\NetworkService' -D $pgdata -S auto -w
-if ($LASTEXITCODE -ne 0) { throw 'Could not register the database service' }
+Invoke-Native (Join-Path $PgBin 'pg_ctl.exe') @('register', '-N', 'ClinicDB', '-U', 'NT AUTHORITY\NetworkService', '-D', $pgdata, '-S', 'auto', '-w') 'registering the database service'
 Start-Service ClinicDB
 Wait-Until { & (Join-Path $PgBin 'pg_isready.exe') -q -h 127.0.0.1 -p $pgPort; $LASTEXITCODE -eq 0 } 120 'The database'
 $env:PGPASSWORD = $pgPassword
-& (Join-Path $PgBin 'createdb.exe') -h 127.0.0.1 -p $pgPort -U clinic clinic
-if ($LASTEXITCODE -ne 0) { throw 'createdb failed' }
+Invoke-Native (Join-Path $PgBin 'createdb.exe') @('-h', '127.0.0.1', '-p', "$pgPort", '-U', 'clinic', 'clinic') 'createdb'
 Remove-Item Env:\PGPASSWORD
 
 Say 'Installing the services'
