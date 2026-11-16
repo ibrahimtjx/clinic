@@ -143,6 +143,18 @@ if ($Mode -eq 'uninstall') {
   exit 0
 }
 
+# Fake users, patients and three months of activity, for trying the system only. Added once; the
+# application refuses when the database already has real patients.
+function Add-DemoData($vars) {
+  Say 'Adding demo data (a few minutes)'
+  foreach ($k in $vars.Keys) { Set-Item -Path "Env:\$k" -Value $vars[$k] }
+  Push-Location (Join-Path $App 'api')
+  try {
+    & $Python -m app.cli seed-demo | Out-Host
+    if ($LASTEXITCODE -ne 0) { Say 'Demo data was not added (see above).' }
+  } finally { Pop-Location }
+}
+
 # ------------------------------------------------------------------ upgrade
 if (Test-Path $EnvFile) {
   Say 'Existing clinic data found: upgrading'
@@ -150,6 +162,11 @@ if (Test-Path $EnvFile) {
   $vars = Read-Env
   Install-WinswServices
   Start-All $vars
+  if ($ParamsFile -and (Test-Path $ParamsFile)) {
+    $up = Get-Content $ParamsFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    Remove-Item $ParamsFile -Force -ErrorAction SilentlyContinue
+    if ($up.demo_data) { Add-DemoData $vars }
+  }
   Say 'Upgrade done.'
   Stop-Transcript | Out-Null
   exit 0
@@ -245,9 +262,8 @@ Push-Location (Join-Path $App 'api')
 try {
   & $Python -m app.cli create-admin --username $p.admin_user --name-ar $p.admin_name --password $p.admin_password
   if ($LASTEXITCODE -ne 0) { throw 'Could not create the administrator (password at least 10 characters, not the username).' }
-  # Fake users, patients and five weeks of activity, for trying the system only.
-  if ($p.demo_data) { & $Python -m app.cli seed-demo | Out-Host }
 } finally { Pop-Location }
+if ($p.demo_data) { Add-DemoData $vars }
 
 Say 'Trusting the clinic certificate on this PC'
 Wait-Until { Test-Path (Join-Path $Data 'caddy\caddy\pki\authorities\local\root.crt') } 60 'The clinic certificate'

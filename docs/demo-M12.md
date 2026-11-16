@@ -9,7 +9,7 @@ The quickest way to see everything: install the Windows server with **Demo data*
 docker compose exec api python -m app.cli seed-demo
 ```
 
-That adds fake users (password `Clinic-dev-2026`), 150 fake patients and five weeks of activity:
+That adds fake users (password `Clinic-dev-2026`), about 400 fake patients and three months of activity:
 appointments and today's queue, dental visits, prescriptions, lab requests with results, medical
 reports, demo X-ray images, quotations, treatment plans with installments (one overdue), paid, part-paid
 and unpaid invoices, deposits and credit notes. Never on a real clinic's server.

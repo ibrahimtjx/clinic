@@ -106,7 +106,8 @@ begin
 
   DemoPage := CreateInputOptionPage(BackupPage.ID,
     'Demo data', 'Only for trying the system.',
-    'Adds fake users, doctors, prices, an insurer, 150 patients and five weeks of appointments, visits, prescriptions, images, invoices and payments. Do not use this on the clinic''s real server.',
+    'Adds fake users, doctors, prices, an insurer, about 400 patients and three months of appointments, visits, prescriptions, lab results, images, quotations, treatment plans, invoices and payments. ' +
+    'Also offered when updating; it is added only once, and refused on a server that already has real patients. Do not use this on the clinic''s real server.',
     False, False);
   DemoPage.Add('Add demo data (fake patients and activity)');
   DemoPage.Values[0] := ExpandConstant('{param:DemoData|0}') = '1';
@@ -114,8 +115,9 @@ end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
+  // Updates skip the first-install questions; demo data can still be added to a test server.
   Result := IsUpgrade() and ((PageID = ServerPage.ID) or (PageID = AdminPage.ID) or
-    (PageID = BackupPage.ID) or (PageID = DemoPage.ID));
+    (PageID = BackupPage.ID));
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -170,9 +172,13 @@ var
 begin
   if CurStep <> ssPostInstall then Exit;
   ParamsFile := ExpandConstant('{tmp}\params.json');
-  if not IsUpgrade() then begin
+  if DemoPage.Values[0] then Demo := 'true' else Demo := 'false';
+  if IsUpgrade() then begin
+    SetArrayLength(Params, 1);
+    Params[0] := '{"demo_data": ' + Demo + '}';
+    SaveStringsToUTF8File(ParamsFile, Params, False);
+  end else begin
     if (not WizardSilent()) and (Length(AdminPage.Values[2]) < 10) then RaiseException('No administrator password.');
-    if DemoPage.Values[0] then Demo := 'true' else Demo := 'false';
     SetArrayLength(Params, 1);
     Params[0] := '{"server_name": "' + JsonEscape(Trim(ServerPage.Values[0])) + '", ' +
       '"admin_user": "' + JsonEscape(Trim(AdminPage.Values[0])) + '", ' +

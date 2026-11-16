@@ -280,9 +280,14 @@ def seed_patients(args) -> int:
 
 
 def seed_demo_cmd(args) -> int:
-    """seed-dev plus about five weeks of FAKE clinic activity, for trying the system."""
-    from app.demo import seed_demo
+    """seed-dev plus about three months of FAKE clinic activity, for trying the system."""
+    from app.demo import demo_present, refuse_real_data, seed_demo
 
+    with SessionLocal() as db:
+        if demo_present(db):
+            print("Demo data is already there.")
+            return 0
+        refuse_real_data(db)  # before seed-dev adds fake users and prices to a real server
     seed_dev(args)
     with SessionLocal() as db:
         counts = seed_demo(db, seed=args.seed)
@@ -311,7 +316,7 @@ def main() -> int:
     s = sub.add_parser("seed-dev", help="Create fake development users (never in production)")
     s.set_defaults(func=seed_dev)
     sd = sub.add_parser(
-        "seed-demo", help="Fake users and five weeks of fake activity (never in production)"
+        "seed-demo", help="Fake users and three months of fake activity (never in production)"
     )
     sd.add_argument("--seed", type=int, default=2026)
     sd.set_defaults(func=seed_demo_cmd)

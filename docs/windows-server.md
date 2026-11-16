@@ -20,8 +20,10 @@ Run the installer as Administrator and answer:
    use this PC's name). The certificate also covers this PC's IP addresses.
 2. **Administrator**: username, Arabic name and a password (at least 10 characters).
 3. **Backups**: a folder on a second drive, a USB backup drive or a network share.
-4. **Demo data**: only for trying the system: fake users, 150 fake patients and five weeks of appointments,
-   visits, prescriptions, images, invoices and payments.
+4. **Demo data**: only for trying the system: fake users and doctors, about 400 fake patients and three
+   months of appointments, visits, prescriptions, lab results, images, quotations, treatment plans,
+   invoices and payments. Also offered when updating (added once). Refused on a server that already has
+   more than 30 patients, so it cannot mix into a real clinic's data.
 
 It takes a few minutes. Then open `https://<server name>` (or `https://localhost` on the server).
 
@@ -82,8 +84,8 @@ On the Linux (Docker) server: `docker compose exec api python -m app.cli reset-p
 
 ## Updating
 
-Run the newer installer. It skips the questions, keeps all data and settings, and the database is
-updated when the application starts.
+Run the newer installer. It skips the setup questions (it still offers demo data, for a test server),
+keeps all data and settings, and the database is updated when the application starts.
 
 ## Uninstalling
 
