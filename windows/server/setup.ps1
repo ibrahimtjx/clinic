@@ -245,7 +245,8 @@ Push-Location (Join-Path $App 'api')
 try {
   & $Python -m app.cli create-admin --username $p.admin_user --name-ar $p.admin_name --password $p.admin_password
   if ($LASTEXITCODE -ne 0) { throw 'Could not create the administrator (password at least 10 characters, not the username).' }
-  if ($p.demo_data) { & $Python -m app.cli seed-dev | Out-Host }
+  # Fake users, patients and five weeks of activity, for trying the system only.
+  if ($p.demo_data) { & $Python -m app.cli seed-demo | Out-Host }
 } finally { Pop-Location }
 
 Say 'Trusting the clinic certificate on this PC'

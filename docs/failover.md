@@ -20,7 +20,8 @@ Print this page and keep it next to the servers.
    ```
 
    It checks it is a standby and that the primary does not answer, promotes the database, takes over the
-   service address (if `SERVICE_IP` is set), starts the app and waits until it answers. It prints the
+   service address (if `SERVICE_IP` is set), puts patient images and documents back from the backup
+   drive, starts the app and waits until it answers. It prints the
    time taken.
 4. **If you do not use `SERVICE_IP`:** point the name `clinic-server` to the standby's address in the
    router's local DNS (or the PCs' hosts files).

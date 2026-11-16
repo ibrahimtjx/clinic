@@ -14,8 +14,10 @@ from app.routers import (
     audit,
     auth,
     billing,
+    clinical,
     dental,
     doctors,
+    files,
     ledger,
     master,
     patients,
@@ -50,6 +52,8 @@ app.include_router(billing.router)
 app.include_router(ledger.router)
 app.include_router(reports.router)
 app.include_router(system.router)
+app.include_router(files.router)
+app.include_router(clinical.router)
 
 DbSession = Annotated[Session, Depends(get_db)]
 

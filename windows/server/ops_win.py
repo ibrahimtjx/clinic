@@ -170,6 +170,45 @@ def ship_wal() -> None:
         log(f"shipped {shipped} WAL file(s)")
 
 
+def files_dir() -> Path:
+    return DATA / "files"
+
+
+def ship_files() -> None:
+    """Patient images and documents: each new file is encrypted onto the backup folder."""
+    src = files_dir()
+    if not src.exists():
+        return
+    out_root = backup_dir() / "files"
+    new = 0
+    for f in src.rglob("*"):
+        if not f.is_file() or f.name.endswith(".part") or "tmp" in f.relative_to(src).parts[:1]:
+            continue
+        out = out_root / (f.relative_to(src).as_posix() + ".enc")
+        if out.exists():
+            continue
+        out.parent.mkdir(parents=True, exist_ok=True)
+        encrypt(f, out)
+        new += 1
+    if new:
+        log(f"backed up {new} patient file(s)")
+
+
+def restore_files() -> None:
+    src = backup_dir() / "files"
+    if not src.exists():
+        return
+    n = 0
+    for g in src.rglob("*.enc"):
+        dest = files_dir() / g.relative_to(src).as_posix()[: -len(".enc")]
+        if dest.exists():
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        decrypt(g, dest)
+        n += 1
+    log(f"restored {n} patient file(s)")
+
+
 def prune(folder: Path, pattern: str, keep: int) -> None:
     files = sorted(folder.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
     for old in files[keep:]:
@@ -245,6 +284,7 @@ def run() -> None:
                 record_error("no backup key file: backups are not written")
             else:
                 ship_wal()
+                ship_files()
                 today = dt.datetime.now()
                 if today.strftime("%H%M") >= cfg("BACKUP_TIME", "0200") and not list(
                     (backup_dir() / "dumps" / "daily").glob(f"clinic-{today:%Y%m%d}-*.dump.enc")
@@ -295,6 +335,7 @@ def restore_dump(name: str) -> None:
             c.execute(f'drop database if exists "{db}" with (force)')
             c.execute(f'create database "{db}"')
         subprocess.run([str(PGBIN / "pg_restore.exe"), "-d", db, "--no-owner", "--exit-on-error", str(raw)], env=pg_env(), check=True)
+    restore_files()
     service("start", "ClinicAPI")
     log(f"restored {f}")
 
@@ -340,6 +381,7 @@ def restore_pitr(name: str, target: str = "") -> None:
             pass
         time.sleep(2)
     shutil.rmtree(restore, ignore_errors=True)
+    restore_files()
     service("start", "ClinicAPI")
     service("start", "ClinicOps")
     log(f"restored {f} to {target or 'the end of the archive'}; the old data folder is kept as {keep.name}")
@@ -359,6 +401,8 @@ def main(argv: list[str]) -> int:
         restore_dump(argv[2])
     elif cmd == "restore-pitr":
         restore_pitr(argv[2], argv[3] if len(argv) > 3 else "")
+    elif cmd == "restore-files":
+        restore_files()
     elif cmd == "decrypt":
         decrypt(Path(argv[2]), Path(argv[3]))
     elif cmd == "status":

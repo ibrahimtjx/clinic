@@ -155,3 +155,32 @@ export async function apiDownload(path: string, query?: Query, fallbackName = 'd
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+
+/** Fetches a protected file (patient image or document) as a Blob; <img src> cannot send the token. */
+export async function apiBlob(path: string, signal?: AbortSignal): Promise<Blob> {
+  let res = await send(path, { signal }, accessToken);
+  if (res.status === 401 && refreshAccess) {
+    const token = await refreshAccess();
+    if (token) res = await send(path, { signal }, token);
+  }
+  if (!res.ok) throw new ApiError(res.status, await detailOf(res));
+  return res.blob();
+}
+
+/** Uploads a file with form fields (multipart). */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  const doSend = (token: string | null) =>
+    fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      body: form,
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'X-Client-Machine': getMachineName(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+  let res = await doSend(accessToken);
+  if (res.status === 401 && refreshAccess) {
+    const token = await refreshAccess();
+    if (token) res = await doSend(token);
+  }
+  if (!res.ok) throw new ApiError(res.status, await detailOf(res));
+  return (await res.json()) as T;
+}

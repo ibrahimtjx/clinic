@@ -426,13 +426,6 @@ export function DocumentEditor() {
               {t('common.cancel')}
             </Button>
           )}
-          <Tooltip label={t('common.comingSoon')}>
-            <span>
-              <Button variant="subtle" disabled>
-                {t('billing.signature')}
-              </Button>
-            </span>
-          </Tooltip>
         </Group>
         <Card w={320} data-testid="summary">
           <Stack gap={4}>

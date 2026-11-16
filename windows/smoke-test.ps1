@@ -43,12 +43,28 @@ Invoke-WebRequest -UseBasicParsing -Headers $script:H "https://localhost/api/rep
 $head = [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes("$PWD\report.pdf"), 0, 4)
 Check ($head -eq '%PDF' -and (Get-Item report.pdf).Length -gt 5000) 'report PDF rendered on the server (WeasyPrint + Pango)'
 
+Say 'Demo data and patient files'
+$page = Api Get '/patients?page_size=5'
+Check ($page.total -ge 150) "demo patients ($($page.total))"
+$demoInv = Api Get '/invoices?limit=500'
+Check (@($demoInv).Count -ge 20) "demo invoices ($(@($demoInv).Count))"
+Add-Type -AssemblyName System.Drawing
+$bmp = New-Object System.Drawing.Bitmap 400, 300
+$bmp.Save("$PWD\xray.png", [System.Drawing.Imaging.ImageFormat]::Png)
+$up = Invoke-RestMethod -Method Post "https://localhost/api/patients/$($p.id)/files" -Headers $script:H -Form @{ file = Get-Item "$PWD\xray.png"; kind = 'xray'; title = 'smoke' }
+Check ($up.has_thumb -and $up.width -eq 400) 'image uploaded with a thumbnail'
+Invoke-WebRequest -UseBasicParsing -Headers $script:H "https://localhost/api/files/$($up.id)/thumb" -OutFile thumb.jpg
+Check ((Get-Item thumb.jpg).Length -gt 100) 'thumbnail served'
+Check (Test-Path "$Data\files\$((Get-Date).ToString('yyyy'))") 'file stored under ProgramData\ClinicServer\files'
+
 Say 'Backups'
 for ($i = 0; $i -lt 90 -and -not (Get-ChildItem "$Data\backups\base\base-*.tar.enc" -ErrorAction SilentlyContinue); $i++) { Start-Sleep 2 }
 Check (Get-ChildItem "$Data\backups\base\base-*.tar.enc" -ErrorAction SilentlyContinue) 'first base backup (encrypted)'
 & "$App\server\clinic-ops.cmd" backup-now | Out-Host
 $dump = Get-ChildItem "$Data\backups\dumps\daily\*.dump.enc" | Sort-Object LastWriteTime | Select-Object -Last 1
 Check $dump 'nightly backup written'
+for ($i = 0; $i -lt 60 -and -not (Get-ChildItem "$Data\backups\files" -Recurse -Filter *.enc -ErrorAction SilentlyContinue); $i++) { Start-Sleep 2 }
+Check (Get-ChildItem "$Data\backups\files" -Recurse -Filter *.enc -ErrorAction SilentlyContinue) 'patient files backed up (encrypted)'
 $hl = Api Get '/system/health'
 Check ($hl.nodes.Count -ge 1 -and $hl.nodes[0].last_dump_at) 'health page shows the server and the last backup'
 

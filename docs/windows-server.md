@@ -20,7 +20,8 @@ Run the installer as Administrator and answer:
    use this PC's name). The certificate also covers this PC's IP addresses.
 2. **Administrator**: username, Arabic name and a password (at least 10 characters).
 3. **Backups**: a folder on a second drive, a USB backup drive or a network share.
-4. **Demo data**: only for trying the system.
+4. **Demo data**: only for trying the system: fake users, 150 fake patients and five weeks of appointments,
+   visits, prescriptions, images, invoices and payments.
 
 It takes a few minutes. Then open `https://<server name>` (or `https://localhost` on the server).
 
@@ -45,14 +46,15 @@ fingerprint, where the backup key is) and **Back up now**.
 | Clinic Web (`ClinicWeb`) | HTTPS (Caddy, with the clinic's own certificate authority) and the web app |
 | Clinic Backups (`ClinicOps`) | Encrypted backups and the health report |
 
-Data, settings, backups and logs are in `C:\ProgramData\ClinicServer` (only Administrators can read the
+Data, patient images and documents (`files`), settings, backups and logs are in `C:\ProgramData\ClinicServer` (only Administrators can read the
 settings). Programs are in `C:\Program Files\Clinic Server`.
 
 ## Backups
 
 Same schedule as the Linux setup (SPEC 15.2): database changes reach the backup folder every few minutes,
 a full backup every night at 02:00 (14 daily and 8 weekly kept, plus the clinic certificate), and a weekly
-base backup for restoring to a point in time. Files end in `.enc` (AES-256-GCM).
+base backup for restoring to a point in time. Patient images and documents are copied within a minute.
+Files end in `.enc` (AES-256-GCM).
 
 From an Administrator command prompt, in `C:\Program Files\Clinic Server\server`:
 

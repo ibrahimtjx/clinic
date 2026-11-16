@@ -246,6 +246,20 @@ def seed_patients(args) -> int:
     return 0
 
 
+def seed_demo_cmd(args) -> int:
+    """seed-dev plus about five weeks of FAKE clinic activity, for trying the system."""
+    from app.demo import seed_demo
+
+    seed_dev(args)
+    with SessionLocal() as db:
+        counts = seed_demo(db, seed=args.seed)
+    if not counts:
+        print("Demo data is already there.")
+    for k, v in counts.items():
+        print(f"  + {v} {k} (fake)")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     sub = parser.add_subparsers(required=True)
@@ -257,6 +271,11 @@ def main() -> int:
     p.set_defaults(func=create_admin)
     s = sub.add_parser("seed-dev", help="Create fake development users (never in production)")
     s.set_defaults(func=seed_dev)
+    sd = sub.add_parser(
+        "seed-demo", help="Fake users and five weeks of fake activity (never in production)"
+    )
+    sd.add_argument("--seed", type=int, default=2026)
+    sd.set_defaults(func=seed_demo_cmd)
     sp = sub.add_parser(
         "seed-patients", help="Bulk fake patients for performance checks (never in production)"
     )

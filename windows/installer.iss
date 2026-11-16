@@ -105,9 +105,9 @@ begin
 
   DemoPage := CreateInputOptionPage(BackupPage.ID,
     'Demo data', 'Only for trying the system.',
-    'Adds fake users, doctors, prices and an insurer. Do not use this on the clinic''s real server.',
+    'Adds fake users, doctors, prices, an insurer, 150 patients and five weeks of appointments, visits, prescriptions, images, invoices and payments. Do not use this on the clinic''s real server.',
     False, False);
-  DemoPage.Add('Add demo data (fake)');
+  DemoPage.Add('Add demo data (fake patients and activity)');
   DemoPage.Values[0] := ExpandConstant('{param:DemoData|0}') = '1';
 end;
 

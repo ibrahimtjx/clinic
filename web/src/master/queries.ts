@@ -11,7 +11,9 @@ export type Resource =
   | 'saved-phrases'
   | 'services'
   | 'doctors'
-  | 'insurance-companies';
+  | 'insurance-companies'
+  | 'medications'
+  | 'lab-tests';
 
 interface ListOpts {
   includeInactive?: boolean;

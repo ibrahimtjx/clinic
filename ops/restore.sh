@@ -16,6 +16,7 @@ case "$cmd" in
     docker compose up -d db
     wait_db
     docker compose run --rm --no-deps --entrypoint /ops/restore-dump.sh ops "$file"
+    restore_files
     docker compose up -d
     wait_https
     say "Restored $file in $(elapsed)."
@@ -32,6 +33,7 @@ case "$cmd" in
     for _ in $(seq 1 300); do [ "$(db_sql 'select pg_is_in_recovery()' 2>/dev/null)" = f ] && break; sleep 2; done
     [ "$(db_sql 'select pg_is_in_recovery()')" = f ] || die "recovery did not finish (docker compose logs db)"
     docker compose run --rm --no-deps --user root --entrypoint rm ops -rf /wal-staging/restore
+    restore_files
     docker compose up -d
     wait_https
     say "Restored to ${target:-the end of the archive} in $(elapsed)."
