@@ -12,6 +12,7 @@ Commands (run as Administrator from the install folder):
   python ops_win.py restore-dump FILE      replace the database with a nightly backup
   python ops_win.py restore-pitr BASE [TIME]   base backup + WAL, up to TIME ("2026-11-16 10:45:00")
   python ops_win.py decrypt IN OUT         decrypt any backup file
+  python ops_win.py reset-password USER    forgotten password: set a temporary one (asked for)
 
 Encryption: AES-256-GCM, key from the passphrase file with scrypt. File layout:
   b"CLNC1" | salt (16) | nonce (12) | ciphertext | tag (16)
@@ -405,6 +406,15 @@ def main(argv: list[str]) -> int:
         restore_files()
     elif cmd == "decrypt":
         decrypt(Path(argv[2]), Path(argv[3]))
+    elif cmd == "reset-password":
+        if len(argv) < 3:
+            print("Usage: clinic-ops reset-password USERNAME")
+            return 2
+        extra = ["--password", argv[3]] if len(argv) > 3 else []
+        return subprocess.call(
+            [sys.executable, "-m", "app.cli", "reset-password", "--username", argv[2], *extra],
+            cwd=APP / "api",
+        )
     elif cmd == "status":
         for row in sql("select node, role, updated_at, last_dump_at, last_wal_at, last_error from system_status"):
             print(row)

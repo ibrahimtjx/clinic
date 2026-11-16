@@ -107,7 +107,7 @@ Copy-Item (Join-Path $Root 'api\alembic.ini') (Join-Path $B 'api')
 Get-ChildItem (Join-Path $B 'api') -Recurse -Directory -Filter '__pycache__' | Remove-Item -Recurse -Force
 
 New-Item -ItemType Directory -Force -Path (Join-Path $B 'server') | Out-Null
-foreach ($f in 'setup.ps1', 'run_api.py', 'ops_win.py', 'Caddyfile.template', 'clinic-ops.cmd') {
+foreach ($f in 'setup.ps1', 'run_api.py', 'ops_win.py', 'Caddyfile.template', 'clinic-ops.cmd', 'reset-password.cmd') {
   Copy-Item (Join-Path $PSScriptRoot "server\$f") (Join-Path $B 'server')
 }
 Copy-Item (Join-Path $Root 'docs\windows-server.md') (Join-Path $B 'GUIDE.md')

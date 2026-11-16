@@ -85,6 +85,38 @@ def create_admin(args) -> int:
     return 0
 
 
+def reset_password(args) -> int:
+    """For a forgotten password, run on the server itself (whoever can run this owns the server).
+    The person must choose a new password at their next sign-in; open sessions are signed out."""
+    from app.routers.users import _revoke_sessions
+
+    with SessionLocal() as db:
+        user = db.scalar(
+            select(User).where(
+                func.lower(User.username) == args.username.lower(), User.deleted_at.is_(None)
+            )
+        )
+        if user is None:
+            print(f"No user {args.username}", file=sys.stderr)
+            return 1
+        password = args.password or getpass.getpass("Temporary password (min 10 characters): ")
+        try:
+            check_password_policy(password, user.username)
+        except PolicyError as e:
+            print(f"Rejected: {e.code}", file=sys.stderr)
+            return 1
+        user.password_hash = hash_secret(password)
+        user.must_change_password = True
+        user.failed_logins = 0
+        user.locked_until = None
+        user.is_active = True
+        _revoke_sessions(db, user.id, "password_reset")
+        log_event(db, "reset_password_cli", "users", user.id)
+        db.commit()
+        print(f"Password reset for {user.username}. They choose a new one at the next sign-in.")
+    return 0
+
+
 def seed_dev(_args) -> int:
     users = [
         ("admin", "مدير النظام", "System Admin", ["admin"]),
@@ -270,6 +302,12 @@ def main() -> int:
     p.add_argument("--name-en", default="")
     p.add_argument("--password", help="Prompted if omitted")
     p.set_defaults(func=create_admin)
+    r = sub.add_parser(
+        "reset-password", help="Set a temporary password (forgotten password); unlocks the user"
+    )
+    r.add_argument("--username", required=True)
+    r.add_argument("--password", help="Prompted if omitted")
+    r.set_defaults(func=reset_password)
     s = sub.add_parser("seed-dev", help="Create fake development users (never in production)")
     s.set_defaults(func=seed_dev)
     sd = sub.add_parser(
