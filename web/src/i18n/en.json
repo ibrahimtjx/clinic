@@ -249,12 +249,14 @@
       "insuranceCompanies": "Insurance companies",
       "queueSettings": "Queue",
       "insuranceClasses": "Insurance classes",
-      "billingSettings": "Billing and VAT"
+      "billingSettings": "Billing and VAT",
+      "thisPc": "This PC"
     },
     "groups": {
       "clinic": "Clinic",
       "lists": "Lists",
-      "access": "Access and security"
+      "access": "Access and security",
+      "pc": "This PC"
     }
   },
   "users": {
@@ -865,7 +867,11 @@
     "print": "Print",
     "slipTitle": "Appointment slip",
     "slipFooter": "Please arrive 10 minutes early.",
-    "dayTitle": "Day schedule"
+    "dayTitle": "Day schedule",
+    "sent": "Sent to the printer",
+    "failed": "Could not print ({{reason}}). Opening the preview.",
+    "pdfSaved": "PDF saved: {{path}}",
+    "savePdf": "Save as PDF"
   },
   "queue": {
     "board": "Board",
@@ -1202,7 +1208,7 @@
       "financial": "Financial",
       "operational": "Operations"
     },
-    "printPdf": "Print / PDF",
+    "printPdf": "Print",
     "choosePatient": "Choose a patient to see the statement.",
     "period": "Period",
     "day": "Day",
@@ -1210,5 +1216,25 @@
     "clinic": "Clinic",
     "show": "Show report",
     "searchPatient": "Name, file no. or mobile"
+  },
+  "thisPc": {
+    "browserTitle": "Open this in the desktop app",
+    "browserHint": "Printers and updates are set per PC in the clinic desktop app. In a browser, printing uses the print dialog.",
+    "printers": "Printers",
+    "printersHint": "Documents print straight to these printers without a dialog. Windows default is used if none is chosen.",
+    "a4": "A4 printer (invoices, reports, visit records)",
+    "receipt": "Receipt printer 80 mm (receipts, appointment slips)",
+    "defaultPrinter": "Windows default printer",
+    "testPrint": "Print a test page",
+    "noPrinters": "No printers were found on this PC.",
+    "app": "Desktop app",
+    "machine": "PC name",
+    "server": "Server",
+    "version": "Version",
+    "checkUpdate": "Check for updates",
+    "upToDate": "The app is up to date.",
+    "changeServer": "Change server",
+    "changeServerConfirm": "Disconnect from this server and choose another? The app restarts.",
+    "testTitle": "Print test"
   }
 }

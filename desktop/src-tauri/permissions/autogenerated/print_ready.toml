@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-print-ready"
+description = "Enables the print_ready command without any pre-configured scope."
+commands.allow = ["print_ready"]
+
+[[permission]]
+identifier = "deny-print-ready"
+description = "Denies the print_ready command without any pre-configured scope."
+commands.deny = ["print_ready"]

@@ -8,7 +8,7 @@ import { useAppointmentsRange } from '../appointments/queries';
 import { todayStr } from '../appointments/time';
 import type { Appointment } from '../appointments/types';
 import { api } from '../lib/api';
-import { formatDate, formatTime } from '../lib/format';
+import { formatDate, formatDateTime, formatTime } from '../lib/format';
 import { nameOf, useDoctors, useStatuses, useVisitTypes } from '../master/queries';
 import classes from './Print.module.css';
 import { PrintLayout } from './PrintLayout';
@@ -100,6 +100,24 @@ export function DaySchedule() {
           </div>
         );
       })}
+    </PrintLayout>
+  );
+}
+
+/** Test page for the printer setup of this PC (Settings → This PC). */
+export function TestPrint() {
+  const { t } = useTranslation();
+  const { lang, digits } = usePrefs();
+  const { kind } = useParams();
+  const slip = kind === 'receipt';
+  return (
+    <PrintLayout title={t('thisPc.testTitle')} ready size={slip ? 'slip' : 'a4'}>
+      <Stack gap={4} data-testid="test-print">
+        <Text>اختبار الطباعة · Print test</Text>
+        <Text size="sm">{slip ? 'طابعة الإيصالات 80 مم · Receipt printer 80 mm' : 'طابعة A4 · A4 printer'}</Text>
+        <Text size="sm">{formatDateTime(new Date(), lang, digits)}</Text>
+        <Text size="sm">٠١٢٣٤٥٦٧٨٩ · 0123456789 · 1,234.50 ر.س</Text>
+      </Stack>
     </PrintLayout>
   );
 }

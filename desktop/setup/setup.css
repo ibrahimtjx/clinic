@@ -1,0 +1,18 @@
+:root { color-scheme: light dark; --accent: #0f766e; --muted: #6b7280; --bg: #f7f8fa; --card: #fff; --fg: #111827; --border: #e5e7eb; }
+@media (prefers-color-scheme: dark) { :root { --bg: #111418; --card: #1a1f25; --fg: #e5e7eb; --border: #2c333b; --muted: #9ca3af; } }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg); font-family: "Segoe UI", Tahoma, sans-serif; }
+main { width: min(560px, 92vw); background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+h1 { margin: 0 0 4px; font-size: 24px; }
+h1 span { color: var(--muted); font-size: 16px; font-weight: 400; margin-inline-start: 8px; }
+h2 { font-size: 18px; }
+.muted { color: var(--muted); font-size: 13px; }
+label { display: block; font-weight: 600; margin: 20px 0 6px; }
+input { width: 100%; padding: 10px 12px; font-size: 16px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: inherit; }
+button { margin-top: 16px; padding: 10px 18px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font-size: 15px; cursor: pointer; }
+button.secondary { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+button:disabled { opacity: 0.6; cursor: default; }
+.row { display: flex; gap: 8px; }
+code { display: block; padding: 12px; border-radius: 8px; background: var(--bg); word-break: break-all; font-size: 13px; line-height: 1.6; }
+#status { min-height: 1.5em; font-size: 14px; }
+#status.error { color: #dc2626; }

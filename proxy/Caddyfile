@@ -7,6 +7,20 @@
 	}
 }
 
+# Plain HTTP only for the clinic CA certificate (first launch of the desktop app, SPEC 2 Rules):
+# it cannot be fetched over HTTPS before it is trusted. Its fingerprint is checked by a person.
+http://{$SERVER_NAME:localhost} {
+	handle /ca.crt {
+		root * /data/caddy/pki/authorities/local
+		rewrite * /root.crt
+		header Content-Type application/x-x509-ca-cert
+		file_server
+	}
+	handle {
+		redir https://{host}{uri} permanent
+	}
+}
+
 {$SERVER_NAME:localhost} {
 	tls internal
 
@@ -20,6 +34,20 @@
 
 	handle_path /api/* {
 		reverse_proxy api:8000
+	}
+
+	handle /ca.crt {
+		root * /data/caddy/pki/authorities/local
+		rewrite * /root.crt
+		header Content-Type application/x-x509-ca-cert
+		file_server
+	}
+
+	# Desktop app installer and signed updates (latest.json + installer), copied here by the admin.
+	handle_path /desktop/* {
+		root * /srv/desktop
+		header Cache-Control "no-cache"
+		file_server
 	}
 
 	handle {

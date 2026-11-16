@@ -15,8 +15,8 @@ paid in cash and Mada, a deposit, a credit note. All data is fake.
    invoice total, discounts, net, amount paid, paid from account, method, VAT rate and VAT. Then payments by
    method and the summary: new patients, invoice count, gross, discounts, net without VAT, VAT, total,
    insurance share, total collected, credit notes, refunds, deposits, money on account used or kept.
-3. **Print / PDF** opens the A4 landscape print view with the letterhead; choose "Save as PDF" in the print
-   dialog for a PDF. **Excel** downloads the same report: right-to-left sheet in Arabic, bilingual
+3. **Print** opens the A4 landscape print view with the letterhead. **PDF** downloads the report rendered on
+   the server (WeasyPrint, added in M10). **Excel** downloads the same report: right-to-left sheet in Arabic, bilingual
    headers, numbers and dates as real Excel values. Each export appears in the audit log.
 4. **Account statement.** Pick a patient: invoices, payments, credit notes, deposits and refunds in order,
    with the running balance owed and money on account, opening and closing balances for the period.

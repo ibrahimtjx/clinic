@@ -1,7 +1,7 @@
 import { Alert, Anchor, Badge, Button, Card, Combobox, Group, InputBase, Select, SimpleGrid, Skeleton, Stack, Text, Title, useCombobox } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useDebouncedValue } from '@mantine/hooks';
-import { IconChartBar, IconFileSpreadsheet, IconPlayerPlay, IconPrinter, IconReportMoney } from '@tabler/icons-react';
+import { IconChartBar, IconFileSpreadsheet, IconFileTypePdf, IconPlayerPlay, IconPrinter, IconReportMoney } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
@@ -15,6 +15,7 @@ import { nameOf } from '../master/queries';
 import { useQuickSearch } from '../patients/queries';
 import { ReportBody } from './ReportTables';
 import type { ReportInfo, ReportOptions, ReportResult } from './types';
+import { printDoc } from '../lib/print';
 
 export const useCatalog = () => useQuery({ queryKey: ['reports', 'catalog'], queryFn: () => api<ReportInfo[]>('/reports') });
 
@@ -79,7 +80,7 @@ function ReportView({ reportKey }: { reportKey: string }) {
   const applied = paramsToQuery(sp);
   const [draft, setDraft] = useState<FilterState>(applied);
   const [patientLabel, setPatientLabel] = useState('');
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<'excel' | 'pdf' | null>(null);
   const [downloadError, setDownloadError] = useState<unknown>(null);
 
   // First open: this month (or today) and run.
@@ -101,15 +102,15 @@ function ReportView({ reportKey }: { reportKey: string }) {
   if (!info) return <Alert color="red">{t('errors.forbidden')}</Alert>;
 
   const apply = () => setSp(Object.fromEntries(Object.entries(draft).filter(([, v]) => v)) as Record<string, string>);
-  const excel = async () => {
-    setDownloading(true);
+  const download = async (format: 'excel' | 'pdf') => {
+    setDownloading(format);
     setDownloadError(null);
     try {
-      await apiDownload(`/reports/${reportKey}/excel`, { ...applied, lang }, `${reportKey}.xlsx`);
+      await apiDownload(`/reports/${reportKey}/${format}`, { ...applied, lang }, `${reportKey}.${format === 'pdf' ? 'pdf' : 'xlsx'}`);
     } catch (e) {
       setDownloadError(e);
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   };
   const title = lang === 'ar' ? info.title_ar : info.title_en;
@@ -123,10 +124,13 @@ function ReportView({ reportKey }: { reportKey: string }) {
           <Title order={1}>{title}</Title>
         </Stack>
         <Group gap="xs">
-          <Button variant="default" leftSection={<IconPrinter size={16} />} disabled={!result.data} onClick={() => window.open(`/print/report/${reportKey}?${sp.toString()}`, '_blank', 'noopener')} data-testid="report-print">
+          <Button variant="default" leftSection={<IconPrinter size={16} />} disabled={!result.data} onClick={() => void printDoc(`/print/report/${reportKey}?${sp.toString()}`)} data-testid="report-print">
             {t('reports.printPdf')}
           </Button>
-          <Button variant="light" leftSection={<IconFileSpreadsheet size={16} />} disabled={!result.data} loading={downloading} onClick={() => void excel()} data-testid="report-excel">
+          <Button variant="light" leftSection={<IconFileTypePdf size={16} />} disabled={!result.data} loading={downloading === 'pdf'} onClick={() => void download('pdf')} data-testid="report-pdf">
+            PDF
+          </Button>
+          <Button variant="light" leftSection={<IconFileSpreadsheet size={16} />} disabled={!result.data} loading={downloading === 'excel'} onClick={() => void download('excel')} data-testid="report-excel">
             Excel
           </Button>
         </Group>

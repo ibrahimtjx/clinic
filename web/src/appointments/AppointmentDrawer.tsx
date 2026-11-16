@@ -36,6 +36,7 @@ import { useQuickSearch } from '../patients/queries';
 import type { Patient } from '../patients/types';
 import { hhmm, isoAt, localDate, minutesOf, parseHHMM, todayStr } from './time';
 import type { Appointment, DraftAppointment } from './types';
+import { printDoc } from '../lib/print';
 
 interface Form {
   patient_id: number | null;
@@ -198,7 +199,7 @@ export function AppointmentDrawer({
       notifications.show({ color: 'green', icon: <IconCheck size={18} />, message: t('common.saved') });
       onSaved?.(saved);
       onClose();
-      if (print) window.open(`/print/slip/${saved.id}`, '_blank', 'noopener');
+      if (print) void printDoc(`/print/slip/${saved.id}`);
     } catch (e) {
       setError(e);
     } finally {

@@ -3,6 +3,7 @@ import {
   IconBuildingHospital,
   IconCalendarStats,
   IconCategory,
+  IconDeviceDesktop,
   IconHash,
   IconHistory,
   IconId,
@@ -34,6 +35,7 @@ import { QueueSettingsTab } from './QueueSettingsTab';
 import { RolesTab } from './RolesTab';
 import { SecurityTab } from './SecurityTab';
 import { ServicesTab } from './ServicesTab';
+import { ThisPcTab } from './ThisPcTab';
 import { UsersTab } from './UsersTab';
 
 interface Tab {
@@ -75,6 +77,10 @@ const GROUPS: { key: string; tabs: Tab[] }[] = [
       { key: 'security', perm: 'settings.manage', icon: IconShieldLock, el: <SecurityTab /> },
       { key: 'audit', perm: 'audit.view', icon: IconHistory, el: <AuditTab /> },
     ],
+  },
+  {
+    key: 'pc',
+    tabs: [{ key: 'this-pc', perm: 'settings.manage', icon: IconDeviceDesktop, el: <ThisPcTab /> }],
   },
 ];
 

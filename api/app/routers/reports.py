@@ -14,6 +14,7 @@ from app.models import Clinic, Doctor, InsuranceCompany, Patient, Receipt, User
 from app.reports import financial, operational  # noqa: F401  (registers the reports)
 from app.reports.engine import REGISTRY, Filters, Report, Spec, fmt
 from app.reports.excel import to_xlsx
+from app.reports.pdf import to_html, to_pdf
 from app.services.settings import get_clinic_info
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -222,5 +223,44 @@ def export_excel(
     return Response(
         data,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}"},
+    )
+
+
+@router.get("/{key}/pdf")
+def export_pdf(
+    key: str,
+    db: DbSession,
+    f: Filters = Depends(_filters),
+    lang: Literal["ar", "en"] = Query("ar"),
+    p: Principal = Depends(require()),
+) -> Response:
+    """The report as PDF, rendered on the server with WeasyPrint (Arabic shaping by Pango)."""
+    spec = _spec(key, p)
+    rep = _run(db, spec, f)
+    now = db.scalar(select(func.now()))
+    patient = db.get(Patient, f.patient_id) if f.patient_id else None
+    html = to_html(
+        spec,
+        rep,
+        get_clinic_info(db).model_dump(),
+        _period(f),
+        lang,
+        now,
+        f"{patient.name_ar} ({patient.file_no})" if patient else "",
+    )
+    data = to_pdf(html)
+    log_event(
+        db,
+        "report_export",
+        "reports",
+        None,
+        new={"report": key, "format": "pdf", **f.model_dump(mode="json", exclude_none=True)},
+    )
+    db.commit()
+    name = f"{spec.en.replace(' ', '-').lower()}-{now:%Y%m%d}.pdf"
+    return Response(
+        data,
+        media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}"},
     )

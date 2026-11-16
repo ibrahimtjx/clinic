@@ -25,6 +25,8 @@ jobs:
       CLINIC_DATABASE_URL: postgresql+psycopg://clinic:clinic@localhost:5432/clinic
     steps:
       - uses: actions/checkout@v4
+      - name: Pango and Arabic fonts for WeasyPrint PDFs
+        run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 fonts-noto-core
       - uses: astral-sh/setup-uv@v6
       - run: uv venv -p 3.12 && uv pip install -e '.[dev]'
       - run: .venv/bin/ruff check .
