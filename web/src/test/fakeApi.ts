@@ -22,7 +22,8 @@ export function makeMe(over: Partial<Me> = {}): Me {
 
 export const token = (user: Me): TokenOut => ({ access_token: `tok-${user.id}-${Math.random()}`, token_type: 'bearer', expires_in: 900, user });
 
-type Handler = (body: unknown, init: RequestInit) => [number, unknown] | Promise<[number, unknown]>;
+type Reply = [number, unknown] | [number, unknown, Record<string, string>];
+type Handler = (body: unknown, init: RequestInit) => Reply | Promise<Reply>;
 
 /**
  * Minimal in-memory API: routes keyed by "METHOD /path". Unknown routes return 404.
@@ -30,7 +31,7 @@ type Handler = (body: unknown, init: RequestInit) => [number, unknown] | Promise
  */
 export function fakeApi(opts: { me?: Me | null; online?: boolean; routes?: Record<string, Handler> } = {}) {
   let current: Me | null = opts.me === undefined ? makeMe() : opts.me;
-  const calls: { method: string; path: string; body: unknown; headers: Record<string, string> }[] = [];
+  const calls: { method: string; path: string; body: unknown; headers: Record<string, string>; query: Record<string, string> }[] = [];
   const routes: Record<string, Handler> = {
     'GET /api/health': () => [200, health],
     'POST /api/auth/refresh': () => (current ? [200, token(current)] : [401, { detail: { code: 'session_ended' } }]),
@@ -49,11 +50,12 @@ export function fakeApi(opts: { me?: Me | null; online?: boolean; routes?: Recor
     const method = init.method ?? 'GET';
     const path = String(url).split('?')[0];
     const body = init.body ? JSON.parse(String(init.body)) : undefined;
-    calls.push({ method, path, body, headers: (init.headers ?? {}) as Record<string, string> });
+    const query = Object.fromEntries(new URLSearchParams(String(url).split('?')[1] ?? ''));
+    calls.push({ method, path, body, headers: (init.headers ?? {}) as Record<string, string>, query });
     if (opts.online === false) throw new TypeError('network');
     const h = routes[`${method} ${path}`];
-    const [status, payload] = h ? await h(body, init) : [404, { detail: { code: 'not_found' } }];
-    return new Response(status === 204 ? null : JSON.stringify(payload), { status });
+    const [status, payload, headers] = h ? await h(body, init) : ([404, { detail: { code: 'not_found' } }] as Reply);
+    return new Response(status === 204 ? null : JSON.stringify(payload), { status, headers });
   });
   vi.stubGlobal('fetch', fetchMock);
   return {

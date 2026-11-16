@@ -43,10 +43,13 @@ describe('app shell', () => {
     expect(screen.getByTestId('sample-money')).toHaveTextContent(lang === 'ar' ? '12,450.50 ر.س' : 'SAR 12,450.50');
   });
 
-  it('shows a placeholder for modules not built yet', async () => {
-    fakeApi({ me: makeMe({ permissions: ['report.revenue'] }) });
+  it('reports page lists the reports the user may run', async () => {
+    fakeApi({
+      me: makeMe({ permissions: ['report.revenue'] }),
+      routes: { 'GET /api/reports': () => [200, [{ key: 'revenue', title_ar: 'تقرير الإيرادات', title_en: 'Revenue report', group: 'financial', filters: ['date_range'], description_ar: '', description_en: 'Money received' }]] },
+    });
     renderApp('/reports', 'en');
-    expect(await screen.findByText(/milestone M9/)).toBeInTheDocument();
+    expect(await screen.findByTestId('report-revenue')).toHaveTextContent('Revenue report');
   });
 
   it('shows sidebar items by permission', async () => {

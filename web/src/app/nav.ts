@@ -36,7 +36,6 @@ export const NAV_ITEMS: NavItem[] = [
     key: 'reports',
     path: '/reports',
     icon: IconChartBar,
-    milestone: 'M9',
     anyOf: ['report.revenue', 'report.financial', 'report.clinical', 'report.operational'],
   },
   {

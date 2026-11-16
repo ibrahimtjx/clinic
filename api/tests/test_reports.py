@@ -42,7 +42,10 @@ def _activity(client, setup, make_user):
     inv2 = collect(client, po2, []).json()["invoice"]
     client.post(f"/patients/{setup['saudi'].id}/deposits", json={"payments": [cash("100")]})
     login(client, "faisal")
-    client.post(f"/invoices/{inv1['id']}/credit-notes", json={"reason": "إلغاء", "refund": {"payments": [cash("1380")]}})
+    client.post(
+        f"/invoices/{inv1['id']}/credit-notes",
+        json={"reason": "إلغاء", "refund": {"payments": [cash("1380")]}},
+    )
     return inv1, inv2
 
 
@@ -51,11 +54,24 @@ def test_catalog_depends_on_permissions(client, setup, make_user):
     login(client, "amal")  # reception: operational reports
     keys = {r["key"] for r in client.get("/reports").json()}
     # Operational reports, plus the account statement (reception can view invoices).
-    assert keys == {"daily_schedule", "no_shows", "new_patients", "queue_waits", "account_statement"}
+    assert keys == {
+        "daily_schedule",
+        "no_shows",
+        "new_patients",
+        "queue_waits",
+        "account_statement",
+    }
     assert client.get("/reports/revenue", params=RANGE).status_code == 403
     login(client, "faisal")
     keys = {r["key"] for r in client.get("/reports").json()}
-    assert {"revenue", "doctor_production", "account_statement", "outstanding", "insurance", "services_sold"} <= keys
+    assert {
+        "revenue",
+        "doctor_production",
+        "account_statement",
+        "outstanding",
+        "insurance",
+        "services_sold",
+    } <= keys
     assert client.get("/reports/nope").status_code == 404
 
 
@@ -64,16 +80,28 @@ def test_revenue_detail_methods_and_summary(client, setup, make_user):
     rep = run(client, "revenue")
     detail = section(rep, "detail")
     kinds = [(r["receipt_no"][:3], r["kind_en"], r["amount"]) for r in detail["rows"]]
-    assert kinds == [("RC-", "Payment", "1380.00"), ("RC-", "Deposit", "100.00"), ("RC-", "Refund", "-1380.00")]
-    assert detail["rows"][0]["invoice_no"] == inv1["invoice_no"] and "cash" in detail["rows"][0]["method_en"].lower()
+    assert kinds == [
+        ("RC-", "Payment", "1380.00"),
+        ("RC-", "Deposit", "100.00"),
+        ("RC-", "Refund", "-1380.00"),
+    ]
+    assert (
+        detail["rows"][0]["invoice_no"] == inv1["invoice_no"]
+        and "cash" in detail["rows"][0]["method_en"].lower()
+    )
     assert detail["rows"][0]["vat_rate"] == "15%" and detail["rows"][0]["vat"] == "180.00"
     assert detail["totals"]["amount"] == "100.00"
     methods = {r["method_en"]: (r["in"], r["out"]) for r in section(rep, "methods")["rows"]}
     assert methods == {"Cash": ("1100.00", "1380.00"), "Mada": ("380.00", "0.00")}
     s = summary(rep)
     assert s["Invoice count"] == 2 and s["Invoices total"] == "1530.00" and s["VAT"] == "180.00"
-    assert s["Total collected"] == "1480.00" and s["Refunds paid out"] == "1380.00" and s["Deposits received"] == "100.00"
+    assert (
+        s["Total collected"] == "1480.00"
+        and s["Refunds paid out"] == "1380.00"
+        and s["Deposits received"] == "100.00"
+    )
     assert s["Credit notes (count)"] == 1 and s["Credit notes (value)"] == "1380.00"
+    assert s["Paid from money on account"] == "0.00" and s["Credit kept on account"] == "0.00"
     mada = run(client, "revenue", method="mada")
     assert [r["amount"] for r in section(mada, "detail")["rows"]] == ["1380.00"]
 
@@ -88,23 +116,50 @@ def test_account_statement_matches_balances(client, setup, make_user, db):
         s = summary(rep)
         assert s["Closing balance owed"] == f"{p.balance:.2f}"
         assert s["Closing on account"] == f"{p.deposit_balance:.2f}"
-    rows = section(run(client, "account_statement", patient_id=setup["saudi"].id), "statement")["rows"]
-    assert [(r["debit"], r["owed"], r["acct"]) for r in rows] == [("30.00", "30.00", "0.00"), (None, "30.00", "100.00")]
-    later = run(client, "account_statement", patient_id=setup["saudi"].id, date_from=str(TODAY + timedelta(days=2)), date_to=str(TODAY + timedelta(days=3)))
-    assert section(later, "statement")["rows"] == [] and summary(later)["Opening balance owed"] == "30.00"
-    assert client.get("/reports/account_statement", params=RANGE).json()["detail"]["code"] == "patient_required"
+    rows = section(run(client, "account_statement", patient_id=setup["saudi"].id), "statement")[
+        "rows"
+    ]
+    assert [(r["debit"], r["owed"], r["acct"]) for r in rows] == [
+        ("30.00", "30.00", "0.00"),
+        (None, "30.00", "100.00"),
+    ]
+    later = run(
+        client,
+        "account_statement",
+        patient_id=setup["saudi"].id,
+        date_from=str(TODAY + timedelta(days=2)),
+        date_to=str(TODAY + timedelta(days=3)),
+    )
+    assert (
+        section(later, "statement")["rows"] == []
+        and summary(later)["Opening balance owed"] == "30.00"
+    )
+    assert (
+        client.get("/reports/account_statement", params=RANGE).json()["detail"]["code"]
+        == "patient_required"
+    )
 
 
 def test_doctor_commission_on_collected_minus_refunds(client, setup, make_user, db):
     db.add(DoctorCommissionRule(doctor_id=setup["doc"].id, percent=Decimal(30)))
     db.commit()
     make_user("faisal", ["cashier"])
-    po = send_po(client, setup["resident"], [line(setup["veneer"]), line(setup["xray"])], doctor_id=setup["doc"].id)
+    po = send_po(
+        client,
+        setup["resident"],
+        [line(setup["veneer"]), line(setup["xray"])],
+        doctor_id=setup["doc"].id,
+    )
     collect(client, po, [cash(po["patient_share"])])
     login(client, "faisal")
     row = section(run(client, "doctor_production"), "doctors")["rows"][0]
     # Collected without VAT: veneer 1200 + x-ray patient part 30 → base 1230, commission 30% = 369.
-    assert (row["invoices"], row["collected"], row["base"], row["commission"]) == (1, "1230.00", "1230.00", "369.00")
+    assert (row["invoices"], row["collected"], row["base"], row["commission"]) == (
+        1,
+        "1230.00",
+        "1230.00",
+        "369.00",
+    )
     assert row["insurance_net"] == "120.00"
 
 
@@ -119,7 +174,11 @@ def test_outstanding_insurance_and_services(client, setup, make_user):
     # Resident veneer is excluded (insurer 0); Saudi x-ray insurer 120.
     assert (co["count"], co["insurance"], co["claim"]) == (2, "120.00", "120.00")
     svc = {r["code"]: r for r in section(run(client, "services_sold"), "services")["rows"]}
-    assert svc["T-VEN"]["qty"] == "1.0" and svc["T-VEN"]["cr_qty"] == "1.0" and svc["T-VEN"]["net_after"] == "0.00"
+    assert (
+        svc["T-VEN"]["qty"] == "1.0"
+        and svc["T-VEN"]["cr_qty"] == "1.0"
+        and svc["T-VEN"]["net_after"] == "0.00"
+    )
     assert svc["T-PANO"]["net_after"] == "150.00"
 
 
@@ -146,3 +205,27 @@ def test_excel_export_bilingual_and_audited(client, setup, make_user, db):
     assert ar.sheet_view.rightToLeft is True
     db.expire_all()
     assert db.scalar(select(AuditLog.id).where(AuditLog.action == "report_export"))
+
+
+def test_revenue_counts_only_cash_movements(client, setup, make_user):
+    """Money on account is counted once, when the deposit is taken; credit kept on account is no refund."""
+    make_user("faisal", ["cashier"])
+    login(client, "amal")
+    client.post(f"/patients/{setup['resident'].id}/deposits", json={"payments": [cash("500")]})
+    po = send_po(client, setup["resident"], [line(setup["veneer"])])  # 1380
+    inv = collect(client, po, [cash("500", "deposit"), cash("880")]).json()["invoice"]
+    login(client, "faisal")
+    client.post(
+        f"/invoices/{inv['id']}/credit-notes",
+        json={"reason": "إلغاء", "refund": {"to_deposit": True}},
+    )
+    rep = run(client, "revenue")
+    rows = section(rep, "detail")["rows"]
+    assert [(r["kind_en"], r["amount"], r["from_account"]) for r in rows] == [
+        ("Deposit", "500.00", None),
+        ("Payment", "880.00", "500.00"),
+    ]
+    assert {r["method_en"] for r in section(rep, "methods")["rows"]} == {"Cash"}
+    s = summary(rep)
+    assert s["Total collected"] == "1380.00" and s["Refunds paid out"] == "0.00"
+    assert s["Paid from money on account"] == "500.00" and s["Credit kept on account"] == "1380.00"

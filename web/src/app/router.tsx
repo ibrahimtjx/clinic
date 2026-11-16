@@ -7,6 +7,8 @@ import { DocumentEditor } from '../billing/DocumentEditor';
 import { InvoicePage } from '../billing/InvoicePage';
 import { BillingPrint } from '../print/BillingPrint';
 import { DentalPrint } from '../print/DentalPrint';
+import { ReportPrint } from '../print/ReportPrint';
+import { ReportsPage } from '../reports/ReportsPage';
 import { ClosingPrint, CreditNotePrint, InvoicePrint, ReceiptPrint } from '../print/LedgerPrint';
 import { AppointmentSlip, DaySchedule } from '../print/PrintPages';
 import { HomePage } from '../pages/HomePage';
@@ -28,6 +30,7 @@ export const routes = [
   { path: '/print/receipt/:id', element: <ReceiptPrint /> },
   { path: '/print/credit-note/:id', element: <CreditNotePrint /> },
   { path: '/print/closing/:id', element: <ClosingPrint /> },
+  { path: '/print/report/:key', element: <ReportPrint /> },
   {
     path: '/',
     element: <AppLayout />,
@@ -40,6 +43,7 @@ export const routes = [
       { path: 'billing/:tab?', element: <BillingPage /> },
       { path: 'billing/invoice/:id', element: <InvoicePage /> },
       { path: 'billing/:kind/:id', element: <DocumentEditor /> },
+      { path: 'reports/:key?', element: <ReportsPage /> },
       { path: 'patients', element: <PatientsPage /> },
       { path: 'patients/:id/:tab?', element: <PatientProfilePage /> },
       ...NAV_ITEMS.filter((i) => i.milestone).map((item) => ({

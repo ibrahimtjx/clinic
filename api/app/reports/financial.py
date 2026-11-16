@@ -147,7 +147,11 @@ def revenue(db: Session, f: Filters) -> Report:
 
     rows = []
     for r in receipts:
+        cash_total = sum((p.amount for p in pays[r.id] if p.method != "deposit"), Z)
+        if r.kind == "refund" and cash_total == 0:
+            continue  # credit kept on the patient's account: no money moved (listed in the summary)
         sign = Decimal(-1) if r.kind == "refund" else Decimal(1)
+        cash_share = lambda a, ct=cash_total, t=r.total: money(a * ct / t) if t else Z
         parts = [(a.invoice_id, a.amount) for a in allocs[r.id]] or [(r.invoice_id, r.total)]
         for inv_id, amount in parts:
             inv = invoices.get(inv_id) if inv_id else None
@@ -175,7 +179,10 @@ def revenue(db: Session, f: Filters) -> Report:
                     "total": inv.total if inv else None,
                     "discount": inv.discount if inv else None,
                     "net": inv.net if inv else None,
-                    "amount": sign * amount,
+                    "amount": sign * cash_share(amount),
+                    "from_account": (amount - cash_share(amount))
+                    if cash_total != r.total
+                    else None,
                     "method_ar": method_text(r, "ar"),
                     "method_en": method_text(r, "en"),
                     "vat_rate": " / ".join(f"{x:.0f}%" for x in rates),
@@ -199,12 +206,13 @@ def revenue(db: Session, f: Filters) -> Report:
             Col("discount", "الخصم", "Discounts", "money"),
             Col("net", "الصافي قبل الضريبة", "Net before VAT", "money"),
             Col("amount", "المبلغ المدفوع", "Amount paid", "money"),
+            Col("from_account", "من رصيد المريض", "From account", "money"),
             Col("method_ar", "طريقة الدفع", "Method"),
             Col("vat_rate", "نسبة الضريبة", "VAT rate"),
             Col("vat", "الضريبة ضمن المبلغ", "VAT in amount", "money"),
         ],
         rows,
-        totals(rows, ["amount", "vat"]),
+        totals(rows, ["amount", "from_account", "vat"]),
     )
 
     # Payments by method (money that moved, filtered by user and dates).
@@ -238,7 +246,7 @@ def revenue(db: Session, f: Filters) -> Report:
             "vat": v["vat"],
         }
         for k, v in by_method.items()
-        if v["in"] or v["out"]
+        if (v["in"] or v["out"]) and k != "deposit"  # money on account is not cash; see the summary
     ]
     methods = Section(
         "methods",
@@ -293,15 +301,26 @@ def revenue(db: Session, f: Filters) -> Report:
             "Deposits received",
             sum((r.total for r in receipts if r.kind == "deposit"), Z),
         ),
+        Item("المدفوع من رصيد المريض", "Paid from money on account", by_method["deposit"]["in"]),
+        Item(
+            "إشعارات دائنة أضيفت لرصيد المريض",
+            "Credit kept on account",
+            by_method["deposit"]["out"],
+        ),
     ]
     return Report(
         [detail, methods],
         summary,
         notes_ar=[
-            "الفواتير والإشعارات الدائنة في الملخص حسب تاريخ إصدارها؛ المقبوضات حسب تاريخ السند."
+            "الفواتير والإشعارات الدائنة في الملخص حسب تاريخ إصدارها؛ المقبوضات حسب تاريخ السند.",
+            "المبالغ المدفوعة هي ما دخل الصندوق فعلًا؛ الدفع من رصيد المريض حُسب عند استلام الدفعة المقدمة.",
         ],
         notes_en=[
-            "Invoices and credit notes in the summary are by issue date; receipts by receipt date."
+            "Invoices and credit notes in the summary are by issue date; receipts by receipt date.",
+            (
+                "Amounts paid are money that went through the cash box; paying from money on "
+                "account was counted when the deposit was taken."
+            ),
         ],
     )
 
