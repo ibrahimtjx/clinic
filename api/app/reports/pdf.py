@@ -8,7 +8,7 @@ from app.reports.engine import RIYADH, Col, Report, Spec, fmt
 
 CSS = """
 @page { size: A4 landscape; margin: 10mm; @bottom-center { content: counter(page) " / " counter(pages); font-size: 8pt; color: #666; } }
-body { font-family: "Noto Sans Arabic", "Noto Naskh Arabic", "DejaVu Sans", sans-serif; font-size: 8.5pt; color: #111; }
+body { font-family: "Noto Sans Arabic", "Noto Naskh Arabic", "Segoe UI", Tahoma, Arial, "DejaVu Sans", sans-serif; font-size: 8.5pt; color: #111; }
 .head { border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 8px; }
 .head h1 { font-size: 14pt; margin: 0; }
 .head h2 { font-size: 11pt; margin: 2px 0; }

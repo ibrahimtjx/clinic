@@ -1,0 +1,15 @@
+<!-- Clinic web server (Caddy): HTTPS with the clinic's own CA, the web app, /api to ClinicAPI. -->
+<service>
+  <id>ClinicWeb</id>
+  <name>Clinic Web</name>
+  <description>Clinic system: HTTPS web server (Caddy).</description>
+  <executable>%BASE%\..\caddy\caddy.exe</executable>
+  <arguments>run --config "%ProgramData%\ClinicServer\config\Caddyfile" --adapter caddyfile</arguments>
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="10 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <logpath>%ProgramData%\ClinicServer\logs</logpath>
+  <log mode="roll-by-size"><sizeThreshold>10240</sizeThreshold><keepFiles>5</keepFiles></log>
+  <env name="XDG_DATA_HOME" value="%ProgramData%\ClinicServer\caddy"/>
+  <env name="XDG_CONFIG_HOME" value="%ProgramData%\ClinicServer\caddy-config"/>
+</service>

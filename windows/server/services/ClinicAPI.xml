@@ -1,0 +1,17 @@
+<!-- Clinic API (FastAPI + migrations). WinSW service definition; %BASE% is this folder. -->
+<service>
+  <id>ClinicAPI</id>
+  <name>Clinic API</name>
+  <description>Clinic system: application server (API).</description>
+  <executable>%BASE%\..\python\python.exe</executable>
+  <arguments>"%BASE%\..\server\run_api.py"</arguments>
+  <depend>ClinicDB</depend>
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <logpath>%ProgramData%\ClinicServer\logs</logpath>
+  <log mode="roll-by-size"><sizeThreshold>10240</sizeThreshold><keepFiles>5</keepFiles></log>
+  <env name="PYTHONUTF8" value="1"/>
+  <env name="CLINIC_DATA" value="%ProgramData%\ClinicServer"/>
+</service>
