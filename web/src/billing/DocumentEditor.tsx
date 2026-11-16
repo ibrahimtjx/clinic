@@ -332,6 +332,14 @@ export function DocumentEditor() {
                     </Table.Td>
                     <Table.Td>
                       <MoneyInput size="xs" value={l.price} onChange={(v) => set(l.key, { price: v })} disabled={!editable} rightSection={null} data-testid={`line-price-${i}`} />
+                      {editable && (() => {
+                        const svc = l.service_id ? services.data?.find((s) => s.id === l.service_id) : undefined;
+                        return svc && Number(svc.sale_price) !== Number(l.price) ? (
+                          <Text size="xs" c="dimmed" data-testid={`line-suggested-${i}`}>
+                            {t('billing.suggested', { price: fm(svc.sale_price) })}
+                          </Text>
+                        ) : null;
+                      })()}
                       {calc?.price_overridden && (
                         <Text size="xs" c="orange">
                           {t('billing.overridden')}

@@ -16,6 +16,7 @@ from app.routers import (
     billing,
     clinical,
     dental,
+    departments,
     doctors,
     files,
     ledger,
@@ -39,6 +40,7 @@ app.include_router(users.router)
 app.include_router(roles.router)
 app.include_router(settings_router.router)
 app.include_router(audit.router)
+app.include_router(departments.router)
 app.include_router(master.router)
 app.include_router(doctors.router)
 app.include_router(patients.router)

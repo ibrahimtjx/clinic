@@ -34,8 +34,8 @@ def save_security(db: Session, value: SecuritySettings, user_id: int) -> Setting
 class ClinicInfo(BaseModel):
     """Clinic details for the app header, letterhead and invoices (SPEC 12, 10.7)."""
 
-    name_ar: str = Field("", max_length=200)
-    name_en: str = Field("", max_length=200)
+    name_ar: str = Field("اللؤلؤة البيضاء", max_length=200)
+    name_en: str = Field("White Pearl", max_length=200)
     address_ar: str = Field("", max_length=500)
     address_en: str = Field("", max_length=500)
     phone: str = Field("", max_length=40)

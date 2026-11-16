@@ -136,8 +136,8 @@ def _seed_dev_master(db) -> None:
         db,
         "clinic",
         ClinicInfo(
-            name_ar="مجمع الندى الطبي (تجريبي)",
-            name_en="Al Nada Medical Complex (demo)",
+            name_ar="اللؤلؤة البيضاء",
+            name_en="White Pearl",
             phone="0110000000",
         ),
         user_id=None,
@@ -168,6 +168,7 @@ def _seed_dev_master(db) -> None:
             clinic_id=deps[dep].clinic_id,
             color=color,
             slot_minutes=20 if username == "dr.reem" else 15,
+            room="غرفة 2 / Room 2" if username == "dr.reem" else "غرفة 1 / Room 1",
             sort_order=10 if username == "dr.reem" else 20,
         )
         doc.schedules = [

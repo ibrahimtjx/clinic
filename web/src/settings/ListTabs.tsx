@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { usePrefs } from '../app/preferences';
 import type { LabTest, Medication } from '../clinical/types';
 import { MasterListTab } from '../master/MasterListTab';
+import { DepartmentDrawer } from './DepartmentDrawer';
 import { nameOf, useClinics } from '../master/queries';
 import type { InsuranceCompany } from '../patients/types';
 import { PHRASE_FIELDS, type AppointmentStatus, type Clinic, type Department, type PhraseField, type SavedPhrase, type VisitType } from '../master/types';
@@ -50,23 +51,28 @@ export function DepartmentsTab() {
   const names = useNameFields();
   const clinics = useClinics({ includeInactive: true });
   const clinicName = (id: number | null) => nameOf(clinics.data?.find((c) => c.id === id), lang) || '—';
+  const [open, setOpen] = useState<Department | null>(null);
   return (
-    <MasterListTab<Department>
-      resource="departments"
-      title={t('settings.tabs.departments')}
-      hint={t('master.departmentsHint')}
-      icon={IconCategory}
-      fields={[
-        ...names,
-        { key: 'clinic_id', kind: 'select', label: t('master.clinic'), numeric: true, options: (clinics.data ?? []).map((c) => ({ value: String(c.id), label: nameOf(c, lang) })) },
-      ]}
-      columns={[
-        { label: t('master.name'), render: (d) => nameOf(d, lang) },
-        { label: t('master.clinic'), render: (d) => clinicName(d.clinic_id) },
-      ]}
-      defaults={{ name_ar: '', name_en: '', clinic_id: clinics.data?.[0]?.id ?? null }}
-      testId="departments-tab"
-    />
+    <>
+      <MasterListTab<Department>
+        resource="departments"
+        title={t('settings.tabs.departments')}
+        hint={t('master.departmentsHint')}
+        icon={IconCategory}
+        fields={[
+          ...names,
+          { key: 'clinic_id', kind: 'select', label: t('master.clinic'), numeric: true, options: (clinics.data ?? []).map((c) => ({ value: String(c.id), label: nameOf(c, lang) })) },
+        ]}
+        columns={[
+          { label: t('master.name'), render: (d) => nameOf(d, lang) },
+          { label: t('master.clinic'), render: (d) => clinicName(d.clinic_id) },
+        ]}
+        defaults={{ name_ar: '', name_en: '', clinic_id: clinics.data?.[0]?.id ?? null }}
+        testId="departments-tab"
+        onOpen={setOpen}
+      />
+      <DepartmentDrawer department={open} onClose={() => setOpen(null)} />
+    </>
   );
 }
 

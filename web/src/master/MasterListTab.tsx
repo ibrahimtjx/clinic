@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Alert,
+  Anchor,
   Badge,
   Button,
   Card,
@@ -89,6 +90,8 @@ interface Props<T extends BaseItem> {
   /** Return an i18n error code to refuse, e.g. system statuses. */
   locked?: (item: T, action: 'delete' | 'deactivate') => boolean;
   testId?: string;
+  /** Makes the first column a link that opens a details view. */
+  onOpen?: (item: T) => void;
 }
 
 /** A settings list screen: table, show inactive and deleted, reorder, edit drawer, soft delete, restore. */
@@ -226,8 +229,16 @@ export function MasterListTab<T extends BaseItem>(p: Props<T>) {
                         </Group>
                       )}
                     </Table.Td>
-                    {p.columns.map((c) => (
-                      <Table.Td key={c.label}>{c.render(item)}</Table.Td>
+                    {p.columns.map((c, ci) => (
+                      <Table.Td key={c.label}>
+                        {ci === 0 && p.onOpen && !item.deleted_at ? (
+                          <Anchor component="button" type="button" fz="sm" fw={500} onClick={() => p.onOpen!(item)} data-testid={`open-${item.id}`}>
+                            {c.render(item)}
+                          </Anchor>
+                        ) : (
+                          c.render(item)
+                        )}
+                      </Table.Td>
                     ))}
                     <Table.Td>
                       {item.deleted_at ? (

@@ -72,7 +72,7 @@
   },
   "home": {
     "welcome": "Welcome",
-    "hint": "The skeleton is ready. Operational screens are built in the next milestones.",
+    "hint": "This is the welcome page of the program. It can show any information you would like here: tell us what you want to see, or request a feature.",
     "serverTime": "Server time",
     "version": "Version"
   },
@@ -263,6 +263,7 @@
     }
   },
   "users": {
+    "departmentHint": "Optional: the department this person works in (nurses, assistants). Shown on the department page.",
     "title": "Users",
     "new": "New user",
     "edit": "Edit user",
@@ -628,6 +629,8 @@
     "isConsultationHint": "The insurance consultation limit applies."
   },
   "doctors": {
+    "room": "Room",
+    "roomHint": "The room or chair the doctor works in, e.g. Room 3.",
     "new": "New doctor",
     "edit": "Edit doctor",
     "hint": "Working hours and breaks decide the free times in the calendar.",
@@ -1018,6 +1021,7 @@
     "patientShare": "Patient share",
     "searchService": "Search a service",
     "overridden": "Price outside range",
+    "suggested": "Suggested: {{price}}",
     "addLine": "Add line",
     "saveDraft": "Save draft",
     "sendToReception": "Send to reception for payment",
@@ -1389,5 +1393,17 @@
       "referral": "Referral letter",
       "attendance": "Attendance certificate"
     }
+  },
+  "departments": {
+    "doctors": "Doctors ({{n}})",
+    "noDoctors": "No doctors in this department yet. Choose the department on a doctor in Settings → Doctors.",
+    "noRoom": "No room set",
+    "staff": "Staff ({{n}})",
+    "noStaff": "No staff yet. Choose the department on a person in Settings → Users.",
+    "patients": "Patients ({{n}})",
+    "patientsHint": "Seen by this department's doctors in the last {{days}} days, most recent first.",
+    "noPatients": "No patients seen recently.",
+    "visits": "Visits",
+    "lastVisit": "Last visit"
   }
 }
