@@ -11,7 +11,10 @@ from tests.conftest import login
 def setup(db, make_user, client):
     make_user("amal", ["reception"])
     doc = Doctor(name_ar="د. ريم", slot_minutes=15)
-    doc.schedules = [DoctorSchedule(weekday=d, start_time=time(0), end_time=time(23, 59), kind="work") for d in range(7)]
+    doc.schedules = [
+        DoctorSchedule(weekday=d, start_time=time(0), end_time=time(23, 59), kind="work")
+        for d in range(7)
+    ]
     doc2 = Doctor(name_ar="د. عمر", slot_minutes=15)
     p1, p2 = Patient(name_ar="سارة"), Patient(name_ar="نورة")
     db.add_all([doc, doc2, p1, p2])
@@ -34,15 +37,30 @@ def test_send_numbers_per_day_and_refuses_double(client, setup):
     a = send(client, setup).json()
     b = send(client, setup, patient="p2").json()
     assert (a["queue_no"], b["queue_no"]) == (1, 2)
-    assert a["stage"] == "waiting" and a["patient_name_ar"] == "سارة" and a["user_names"]["received_by"] == "مستخدم amal"
+    assert (
+        a["stage"] == "waiting"
+        and a["patient_name_ar"] == "سارة"
+        and a["user_names"]["received_by"] == "مستخدم amal"
+    )
     again = send(client, setup)
-    assert again.status_code == 409 and again.json()["detail"] == {"code": "already_in_queue", "queue_no": 1, "entry_id": a["id"]}
+    assert again.status_code == 409 and again.json()["detail"] == {
+        "code": "already_in_queue",
+        "queue_no": 1,
+        "entry_id": a["id"],
+    }
 
 
 def test_full_flow_stamps_and_syncs_appointment(client, setup, db):
     now = db.scalar(select(func.now()))
     unconf = db.scalar(select(AppointmentStatus.id).where(AppointmentStatus.key == "unconfirmed"))
-    appt = Appointment(patient_id=setup["p1"].id, doctor_id=setup["doc"].id, starts_at=now, ends_at=now + timedelta(minutes=15), status_id=unconf, blocks_slot=True)
+    appt = Appointment(
+        patient_id=setup["p1"].id,
+        doctor_id=setup["doc"].id,
+        starts_at=now,
+        ends_at=now + timedelta(minutes=15),
+        status_id=unconf,
+        blocks_slot=True,
+    )
     db.add(appt)
     db.commit()
     q = send(client, setup, appointment_id=appt.id, note="أولوية").json()
@@ -73,7 +91,10 @@ def test_postpone_goes_to_back_and_transfer_resets(client, setup):
     assert moved["doctor_id"] == setup["doc2"].id and moved["stage"] == "waiting"
     only = client.get("/queue", params={"doctor_id": setup["doc2"].id}).json()
     assert [x["id"] for x in only] == [a["id"]]
-    assert client.post(f"/queue/{a['id']}/note", json={"note": "يحتاج كرسي متحرك"}).json()["note"] == "يحتاج كرسي متحرك"
+    assert (
+        client.post(f"/queue/{a['id']}/note", json={"note": "يحتاج كرسي متحرك"}).json()["note"]
+        == "يحتاج كرسي متحرك"
+    )
 
 
 def test_left_without_being_seen(client, setup):
@@ -96,8 +117,15 @@ def test_waited_minutes_and_report_totals(client, setup, db):
     assert started["waited_minutes"] == 20
     day = a["day"]
     rep = client.get("/queue/report", params={"from": day, "to": day}).json()
-    assert (rep["total"], rep["seen"], rep["not_seen"]) == (2, 1, 1) and rep["average_wait_minutes"] == 20.0
-    assert client.get("/queue/report", params={"from": day, "to": day, "doctor_id": setup["doc2"].id}).json()["total"] == 0
+    assert (rep["total"], rep["seen"], rep["not_seen"]) == (2, 1, 1) and rep[
+        "average_wait_minutes"
+    ] == 20.0
+    assert (
+        client.get(
+            "/queue/report", params={"from": day, "to": day, "doctor_id": setup["doc2"].id}
+        ).json()["total"]
+        == 0
+    )
     assert b["waited_minutes"] == 0
 
 
@@ -109,14 +137,34 @@ def test_queue_permissions_and_settings(client, setup, make_user):
     login(client, "reem")
     assert client.get("/queue").status_code == 200  # doctors call and start their own patients
     assert client.get("/settings/queue").json() == {"warn_minutes": 15, "late_minutes": 30}
-    assert client.put("/settings/queue", json={"warn_minutes": 10, "late_minutes": 20}).status_code == 403
+    assert (
+        client.put("/settings/queue", json={"warn_minutes": 10, "late_minutes": 20}).status_code
+        == 403
+    )
     make_user("boss", ["admin"])
     login(client, "boss")
-    assert client.put("/settings/queue", json={"warn_minutes": 10, "late_minutes": 20}).json()["late_minutes"] == 20
-    assert client.put("/settings/queue", json={"warn_minutes": 20, "late_minutes": 10}).json()["detail"]["code"] == "late_before_warn"
+    assert (
+        client.put("/settings/queue", json={"warn_minutes": 10, "late_minutes": 20}).json()[
+            "late_minutes"
+        ]
+        == 20
+    )
+    assert (
+        client.put("/settings/queue", json={"warn_minutes": 20, "late_minutes": 10}).json()[
+            "detail"
+        ]["code"]
+        == "late_before_warn"
+    )
 
 
 def test_validation(client, setup):
-    assert client.post("/queue", json={"patient_id": 999999, "doctor_id": setup["doc"].id}).json()["detail"]["code"] == "unknown_patient"
-    assert send(client, setup, appointment_id=999999).json()["detail"]["code"] == "unknown_appointment"
+    assert (
+        client.post("/queue", json={"patient_id": 999999, "doctor_id": setup["doc"].id}).json()[
+            "detail"
+        ]["code"]
+        == "unknown_patient"
+    )
+    assert (
+        send(client, setup, appointment_id=999999).json()["detail"]["code"] == "unknown_appointment"
+    )
     assert client.post("/queue/999999/call").status_code == 404

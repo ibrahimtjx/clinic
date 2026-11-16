@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 
 from pydantic import field_validator
@@ -18,6 +19,15 @@ class Settings(BaseSettings):
     cookie_secure: bool = True
     bcrypt_rounds: int = 12
     cookie_path: str = "/api/auth"  # path as the browser sees it, behind the proxy
+
+    # Patient images and documents (SPEC 8.5): on the server disk, outside the database.
+    # Docker: the patient_files volume; Windows server: %ProgramData%\ClinicServer\files.
+    files_dir: str = (
+        os.path.join(os.environ["CLINIC_DATA"], "files")
+        if os.environ.get("CLINIC_DATA")
+        else "/data/files"
+    )
+    max_upload_mb: int = 50
 
     @field_validator("jwt_secret")
     @classmethod

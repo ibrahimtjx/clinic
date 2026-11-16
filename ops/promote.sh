@@ -16,6 +16,8 @@ confirm "Promote this PC to PRIMARY. The old primary must stay off until rebuild
 say "Promoting the database"
 [ "$(db_sql 'select pg_promote(true, 60)')" = t ] || die "promotion failed (docker compose logs db)"
 take_service_ip
+# Images and documents are not replicated by PostgreSQL: bring the latest from the backup drive.
+restore_files || say "WARNING: patient files could not be restored from the backup drive; see docs/failover.md"
 
 say "Starting the clinic system"
 docker compose up -d

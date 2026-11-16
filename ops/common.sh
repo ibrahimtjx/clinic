@@ -6,6 +6,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 set -a; source ./.env; set +a
 PROJECT=$(docker compose config 2>/dev/null | awk '/^name:/ {print $2; exit}')
 PG_VOLUME="${PROJECT}_pg_data"
+FILES_VOLUME="${PROJECT}_patient_files"
 START=$(date +%s)
 
 say() { printf '\n== %s\n' "$*"; }
@@ -39,4 +40,8 @@ take_service_ip() {
     # Tell the switch and the PCs that the address moved (if arping is installed).
     command -v arping >/dev/null && sudo arping -U -c 3 -I "$SERVICE_IFACE" "$SERVICE_IP" >/dev/null 2>&1 || true
   fi
+}
+restore_files() {
+  say "Putting patient files back from the backup drive"
+  docker compose run --rm --no-deps --user root -v "$FILES_VOLUME":/files-rw --entrypoint /ops/restore-files.sh ops
 }

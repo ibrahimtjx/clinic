@@ -312,11 +312,11 @@ List of visits, newest first: date, department, doctor, one-line summary. Search
 
 Buttons: Save, Save and print, New visit. A saved visit can be edited by its doctor for 24 hours (configurable); after that, changes are added as addenda, not overwrites.
 
-### 8.5 Images, documents, signatures (Phase 2, milestone M12)
+### 8.5 Images and documents (Phase 2, milestone M12)
 - Upload images (X-ray, panoramic, intraoral photos) and documents, tagged by type and date, optionally linked to a visit or tooth.
 - Files stored on the server disk outside the database; database stores path, hash, size, uploader.
 - Image viewer with zoom and side-by-side compare.
-- Electronic signature captured on a signature pad or touchscreen, attached to consent forms, treatment plans, quotations and invoices. Signed documents become read-only; changes create a new version.
+- Electronic signatures are not part of the system (decided 2026-11-16): patients sign the printed papers. Printouts that need a signature carry signature lines.
 
 ### 8.6 Prescriptions, lab tests, medical reports (Phase 2, milestone M12)
 Prescription: drug, dose, frequency, duration, instructions, printed on letterhead. Lab: request and result entry. Medical report: free text on letterhead. **[CONFIRM scope]**
@@ -442,12 +442,12 @@ Summary at the end:
 ## 13. Later phases
 
 ### Phase 2 (milestone M12)
-- SMS through a Saudi SMS gateway when internet is available; messages queue while offline and send later. Templates with placeholders (`{patient_name}`, `{date}`, `{time}`, `{doctor}`). SMS balance shown in settings. Until Phase 2, SMS buttons are visible but disabled with a "coming soon" tooltip.
-- Images, documents, e-signatures (8.5).
+- Images and documents (8.5).
 - Prescriptions, lab, medical reports (8.6).
-- Waiting-room display screen.
 
 ### Phase 3
+- SMS (moved from Phase 2 on 2026-11-16): through a Saudi SMS gateway when internet is available; messages queue while offline and send later. Templates with placeholders (`{patient_name}`, `{date}`, `{time}`, `{doctor}`). SMS balance shown in settings. Until then, SMS buttons are visible but disabled with a "coming soon" tooltip.
+- Waiting-room display screen (moved from Phase 2 on 2026-11-16).
 - Inventory: items, stock in and out, consumption per procedure, low-stock alerts **[CONFIRM scope]**.
 - ZATCA e-invoicing integration (needs internet to report invoices; confirm the clinic's required phase and deadline).
 - NPHIES insurance eligibility and claims, if the clinic needs it.
@@ -537,7 +537,7 @@ cash_closings(id, user_id, from_at, to_at, totals_json, closed_at)
 saved_phrases(id, field_key, text, sort_order)
 patient_files(id, patient_id, visit_id NULL, tooth_fdi NULL, kind, path, sha256,
               size, uploaded_by, uploaded_at)                       -- Phase 2
-signatures(id, patient_id, document_type, document_id, image_path, signed_at) -- Phase 2
+-- signatures: not built; patients sign printed papers (2026-11-16)
 audit_log(id, at, user_id, machine, table_name, record_id, action, old_json, new_json)
 settings(key, value_json)
 ```
@@ -596,7 +596,7 @@ Work one milestone at a time. Each milestone ends with tests passing, a short de
 | M9 | Reports | Revenue report (11.1) as Arabic and English PDF and Excel, plus agreed v1 reports |
 | M10 | Desktop app | Tauri installer, server address and CA setup, silent printing, auto-update from server |
 | M11 | Deployment and failover | Install guide, standby replication, WAL archiving, nightly backups, health page, failover drill passed within 1 hour |
-| M12 | Phase 2 | SMS, images, documents, signatures, prescriptions, lab, medical reports, waiting-room display |
+| M12 | Phase 2 | Images and documents, prescriptions, lab requests and results, medical reports (SMS and the waiting-room display moved to Phase 3; signatures on paper) |
 
 The pilot can start in the browser after M9, before the Tauri app (M10) is finished.
 
@@ -713,3 +713,4 @@ The pilot can start in the browser after M9, before the Tauri app (M10) is finis
 - 2026-11-16: Backups are encrypted with GnuPG symmetric AES-256 using a passphrase file (`BACKUP_KEY_FILE`) that is the same on both servers; a printed copy is kept in the clinic's safe. Without a key nothing is written and the health page says so.
 - 2026-11-16: Health (SPEC 15.4) comes from PostgreSQL itself (replication lag from pg_stat_replication, archiver status) and from a `system_status` row per server written every minute by ops (disk and backup-drive space, last WAL shipped, last nightly and base backup, last error). The standby writes its row into the primary. Admins (settings.manage) get a red banner for: replication lag > 5 min or standby disconnected, last backup > 26 h, no WAL shipped for 15 min, archiving failing, a server silent for 5 min, disk or backup drive < 15% free, an ops error, or two primaries.
 - 2026-11-16: The failover drill was run on one Docker host in development (docs/drills.md). The clinic must repeat it on its own servers before going live; that is the M11 definition-of-done drill.
+- 2026-11-16 (owner): Phase 2 is images and documents, prescriptions, lab, medical reports. SMS and the waiting-room display move to Phase 3. No electronic signatures: patients sign the printed papers, which carry signature lines.

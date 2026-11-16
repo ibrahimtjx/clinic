@@ -27,7 +27,10 @@ services:
       CLINIC_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-clinic}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-clinic}
       # Signs access tokens. Must be the same on the primary and the standby (SPEC 15).
       CLINIC_JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      CLINIC_FILES_DIR: /data/files
       TZ: Asia/Riyadh
+    volumes:
+      - patient_files:/data/files # images and documents (SPEC 8.5); backed up by ops
     depends_on:
       db:
         condition: service_healthy
@@ -89,6 +92,7 @@ services:
       - ${BACKUP_DIR:-./backups}:/backup
       - ${BACKUP_KEY_FILE:-/dev/null}:/run/secrets/backup_key:ro
       - caddy_data:/caddy:ro
+      - patient_files:/files:ro
     depends_on:
       db:
         condition: service_healthy
@@ -103,3 +107,4 @@ volumes:
   caddy_config:
   desktop_updates:
   wal_staging: # WAL waiting to be encrypted onto the backup drive
+  patient_files: # images and documents uploaded to patients

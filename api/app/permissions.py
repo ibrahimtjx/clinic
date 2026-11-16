@@ -42,6 +42,7 @@ _CATALOG: list[tuple[str, list[str]]] = [
     ),
     ("queue", ["queue.view", "queue.manage"]),
     ("dental", ["dental.view", "dental.edit"]),
+    ("files", ["file.view", "file.upload", "file.delete"]),
     ("plan", ["plan.view", "plan.edit"]),
     (
         "billing",

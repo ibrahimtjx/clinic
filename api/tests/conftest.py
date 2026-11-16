@@ -10,12 +10,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
-BASE_URL = os.environ.get("CLINIC_DATABASE_URL", "postgresql+psycopg://clinic:clinic@localhost:5432/clinic")
+BASE_URL = os.environ.get(
+    "CLINIC_DATABASE_URL", "postgresql+psycopg://clinic:clinic@localhost:5432/clinic"
+)
 TEST_URL = make_url(BASE_URL).set(database="clinic_test")
 os.environ["CLINIC_DATABASE_URL"] = TEST_URL.render_as_string(hide_password=False)
 os.environ["CLINIC_COOKIE_PATH"] = "/auth"  # TestClient calls the app without the /api prefix
 os.environ["CLINIC_BCRYPT_ROUNDS"] = "4"
 os.environ["CLINIC_JWT_SECRET"] = "test-secret-0123456789-0123456789-abcdef"
+os.environ["CLINIC_FILES_DIR"] = __import__("tempfile").mkdtemp(prefix="clinic-files-")
 
 
 def _ensure_database() -> None:
@@ -43,7 +46,9 @@ PIN = "4826"
 @pytest.fixture(scope="session")
 def engine():
     cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
-    cfg.set_main_option("script_location", os.path.join(os.path.dirname(__file__), "..", "migrations"))
+    cfg.set_main_option(
+        "script_location", os.path.join(os.path.dirname(__file__), "..", "migrations")
+    )
     command.upgrade(cfg, "head")
     eng = create_engine(TEST_URL)
     yield eng
@@ -54,7 +59,9 @@ def engine():
 def db(engine) -> Iterator[Session]:
     conn = engine.connect()
     trans = conn.begin()
-    session = Session(bind=conn, join_transaction_mode="create_savepoint", expire_on_commit=False, autoflush=False)
+    session = Session(
+        bind=conn, join_transaction_mode="create_savepoint", expire_on_commit=False, autoflush=False
+    )
     conn.exec_driver_sql("SET TIME ZONE 'Asia/Riyadh'")
     yield session
     session.close()
@@ -72,14 +79,18 @@ def client(db) -> Iterator[TestClient]:
             raise
 
     app.dependency_overrides[get_db] = override
-    with TestClient(app, base_url="https://testserver", headers={"X-Client-Machine": "TEST-PC"}) as c:
+    with TestClient(
+        app, base_url="https://testserver", headers={"X-Client-Machine": "TEST-PC"}
+    ) as c:
         yield c
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
 def make_user(db):
-    def _make(username: str, roles: list[str], *, pin: str | None = PIN, must_change: bool = False, **kw) -> User:
+    def _make(
+        username: str, roles: list[str], *, pin: str | None = PIN, must_change: bool = False, **kw
+    ) -> User:
         user = User(
             username=username,
             full_name_ar=kw.get("full_name_ar", f"مستخدم {username}"),

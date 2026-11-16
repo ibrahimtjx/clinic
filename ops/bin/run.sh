@@ -17,6 +17,7 @@ while true; do
     fi
     if [ -s "$KEY" ]; then
       /ops/ship-wal.sh || record_error "WAL shipping failed"
+      /ops/ship-files.sh || record_error "patient files backup failed"
       if [ "$(date +%H%M)" -ge "${BACKUP_TIME:-0200}" ] && ! compgen -G "$BACKUP/dumps/daily/clinic-$(date +%Y%m%d)-*.dump.gpg" >/dev/null; then
         /ops/dump.sh || record_error "nightly backup failed"
       fi
