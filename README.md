@@ -10,6 +10,7 @@ Offline-first clinic system for a dental and medical complex. Arabic first (RTL)
 | `api/` | FastAPI backend, SQLAlchemy 2, Alembic migrations, pytest |
 | `web/` | React 18 + TypeScript + Vite + Mantine 7 UI, Vitest, Playwright |
 | `desktop/` | Windows desktop app (Tauri 2): silent printing, PDFs, updates from the server. See [docs/desktop.md](docs/desktop.md) |
+| `ops/` | Backups, standby and failover scripts (SPEC 15). See [docs/install.md](docs/install.md) and [docs/failover.md](docs/failover.md) |
 | `proxy/` | Caddy reverse proxy with the clinic's internal CA (HTTPS on the LAN) |
 | `docs/` | Demo scripts per milestone, runbooks |
 

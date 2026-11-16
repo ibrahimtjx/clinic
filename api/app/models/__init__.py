@@ -38,6 +38,7 @@ from app.models.master import (
 from app.models.patients import InsuranceCompany, Patient, PatientAssignment, PatientInsurance
 from app.models.queue import QueueEntry
 from app.models.settings import Setting
+from app.models.system import SystemStatus
 
 __all__ = [
     "Appointment",
@@ -78,6 +79,7 @@ __all__ = [
     "SavedPhrase",
     "Service",
     "Setting",
+    "SystemStatus",
     "ToothFinding",
     "TreatmentPlan",
     "User",

@@ -42,3 +42,12 @@ test('settings sections, seeded statuses and numbering', async ({ page }) => {
   await expect(page.getByTestId('numbering-table')).toContainText(/INV-\d{4}-\d{6}/);
   await expect(page.getByTestId('clinic-name')).toContainText('مجمع الندى');
 });
+
+test('system health page lists the servers reporting (SPEC 15.4)', async ({ page }) => {
+  test.setTimeout(120_000);
+  await signIn(page, 'admin');
+  await page.goto('/settings/system-health');
+  await expect(page.getByTestId('health-status')).toBeVisible();
+  // The ops service on this server reports every minute.
+  await expect(page.getByTestId('health-nodes').locator('tbody tr').first()).toBeVisible({ timeout: 90_000 });
+});
