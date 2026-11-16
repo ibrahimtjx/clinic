@@ -16,6 +16,8 @@ param(
   [string]$ParamsFile = ''
 )
 $ErrorActionPreference = 'Stop'
+# Windows PowerShell's own modules only (a PowerShell 7 parent can hand over an incompatible path).
+$env:PSModulePath = "$env:ProgramFiles\WindowsPowerShell\Modules;$env:SystemRoot\system32\WindowsPowerShell\v1.0\Modules"
 $App = Split-Path -Parent $PSScriptRoot
 $Data = Join-Path $env:ProgramData 'ClinicServer'
 $Config = Join-Path $Data 'config'
@@ -98,9 +100,12 @@ function Install-WinswServices {
 function Write-Caddyfile($vars) {
   $hosts = @($vars['SERVER_NAME'], 'localhost')
   # The PCs may use the server's IP address instead of its name: the certificate covers both.
-  $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-    Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } |
-    Select-Object -ExpandProperty IPAddress
+  $ips = [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces() |
+    Where-Object { $_.OperationalStatus -eq 'Up' } |
+    ForEach-Object { $_.GetIPProperties().UnicastAddresses } |
+    Where-Object { $_.Address.AddressFamily -eq 'InterNetwork' } |
+    ForEach-Object { $_.Address.ToString() } |
+    Where-Object { $_ -notlike '127.*' -and $_ -notlike '169.254.*' }
   $hosts += $ips
   $hosts = $hosts | Where-Object { $_ } | Select-Object -Unique
   $text = Get-Content (Join-Path $App 'server\Caddyfile.template') -Raw -Encoding UTF8
@@ -132,7 +137,7 @@ if ($Mode -eq 'uninstall') {
     if ((Get-Service $s -ErrorAction SilentlyContinue) -and (Test-Path $exe)) { & $exe uninstall | Out-Null }
   }
   if (Get-Service ClinicDB -ErrorAction SilentlyContinue) { & (Join-Path $PgBin 'pg_ctl.exe') unregister -N ClinicDB }
-  Get-NetFirewallRule -DisplayName 'Clinic Server (web)' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
+  netsh advfirewall firewall delete rule 'name=Clinic Server (web)' | Out-Null
   Say "Services removed. The clinic data stays in $Data."
   Stop-Transcript | Out-Null
   exit 0
@@ -246,10 +251,10 @@ try {
 Say 'Trusting the clinic certificate on this PC'
 Wait-Until { Test-Path (Join-Path $Data 'caddy\caddy\pki\authorities\local\root.crt') } 60 'The clinic certificate'
 $ca = Join-Path $Data 'caddy\caddy\pki\authorities\local\root.crt'
-Import-Certificate -FilePath $ca -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
+Invoke-Native 'certutil.exe' @('-f', '-addstore', 'Root', $ca) 'trusting the clinic certificate'
 Copy-Item $ca (Join-Path $Data 'clinic-ca.crt') -Force
 
-New-NetFirewallRule -DisplayName 'Clinic Server (web)' -Direction Inbound -Protocol TCP -LocalPort 80, 443 -Action Allow -Profile Domain, Private | Out-Null
+Invoke-Native 'netsh.exe' @('advfirewall', 'firewall', 'add', 'rule', 'name=Clinic Server (web)', 'dir=in', 'action=allow', 'protocol=TCP', 'localport=80,443', 'profile=private,domain') 'opening the firewall'
 
 $fp = (Get-FileHash -Algorithm SHA256 -InputStream ([IO.MemoryStream]::new(([Security.Cryptography.X509Certificates.X509Certificate2]::new($ca)).RawData))).Hash -replace '(..)(?!$)', '$1:'
 $readme = @"
