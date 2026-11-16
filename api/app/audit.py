@@ -114,10 +114,17 @@ def _audit_after_flush(session: Session, _flush_ctx) -> None:
 
     for obj in session.new:
         if getattr(obj, "__audited__", False):
-            add(obj, "create", None, {k: _mask(obj, k, getattr(obj, k)) for k in _columns(obj) if k not in SKIP})
+            add(
+                obj,
+                "create",
+                None,
+                {k: _mask(obj, k, getattr(obj, k)) for k in _columns(obj) if k not in SKIP},
+            )
 
     for obj in session.dirty:
-        if not getattr(obj, "__audited__", False) or not session.is_modified(obj, include_collections=False):
+        if not getattr(obj, "__audited__", False) or not session.is_modified(
+            obj, include_collections=False
+        ):
             continue
         state = inspect(obj)
         old, new = {}, {}

@@ -23,7 +23,9 @@ def list_audit(
     before_id: int | None = None,
     limit: int = Query(50, ge=1, le=200),
 ) -> Page[AuditOut]:
-    q = select(AuditLog, User.full_name_ar, User.username).outerjoin(User, User.id == AuditLog.user_id)
+    q = select(AuditLog, User.full_name_ar, User.username).outerjoin(
+        User, User.id == AuditLog.user_id
+    )
     if table_name:
         q = q.where(AuditLog.table_name == table_name)
     if record_id:
@@ -40,6 +42,7 @@ def list_audit(
         q = q.where(AuditLog.id < before_id)
     rows = db.execute(q.order_by(AuditLog.id.desc()).limit(limit + 1)).all()
     items = [
-        AuditOut.model_validate(a).model_copy(update={"user_name": name or uname}) for a, name, uname in rows[:limit]
+        AuditOut.model_validate(a).model_copy(update={"user_name": name or uname})
+        for a, name, uname in rows[:limit]
     ]
     return Page(items=items, next_cursor=items[-1].id if len(rows) > limit else None)

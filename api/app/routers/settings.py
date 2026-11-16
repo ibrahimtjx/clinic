@@ -35,7 +35,9 @@ def read_clinic(db: DbSession, _: CurrentUser) -> ClinicInfo:
 
 
 @router.put("/clinic", response_model=ClinicInfo)
-def write_clinic(body: ClinicInfo, db: DbSession, p: Principal = Depends(require("settings.manage"))) -> ClinicInfo:
+def write_clinic(
+    body: ClinicInfo, db: DbSession, p: Principal = Depends(require("settings.manage"))
+) -> ClinicInfo:
     save_setting(db, CLINIC_KEY, body, p.user.id)
     db.commit()
     return get_clinic_info(db)

@@ -148,7 +148,12 @@ def _link_session(db: Session, a: Appointment) -> None:
         return
     s = db.get(PlanSession, a.plan_session_id)
     plan = db.get(TreatmentPlan, s.plan_id) if s else None
-    if s is None or plan is None or plan.patient_id != a.patient_id or plan.status in ("completed", "cancelled"):
+    if (
+        s is None
+        or plan is None
+        or plan.patient_id != a.patient_id
+        or plan.status in ("completed", "cancelled")
+    ):
         raise _err("unknown_plan_session")
     if s.status == "planned":
         s.status = "booked"

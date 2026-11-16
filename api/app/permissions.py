@@ -14,22 +14,47 @@ class Perm:
 
 
 _CATALOG: list[tuple[str, list[str]]] = [
-    ("admin", ["user.manage", "role.manage", "settings.manage", "audit.view", "record.view_deleted"]),
-    ("patient", [
-        "patient.view", "patient.create", "patient.edit", "patient.delete", "patient.export",
-        "patient.medical_view", "patient.assign",
-    ]),
-    ("appointment", [
-        "appointment.view", "appointment.create", "appointment.edit", "appointment.delete",
-        "appointment.override_hours",
-    ]),
+    (
+        "admin",
+        ["user.manage", "role.manage", "settings.manage", "audit.view", "record.view_deleted"],
+    ),
+    (
+        "patient",
+        [
+            "patient.view",
+            "patient.create",
+            "patient.edit",
+            "patient.delete",
+            "patient.export",
+            "patient.medical_view",
+            "patient.assign",
+        ],
+    ),
+    (
+        "appointment",
+        [
+            "appointment.view",
+            "appointment.create",
+            "appointment.edit",
+            "appointment.delete",
+            "appointment.override_hours",
+        ],
+    ),
     ("queue", ["queue.view", "queue.manage"]),
     ("dental", ["dental.view", "dental.edit"]),
     ("plan", ["plan.view", "plan.edit"]),
-    ("billing", [
-        "quotation.view", "quotation.edit", "invoice.view", "invoice.price_override",
-        "invoice.credit_note", "payment.collect", "cashbox.close",
-    ]),
+    (
+        "billing",
+        [
+            "quotation.view",
+            "quotation.edit",
+            "invoice.view",
+            "invoice.price_override",
+            "invoice.credit_note",
+            "payment.collect",
+            "cashbox.close",
+        ],
+    ),
     ("report", ["report.revenue", "report.financial", "report.clinical", "report.operational"]),
 ]
 
@@ -50,34 +75,64 @@ DEFAULT_ROLES: dict[str, dict] = {
         "name_ar": "المدير",
         "name_en": "Manager",
         "permissions": sorted(
-            k for k in PERMISSION_KEYS
+            k
+            for k in PERMISSION_KEYS
             if not k.startswith(("user.", "role.", "settings.")) and k != "invoice.price_override"
         ),
     },
     "reception": {
         "name_ar": "الاستقبال",
         "name_en": "Reception",
-        "permissions": sorted([
-            "patient.view", "patient.create", "patient.edit", "patient.assign",
-            *_all(("appointment.",)), "queue.view", "queue.manage",
-            "quotation.view", "invoice.view", "payment.collect", "report.operational",
-        ]),
+        "permissions": sorted(
+            [
+                "patient.view",
+                "patient.create",
+                "patient.edit",
+                "patient.assign",
+                *_all(("appointment.",)),
+                "queue.view",
+                "queue.manage",
+                "quotation.view",
+                "invoice.view",
+                "payment.collect",
+                "report.operational",
+            ]
+        ),
     },
     "doctor": {
         "name_ar": "الطبيب",
         "name_en": "Doctor",
-        "permissions": sorted([
-            "patient.view", "patient.medical_view", "appointment.view", "queue.view", "queue.manage",
-            "dental.view", "dental.edit", "plan.view", "plan.edit", "quotation.view", "quotation.edit",
-            "report.clinical",
-        ]),
+        "permissions": sorted(
+            [
+                "patient.view",
+                "patient.medical_view",
+                "appointment.view",
+                "queue.view",
+                "queue.manage",
+                "dental.view",
+                "dental.edit",
+                "plan.view",
+                "plan.edit",
+                "quotation.view",
+                "quotation.edit",
+                "report.clinical",
+            ]
+        ),
     },
     "cashier": {
         "name_ar": "المحاسب / أمين الصندوق",
         "name_en": "Cashier / Accountant",
-        "permissions": sorted([
-            "patient.view", "quotation.view", "invoice.view", "invoice.credit_note",
-            "payment.collect", "cashbox.close", "report.revenue", "report.financial",
-        ]),
+        "permissions": sorted(
+            [
+                "patient.view",
+                "quotation.view",
+                "invoice.view",
+                "invoice.credit_note",
+                "payment.collect",
+                "cashbox.close",
+                "report.revenue",
+                "report.financial",
+            ]
+        ),
     },
 }

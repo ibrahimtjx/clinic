@@ -42,7 +42,9 @@ def _out(d: Doctor, p: Principal) -> DoctorOut:
 def validate_schedule(items: list[ScheduleItem]) -> None:
     """Per weekday: work periods do not overlap; each break lies inside one work period;
     breaks do not overlap each other."""
-    by_day: dict[int, dict[str, list[ScheduleItem]]] = defaultdict(lambda: {"work": [], "break": []})
+    by_day: dict[int, dict[str, list[ScheduleItem]]] = defaultdict(
+        lambda: {"work": [], "break": []}
+    )
     for it in items:
         if it.end_time <= it.start_time:
             raise _err("schedule_times", weekday=it.weekday)
@@ -54,7 +56,9 @@ def validate_schedule(items: list[ScheduleItem]) -> None:
                 if b.start_time < a.end_time:
                     raise _err("schedule_overlap", weekday=day)
         for br in kinds["break"]:
-            if not any(w.start_time <= br.start_time and br.end_time <= w.end_time for w in kinds["work"]):
+            if not any(
+                w.start_time <= br.start_time and br.end_time <= w.end_time for w in kinds["work"]
+            ):
                 raise _err("break_outside_work", weekday=day)
 
 
@@ -82,12 +86,16 @@ def _validate_refs(db: Session, d: Doctor) -> None:
         user = db.get(User, d.user_id)
         if user is None or user.deleted_at is not None:
             raise _err("unknown_user")
-        taken = db.scalar(select(Doctor.id).where(Doctor.user_id == d.user_id, Doctor.id != (d.id or 0)))
+        taken = db.scalar(
+            select(Doctor.id).where(Doctor.user_id == d.user_id, Doctor.id != (d.id or 0))
+        )
         if taken:
             raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "user_already_doctor"})
 
 
-def _replace_children(d: Doctor, schedules: list[ScheduleItem] | None, rules: list[CommissionRuleItem] | None) -> None:
+def _replace_children(
+    d: Doctor, schedules: list[ScheduleItem] | None, rules: list[CommissionRuleItem] | None
+) -> None:
     if schedules is not None:
         d.schedules = [DoctorSchedule(**s.model_dump()) for s in schedules]
     if rules is not None:
@@ -118,7 +126,11 @@ def get_doctor(doctor_id: int, db: DbSession, p: CurrentUser) -> DoctorOut:
 def create_doctor(body: DoctorIn, db: DbSession, p: Principal = writer) -> DoctorOut:
     validate_schedule(body.schedules)
     _validate_rules(db, body.commission_rules)
-    d = Doctor(**body.model_dump(exclude={"schedules", "commission_rules"}), created_by=p.user.id, updated_by=p.user.id)
+    d = Doctor(
+        **body.model_dump(exclude={"schedules", "commission_rules"}),
+        created_by=p.user.id,
+        updated_by=p.user.id,
+    )
     d.sort_order = (db.scalar(select(func.max(Doctor.sort_order))) or 0) + 10
     _validate_refs(db, d)
     _replace_children(d, body.schedules, body.commission_rules)
@@ -129,10 +141,14 @@ def create_doctor(body: DoctorIn, db: DbSession, p: Principal = writer) -> Docto
 
 
 @router.patch("/{doctor_id}", response_model=DoctorOut)
-def update_doctor(doctor_id: int, body: DoctorPatch, db: DbSession, p: Principal = writer) -> DoctorOut:
+def update_doctor(
+    doctor_id: int, body: DoctorPatch, db: DbSession, p: Principal = writer
+) -> DoctorOut:
     d = _get(db, doctor_id)
     check_version(d.version, body.version, updater_name(db, d), d.updated_at)
-    changes = body.model_dump(exclude_unset=True, exclude={"version", "schedules", "commission_rules"})
+    changes = body.model_dump(
+        exclude_unset=True, exclude={"version", "schedules", "commission_rules"}
+    )
     for k, v in changes.items():
         setattr(d, k, v)
     _validate_refs(db, d)

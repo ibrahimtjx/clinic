@@ -33,7 +33,9 @@ def client_ip(request: Request) -> str | None:
 
 
 def set_anonymous_context(request: Request, db: DbSession) -> None:
-    set_audit_context(db, AuditContext(user_id=None, machine=client_machine(request), ip=client_ip(request)))
+    set_audit_context(
+        db, AuditContext(user_id=None, machine=client_machine(request), ip=client_ip(request))
+    )
 
 
 @dataclass
@@ -57,7 +59,9 @@ def permissions_of(user: User) -> frozenset[str]:
 
 
 def _unauthorized(code: str) -> HTTPException:
-    return HTTPException(status.HTTP_401_UNAUTHORIZED, detail={"code": code}, headers={"WWW-Authenticate": "Bearer"})
+    return HTTPException(
+        status.HTTP_401_UNAUTHORIZED, detail={"code": code}, headers={"WWW-Authenticate": "Bearer"}
+    )
 
 
 def _principal(
@@ -89,14 +93,18 @@ def _principal(
     if user is None or not user.is_active or user.deleted_at is not None:
         raise _unauthorized("session_ended")
 
-    set_audit_context(db, AuditContext(user_id=user.id, machine=client_machine(request), ip=client_ip(request)))
+    set_audit_context(
+        db, AuditContext(user_id=user.id, machine=client_machine(request), ip=client_ip(request))
+    )
 
     if user.must_change_password and not allow_password_change_pending:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"code": "password_change_required"})
     return Principal(user=user, session_id=session.id, permissions=permissions_of(user))
 
 
-def current_principal(request: Request, db: DbSession, authorization: Annotated[str | None, Header()] = None) -> Principal:
+def current_principal(
+    request: Request, db: DbSession, authorization: Annotated[str | None, Header()] = None
+) -> Principal:
     return _principal(request, db, authorization)
 
 
@@ -120,13 +128,17 @@ def require(*perms: str) -> Callable[..., Principal]:
     def dep(principal: CurrentUser) -> Principal:
         missing = [p for p in perms if not principal.can(p)]
         if missing:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"code": "forbidden", "missing": missing})
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, detail={"code": "forbidden", "missing": missing}
+            )
         return principal
 
     return dep
 
 
-def check_version(record_version: int, client_version: int, updated_by_name: str | None, updated_at) -> None:
+def check_version(
+    record_version: int, client_version: int, updated_by_name: str | None, updated_at
+) -> None:
     """Optimistic locking (SPEC 3.6): a stale save says who changed the record."""
     if record_version != client_version:
         raise HTTPException(

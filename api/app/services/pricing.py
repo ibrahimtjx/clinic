@@ -119,13 +119,17 @@ def calculate(
 ) -> Totals:
     out: list[LineOut] = []
     notes: list[str] = []
-    active = insurance is not None and (insurance.expiry is None or on_date is None or insurance.expiry >= on_date)
+    active = insurance is not None and (
+        insurance.expiry is None or on_date is None or insurance.expiry >= on_date
+    )
     if insurance is not None and not active:
         notes.append("insurance_expired")
 
     # 1) Line amounts.
     copay: list[Decimal] = []  # the patient's co-payment part of the covered amount (cap applies)
-    extra: list[Decimal] = []  # parts the patient always pays (exclusions, above consultation limit)
+    extra: list[
+        Decimal
+    ] = []  # parts the patient always pays (exclusions, above consultation limit)
     for ln in lines:
         gross = money(ln.price * ln.qty)
         disc = money(ln.discount_amount + gross * ln.discount_pct / HUNDRED)
@@ -133,8 +137,19 @@ def calculate(
         net = gross - disc
         rate = vat_rate_for(standard_vat_rate, saudi, ln.vat_applicable)
         vat = money(net * rate / HUNDRED)
-        lo = LineOut(gross=gross, discount=disc, net=net, vat_rate=rate, vat=vat, total=net + vat, insurance_share=ZERO, patient_share=net + vat)
-        if active and (ln.service_id is None or ln.service_id not in insurance.excluded_service_ids):
+        lo = LineOut(
+            gross=gross,
+            discount=disc,
+            net=net,
+            vat_rate=rate,
+            vat=vat,
+            total=net + vat,
+            insurance_share=ZERO,
+            patient_share=net + vat,
+        )
+        if active and (
+            ln.service_id is None or ln.service_id not in insurance.excluded_service_ids
+        ):
             covered = net
             if ln.is_consultation and insurance.consultation_max_covered is not None:
                 covered = min(net, insurance.consultation_max_covered)

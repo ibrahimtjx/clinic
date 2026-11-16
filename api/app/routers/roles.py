@@ -14,7 +14,10 @@ router = APIRouter(tags=["roles"])
 def _validate(perms: list[str]) -> set[str]:
     unknown = set(perms) - PERMISSION_KEYS
     if unknown:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "unknown_permission", "keys": sorted(unknown)})
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"code": "unknown_permission", "keys": sorted(unknown)},
+        )
     return set(perms)
 
 
@@ -35,10 +38,18 @@ def list_roles(db: DbSession, _: Principal = Depends(require("user.manage"))) ->
 
 
 @router.post("/roles", response_model=RoleOut, status_code=201)
-def create_role(body: RoleCreate, db: DbSession, p: Principal = Depends(require("role.manage"))) -> Role:
+def create_role(
+    body: RoleCreate, db: DbSession, p: Principal = Depends(require("role.manage"))
+) -> Role:
     if db.scalar(select(Role.id).where(Role.key == body.key)):
         raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "role_key_taken"})
-    role = Role(key=body.key, name_ar=body.name_ar, name_en=body.name_en, created_by=p.user.id, updated_by=p.user.id)
+    role = Role(
+        key=body.key,
+        name_ar=body.name_ar,
+        name_en=body.name_en,
+        created_by=p.user.id,
+        updated_by=p.user.id,
+    )
     role.permissions = [RolePermission(permission=k) for k in sorted(_validate(body.permissions))]
     db.add(role)
     db.commit()
@@ -47,12 +58,16 @@ def create_role(body: RoleCreate, db: DbSession, p: Principal = Depends(require(
 
 
 @router.patch("/roles/{role_id}", response_model=RoleOut)
-def update_role(role_id: int, body: RoleUpdate, db: DbSession, p: Principal = Depends(require("role.manage"))) -> Role:
+def update_role(
+    role_id: int, body: RoleUpdate, db: DbSession, p: Principal = Depends(require("role.manage"))
+) -> Role:
     role = db.get(Role, role_id)
     if role is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail={"code": "not_found"})
     updater = db.get(User, role.updated_by) if role.updated_by else None
-    check_version(role.version, body.version, updater.display_name if updater else None, role.updated_at)
+    check_version(
+        role.version, body.version, updater.display_name if updater else None, role.updated_at
+    )
     if body.permissions is not None:
         if role.key == ADMIN_ROLE:
             raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "admin_role_fixed"})
@@ -73,7 +88,9 @@ def update_role(role_id: int, body: RoleUpdate, db: DbSession, p: Principal = De
 
 
 @router.delete("/roles/{role_id}", status_code=204)
-def delete_role(role_id: int, db: DbSession, _: Principal = Depends(require("role.manage"))) -> None:
+def delete_role(
+    role_id: int, db: DbSession, _: Principal = Depends(require("role.manage"))
+) -> None:
     """Only custom roles that nobody holds can be removed."""
     role = db.get(Role, role_id)
     if role is None:

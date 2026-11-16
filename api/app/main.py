@@ -20,6 +20,7 @@ from app.routers import (
     master,
     patients,
     queue,
+    reports,
     roles,
     users,
 )
@@ -46,6 +47,7 @@ app.include_router(queue.settings_router)
 app.include_router(dental.router)
 app.include_router(billing.router)
 app.include_router(ledger.router)
+app.include_router(reports.router)
 
 DbSession = Annotated[Session, Depends(get_db)]
 
@@ -57,18 +59,29 @@ async def _integrity(_request: Request, exc: IntegrityError) -> JSONResponse:
     constraint = getattr(diag, "constraint_name", None)
     sqlstate = getattr(exc.orig, "sqlstate", None)
     if sqlstate == "23505":
-        return JSONResponse(status_code=409, content={"detail": {"code": "duplicate", "constraint": constraint}})
+        return JSONResponse(
+            status_code=409, content={"detail": {"code": "duplicate", "constraint": constraint}}
+        )
     if sqlstate == "23503":
-        return JSONResponse(status_code=422, content={"detail": {"code": "invalid_reference", "constraint": constraint}})
+        return JSONResponse(
+            status_code=422,
+            content={"detail": {"code": "invalid_reference", "constraint": constraint}},
+        )
     if sqlstate == "23P01":
-        return JSONResponse(status_code=409, content={"detail": {"code": "overlap", "constraint": constraint}})
-    return JSONResponse(status_code=422, content={"detail": {"code": "constraint", "constraint": constraint}})
+        return JSONResponse(
+            status_code=409, content={"detail": {"code": "overlap", "constraint": constraint}}
+        )
+    return JSONResponse(
+        status_code=422, content={"detail": {"code": "constraint", "constraint": constraint}}
+    )
 
 
 @app.exception_handler(StaleDataError)
 async def _stale(_request: Request, _exc: StaleDataError) -> JSONResponse:
     """Two saves of the same record raced; the later one lost (SPEC 3.6)."""
-    return JSONResponse(status_code=409, content={"detail": {"code": "stale_record", "updated_by": None}})
+    return JSONResponse(
+        status_code=409, content={"detail": {"code": "stale_record", "updated_by": None}}
+    )
 
 
 @app.get("/health")

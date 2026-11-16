@@ -54,9 +54,15 @@ def allocate(db: Session, doc_type: DocType) -> str:
     fmt = getattr(get_formats(db), doc_type)
     year = current_year(db) if fmt.yearly_reset else 0
     # Create the row for a new year if needed, then lock it.
-    db.execute(insert(NumberSequence).values(doc_type=doc_type, year=year, next_value=1).on_conflict_do_nothing())
+    db.execute(
+        insert(NumberSequence)
+        .values(doc_type=doc_type, year=year, next_value=1)
+        .on_conflict_do_nothing()
+    )
     seq = db.execute(
-        select(NumberSequence).where(NumberSequence.doc_type == doc_type, NumberSequence.year == year).with_for_update()
+        select(NumberSequence)
+        .where(NumberSequence.doc_type == doc_type, NumberSequence.year == year)
+        .with_for_update()
     ).scalar_one()
     value = seq.next_value
     seq.next_value = value + 1
@@ -72,6 +78,14 @@ def preview(db: Session) -> dict[str, dict]:
     for dt in DOC_TYPES:
         fmt = getattr(formats, dt)
         y = year if fmt.yearly_reset else 0
-        nxt = db.scalar(select(NumberSequence.next_value).where(NumberSequence.doc_type == dt, NumberSequence.year == y))
-        out[dt] = {"format": fmt.model_dump(), "next_number": format_number(fmt, year, nxt or 1), "issued": (nxt or 1) - 1}
+        nxt = db.scalar(
+            select(NumberSequence.next_value).where(
+                NumberSequence.doc_type == dt, NumberSequence.year == y
+            )
+        )
+        out[dt] = {
+            "format": fmt.model_dump(),
+            "next_number": format_number(fmt, year, nxt or 1),
+            "issued": (nxt or 1) - 1,
+        }
     return out
