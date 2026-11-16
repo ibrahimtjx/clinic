@@ -31,6 +31,11 @@ jobs:
           name: clinic-server-windows
           path: windows/out/Clinic-Server-Setup-*.exe
           if-no-files-found: error
+      - name: Free ports 80 and 443 like on a clean PC (the runner has IIS)
+        shell: pwsh
+        run: |
+          foreach ($s in 'W3SVC', 'WAS', 'IISADMIN') { Stop-Service $s -Force -ErrorAction SilentlyContinue }
+          Get-NetTCPConnection -LocalPort 80, 443 -State Listen -ErrorAction SilentlyContinue | Format-Table LocalPort, OwningProcess
       - name: Install and test on this machine
         shell: pwsh
         run: |

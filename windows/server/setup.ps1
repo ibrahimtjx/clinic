@@ -148,7 +148,12 @@ $p = Get-Content $ParamsFile -Raw -Encoding UTF8 | ConvertFrom-Json
 Remove-Item $ParamsFile -Force -ErrorAction SilentlyContinue   # it holds the admin password
 
 foreach ($port in 80, 443) {
-  if (-not (Test-PortFree $port)) { throw "Port $port is used by another program (often IIS or Skype). Free it and run the installer again." }
+  if (-not (Test-PortFree $port)) {
+    $owner = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    $name = if ($owner -and $owner.OwningProcess -eq 4) { 'Windows HTTP service (IIS: stop "World Wide Web Publishing Service")' }
+            elseif ($owner) { (Get-Process -Id $owner.OwningProcess -ErrorAction SilentlyContinue).ProcessName } else { 'another program' }
+    throw "Port $port is used by $name. Stop it (and set it to not start), then run the installer again."
+  }
 }
 
 foreach ($d in 'config', 'pgdata', 'wal-staging', 'wal-staging\restore', 'caddy', 'caddy-config', 'desktop', 'logs') {
