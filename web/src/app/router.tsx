@@ -12,6 +12,7 @@ import { ReportPrint } from '../print/ReportPrint';
 import { ReportsPage } from '../reports/ReportsPage';
 import { ClosingPrint, CreditNotePrint, InvoicePrint, ReceiptPrint } from '../print/LedgerPrint';
 import { AppointmentSlip, DaySchedule, TestPrint } from '../print/PrintPages';
+import { NotFoundPage, RouteErrorPage } from '../pages/ErrorPages';
 import { HomePage } from '../pages/HomePage';
 import { PlaceholderPage } from '../pages/PlaceholderPage';
 import { QueuePage } from '../queue/QueuePage';
@@ -39,6 +40,7 @@ export const routes = [
   {
     path: '/',
     element: <AppLayout />,
+    errorElement: <RouteErrorPage />,
     children: [
       { index: true, element: <HomePage /> },
       { path: 'design', element: <DesignPage /> },
@@ -55,6 +57,7 @@ export const routes = [
         path: item.path.slice(1),
         element: <PlaceholderPage item={item} />,
       })),
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ];

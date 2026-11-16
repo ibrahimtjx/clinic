@@ -309,7 +309,7 @@ export function DentalTab({ patient }: { patient: Patient }) {
                       data={(doctors.data ?? []).map((d) => ({ value: String(d.id), label: nameOf(d, lang) }))}
                       value={form.doctor_id ? String(form.doctor_id) : null}
                       onChange={(v) => setForm({ ...form, doctor_id: v ? Number(v) : null })}
-                      disabled={readOnly || !!current}
+                      disabled={readOnly || !!current || !!myDoctor}
                       required
                     />
                   </Grid.Col>

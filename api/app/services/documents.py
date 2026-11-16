@@ -195,6 +195,8 @@ def build(
             overridden = True
         if svc is None and not p.can("invoice.price_override"):
             raise _err("free_line_needs_override", line=i)
+        if ln.discount_amount > ln.price * ln.qty:
+            raise _err("discount_too_large", line=i)
         bad = [t for t in ln.teeth if not (11 <= t <= 48 or 51 <= t <= 85)]
         if bad:
             raise _err("invalid_teeth", line=i)

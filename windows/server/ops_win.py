@@ -13,6 +13,7 @@ Commands (run as Administrator from the install folder):
   python ops_win.py restore-pitr BASE [TIME]   base backup + WAL, up to TIME ("2026-11-16 10:45:00")
   python ops_win.py decrypt IN OUT         decrypt any backup file
   python ops_win.py reset-password USER    forgotten password: set a temporary one (asked for)
+  python ops_win.py addresses              show this PC's addresses; answer on a new one now
 
 Encryption: AES-256-GCM, key from the passphrase file with scrypt. File layout:
   b"CLNC1" | salt (16) | nonce (12) | ciphertext | tag (16)
@@ -275,12 +276,60 @@ def key_ok() -> bool:
     return p.exists() and p.stat().st_size > 0
 
 
+def current_ipv4() -> list[str]:
+    """This PC's LAN addresses (not loopback or self-assigned 169.254.x.x)."""
+    ips: set[str] = set()
+    try:
+        ips |= {i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)}
+    except OSError:
+        pass
+    # The address of the default route (a UDP "connect" sends nothing).
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("192.0.2.1", 9))
+            ips.add(s.getsockname()[0])
+    except OSError:
+        pass
+    return sorted(ip for ip in ips if not ip.startswith(("127.", "169.254.", "0.")))
+
+
+def follow_addresses(ips: list[str] | None = None, caddyfile: Path | None = None) -> bool:
+    """The PCs may reach the server by its IP address, and Wi-Fi or DHCP can change it. Caddy only
+    answers (and makes a certificate) for the addresses in its Caddyfile, so add a new one and
+    restart the web service. Returns True when the file changed."""
+    caddyfile = caddyfile or (DATA / "config" / "Caddyfile")
+    ips = current_ipv4() if ips is None else ips
+    if not ips or not caddyfile.exists():
+        return False
+    lines = caddyfile.read_text(encoding="utf-8").splitlines()
+    site = next((i for i, ln in enumerate(lines) if ln.startswith("http://") and ln.endswith("{")), None)
+    if site is None:
+        return False
+    hosts = [h.strip().removeprefix("http://") for h in lines[site][:-1].split(",") if h.strip()]
+    if all(ip in hosts for ip in ips):
+        return False
+    names = [h for h in hosts if not h.replace(".", "").isdigit()]
+    new = names + ips
+    old_https = ", ".join(hosts) + " {"
+    lines[site] = ", ".join(f"http://{h}" for h in new) + " {"
+    lines = [", ".join(new) + " {" if ln == old_https else ln for ln in lines]
+    caddyfile.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    log(f"server address changed: now answering on {', '.join(new)}")
+    return True
+
+
 def run() -> None:
     log(f"ops started (backup folder {backup_dir()})")
     interval = int(cfg("OPS_INTERVAL", "60"))
     while True:
         try:
             heartbeat()
+            try:
+                if follow_addresses():
+                    service("stop", "ClinicWeb")
+                    service("start", "ClinicWeb")
+            except Exception as e:  # noqa: BLE001
+                log(f"could not follow the server address: {e}")
             if not key_ok():
                 record_error("no backup key file: backups are not written")
             else:
@@ -415,6 +464,13 @@ def main(argv: list[str]) -> int:
             [sys.executable, "-m", "app.cli", "reset-password", "--username", argv[2], *extra],
             cwd=APP / "api",
         )
+    elif cmd == "addresses":
+        changed = follow_addresses()
+        if changed:
+            service("stop", "ClinicWeb")
+            service("start", "ClinicWeb")
+        print("This PC:", ", ".join(current_ipv4()) or "no network address")
+        print("Updated the web server." if changed else "The web server already answers on these.")
     elif cmd == "status":
         for row in sql("select node, role, updated_at, last_dump_at, last_wal_at, last_error from system_status"):
             print(row)

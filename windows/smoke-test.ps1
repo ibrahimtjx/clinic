@@ -78,6 +78,12 @@ $found = Api Get "/patients?q=$([uri]::EscapeDataString('مريض اختبار �
 $after = Api Get "/patients?q=$([uri]::EscapeDataString('بعد النسخة'))"
 Check (@($found.items).Count -ge 1 -and @($after.items).Count -eq 0) 'restored to the backup (later patient gone)'
 
+Say 'Server addresses'
+$out = & "$App\server\clinic-ops.cmd" addresses | Out-String
+Write-Host $out
+$ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } | Select-Object -First 1).IPAddress
+Check ((Get-Content "$Data\config\Caddyfile" -Raw) -match [regex]::Escape($ip)) "web server answers on this PC's address ($ip)"
+
 Say 'Reset a forgotten password'
 & "$App\server\clinic-ops.cmd" reset-password admin 'Temp-Reset-2026!' | Out-Host
 $reset = Invoke-RestMethod -Method Post https://localhost/api/auth/login -ContentType 'application/json' -Body (@{ username = 'admin'; password = 'Temp-Reset-2026!' } | ConvertTo-Json)

@@ -139,6 +139,8 @@ async def upload_file(
     _patient(db, pid)
     _check_links(db, pid, visit_id, tooth_fdi)
     today = local(db.scalar(select(func.now()))).date()
+    if taken_on and taken_on > today:
+        raise _err("date_in_future")
     stored = await storage.store(file, today)
     row = PatientFile(
         patient_id=pid,
@@ -213,6 +215,8 @@ def update_file(fid: int, body: FilePatch, db: DbSession, p: Principal = Upload)
     if body.title is not None:
         f.title = body.title.strip()
     if body.taken_on is not None:
+        if body.taken_on > local(db.scalar(select(func.now()))).date():
+            raise _err("date_in_future")
         f.taken_on = body.taken_on
     f.updated_by = p.user.id
     db.commit()

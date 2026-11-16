@@ -27,12 +27,12 @@ Color = Literal[
 Money = Annotated[
     Decimal,
     Field(ge=0, max_digits=12, decimal_places=2),
-    PlainSerializer(lambda v: f"{v:.2f}", return_type=str),
+    PlainSerializer(lambda v: f"{v:.2f}", return_type=str, when_used="json"),
 ]
 Percent = Annotated[
     Decimal,
     Field(ge=0, le=100, max_digits=5, decimal_places=2),
-    PlainSerializer(lambda v: f"{v:.2f}", return_type=str),
+    PlainSerializer(lambda v: f"{v:.2f}", return_type=str, when_used="json"),
 ]
 
 Name = Annotated[str, Field(min_length=1, max_length=150)]

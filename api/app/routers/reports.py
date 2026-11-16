@@ -123,7 +123,7 @@ def _filters(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "code": "invalid_filters",
-                "errors": e.errors(include_url=False, include_context=False),
+                "errors": e.errors(include_url=False, include_context=False, include_input=False),
             },
         ) from None
 
