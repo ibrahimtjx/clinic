@@ -40,7 +40,7 @@ $p = Api Post '/patients' @{ name_ar = 'مريض اختبار ويندوز'; mob
 Check ($p.file_no -ge 1) "patient created (file $($p.file_no))"
 $today = (Get-Date).ToString('yyyy-MM-dd')
 Invoke-WebRequest -UseBasicParsing -Headers $script:H "https://localhost/api/reports/new_patients/pdf?date_from=$today&date_to=$today" -OutFile report.pdf
-$head = [System.Text.Encoding]::ASCII.GetString((Get-Content report.pdf -Encoding Byte -TotalCount 4))
+$head = [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes("$PWD\report.pdf"), 0, 4)
 Check ($head -eq '%PDF' -and (Get-Item report.pdf).Length -gt 5000) 'report PDF rendered on the server (WeasyPrint + Pango)'
 
 Say 'Backups'
