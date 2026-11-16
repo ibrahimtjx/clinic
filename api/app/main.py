@@ -22,6 +22,7 @@ from app.routers import (
     queue,
     reports,
     roles,
+    system,
     users,
 )
 from app.routers import settings as settings_router
@@ -48,6 +49,7 @@ app.include_router(dental.router)
 app.include_router(billing.router)
 app.include_router(ledger.router)
 app.include_router(reports.router)
+app.include_router(system.router)
 
 DbSession = Annotated[Session, Depends(get_db)]
 

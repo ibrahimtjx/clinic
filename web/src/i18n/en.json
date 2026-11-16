@@ -250,7 +250,8 @@
       "queueSettings": "Queue",
       "insuranceClasses": "Insurance classes",
       "billingSettings": "Billing and VAT",
-      "thisPc": "This PC"
+      "thisPc": "This PC",
+      "systemHealth": "System health"
     },
     "groups": {
       "clinic": "Clinic",
@@ -424,7 +425,8 @@
       "invoices": "Invoices",
       "credit_notes": "Credit notes",
       "receipts": "Receipts",
-      "cash_closings": "Cash box closings"
+      "cash_closings": "Cash box closings",
+      "system_status": "Server status"
     }
   },
   "errors": {
@@ -1236,5 +1238,46 @@
     "changeServer": "Change server",
     "changeServerConfirm": "Disconnect from this server and choose another? The app restarts.",
     "testTitle": "Print test"
+  },
+  "health": {
+    "allGood": "Everything is working",
+    "allGoodHint": "Replication, WAL archiving, nightly backups and disk space are all within limits.",
+    "attention": "Needs attention",
+    "never": "never",
+    "servers": "Servers",
+    "server": "Server",
+    "lastReport": "Last report",
+    "diskFree": "Disk free",
+    "backupFree": "Backup drive free",
+    "lastWal": "Last WAL shipped",
+    "lastBackup": "Last nightly backup",
+    "lastBase": "Last base backup",
+    "replication": "Replication to the standby",
+    "noStandby": "No standby server set up yet.",
+    "standbyDisconnected": "The standby is not connected.",
+    "lag": "{{seconds}} s behind",
+    "archiving": "WAL archiving",
+    "lastArchived": "Last WAL archived",
+    "archiveFailures": "{{n}} failed attempts",
+    "footer": "Updated every minute by each server. Admins see a banner when something is wrong.",
+    "bannerTitle": "Server problem",
+    "open": "Open the system health page",
+    "roles": {
+      "primary": "Primary",
+      "standby": "Standby"
+    },
+    "warnings": {
+      "replication_lag": "The standby is {{minutes}} minutes behind the primary.",
+      "standby_disconnected": "The standby server is not connected: if the primary fails now, data since it disconnected is not on the standby.",
+      "no_standby": "No standby server is set up (SPEC 15).",
+      "ops_not_running": "No server is reporting: the backup service (ops) is not running.",
+      "backup_old": "The last nightly backup on {{node}} was {{at}}: more than 26 hours ago.",
+      "wal_not_shipped": "No WAL has reached the backup drive from {{node}} since {{at}}.",
+      "archive_failing": "PostgreSQL cannot archive WAL ({{wal}}).",
+      "node_silent": "{{node}} has not reported since {{at}}.",
+      "disk_low": "Only {{pct}}% disk space left on {{node}}.",
+      "backup_low": "Only {{pct}}% space left on the backup drive of {{node}}.",
+      "ops_error": "{{node}}: {{message}}"
+    }
   }
 }

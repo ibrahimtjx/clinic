@@ -41,6 +41,7 @@ import { NavLink as RouterNavLink, Outlet, useLocation, useNavigate } from 'reac
 
 import { useClinicInfo } from '../master/queries';
 import { CommandPalette } from './CommandPalette';
+import { HealthBanner } from './HealthBanner';
 import { NotificationsPopover } from './NotificationsPopover';
 import { useConnection } from './connection';
 import { displayName, useAuth } from '../auth/AuthProvider';
@@ -87,6 +88,7 @@ export function AppLayout() {
             </Group>
           </Alert>
         )}
+        <HealthBanner />
         <Outlet />
       </AppShell.Main>
       <CommandPalette />

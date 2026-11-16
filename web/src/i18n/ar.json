@@ -250,7 +250,8 @@
       "queueSettings": "قائمة الانتظار",
       "insuranceClasses": "فئات التأمين",
       "billingSettings": "الفوترة والضريبة",
-      "thisPc": "هذا الجهاز"
+      "thisPc": "هذا الجهاز",
+      "systemHealth": "حالة النظام"
     },
     "groups": {
       "clinic": "العيادة",
@@ -424,7 +425,8 @@
       "invoices": "الفواتير",
       "credit_notes": "الإشعارات الدائنة",
       "receipts": "السندات",
-      "cash_closings": "إقفال الصندوق"
+      "cash_closings": "إقفال الصندوق",
+      "system_status": "حالة الخوادم"
     }
   },
   "errors": {
@@ -1236,5 +1238,46 @@
     "changeServer": "تغيير الخادم",
     "changeServerConfirm": "قطع الاتصال بهذا الخادم واختيار خادم آخر؟ سيُعاد تشغيل البرنامج.",
     "testTitle": "اختبار الطباعة"
+  },
+  "health": {
+    "allGood": "كل شيء يعمل",
+    "allGoodHint": "النسخ المتماثل وأرشفة WAL والنسخ الليلية ومساحة القرص ضمن الحدود.",
+    "attention": "يحتاج إلى متابعة",
+    "never": "لم يحدث",
+    "servers": "الخوادم",
+    "server": "الخادم",
+    "lastReport": "آخر تقرير",
+    "diskFree": "المساحة الحرة",
+    "backupFree": "مساحة قرص النسخ الاحتياطي",
+    "lastWal": "آخر WAL مُرسل",
+    "lastBackup": "آخر نسخة ليلية",
+    "lastBase": "آخر نسخة أساسية",
+    "replication": "النسخ إلى الخادم الاحتياطي",
+    "noStandby": "لم يُجهَّز خادم احتياطي بعد.",
+    "standbyDisconnected": "الخادم الاحتياطي غير متصل.",
+    "lag": "متأخر {{seconds}} ث",
+    "archiving": "أرشفة WAL",
+    "lastArchived": "آخر WAL مؤرشف",
+    "archiveFailures": "{{n}} محاولات فاشلة",
+    "footer": "يحدّث كل خادم هذه البيانات كل دقيقة. يرى المدير تنبيهًا عند وجود مشكلة.",
+    "bannerTitle": "مشكلة في الخادم",
+    "open": "فتح صفحة حالة النظام",
+    "roles": {
+      "primary": "رئيسي",
+      "standby": "احتياطي"
+    },
+    "warnings": {
+      "replication_lag": "الخادم الاحتياطي متأخر {{minutes}} دقيقة عن الرئيسي.",
+      "standby_disconnected": "الخادم الاحتياطي غير متصل: إن تعطل الرئيسي الآن فلن تكون البيانات منذ انقطاعه على الاحتياطي.",
+      "no_standby": "لم يُجهَّز خادم احتياطي (المواصفات 15).",
+      "ops_not_running": "لا يرسل أي خادم تقاريره: خدمة النسخ الاحتياطي (ops) لا تعمل.",
+      "backup_old": "آخر نسخة ليلية على {{node}} كانت {{at}}: قبل أكثر من 26 ساعة.",
+      "wal_not_shipped": "لم يصل أي WAL من {{node}} إلى قرص النسخ منذ {{at}}.",
+      "archive_failing": "لا يستطيع PostgreSQL أرشفة WAL ({{wal}}).",
+      "node_silent": "لم يرسل {{node}} تقريرًا منذ {{at}}.",
+      "disk_low": "المتبقي {{pct}}% فقط من القرص على {{node}}.",
+      "backup_low": "المتبقي {{pct}}% فقط من قرص النسخ على {{node}}.",
+      "ops_error": "{{node}}: {{message}}"
+    }
   }
 }

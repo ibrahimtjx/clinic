@@ -9,6 +9,7 @@ import {
   IconId,
   IconQuote,
   IconReceipt2,
+  IconServerBolt,
   IconShieldCheck,
   IconShieldLock,
   IconStethoscope,
@@ -35,6 +36,7 @@ import { QueueSettingsTab } from './QueueSettingsTab';
 import { RolesTab } from './RolesTab';
 import { SecurityTab } from './SecurityTab';
 import { ServicesTab } from './ServicesTab';
+import { SystemHealthTab } from './SystemHealthTab';
 import { ThisPcTab } from './ThisPcTab';
 import { UsersTab } from './UsersTab';
 
@@ -80,7 +82,10 @@ const GROUPS: { key: string; tabs: Tab[] }[] = [
   },
   {
     key: 'pc',
-    tabs: [{ key: 'this-pc', perm: 'settings.manage', icon: IconDeviceDesktop, el: <ThisPcTab /> }],
+    tabs: [
+      { key: 'system-health', perm: 'settings.manage', icon: IconServerBolt, el: <SystemHealthTab /> },
+      { key: 'this-pc', perm: 'settings.manage', icon: IconDeviceDesktop, el: <ThisPcTab /> },
+    ],
   },
 ];
 
