@@ -1,0 +1,45 @@
+name: Windows server
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: ["windows/**", "api/**", "web/**", ".github/workflows/windows-server.yml"]
+  workflow_dispatch:
+
+jobs:
+  installer:
+    # Builds Clinic-Server-Setup.exe and installs it on this Windows machine to check it works.
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the installer
+        shell: pwsh
+        run: ./windows/build.ps1 -Version "0.11.${{ github.run_number }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clinic-server-windows
+          path: windows/out/Clinic-Server-Setup-*.exe
+          if-no-files-found: error
+      - name: Install and test on this machine
+        shell: pwsh
+        run: |
+          $exe = (Get-ChildItem windows/out/Clinic-Server-Setup-*.exe).FullName
+          ./windows/smoke-test.ps1 -Installer $exe
+      - name: Logs
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-Content install.log -ErrorAction SilentlyContinue | Select-Object -Last 80
+          Get-ChildItem "$env:ProgramData\ClinicServer\logs" -ErrorAction SilentlyContinue | ForEach-Object { "---- $($_.Name)"; Get-Content $_.FullName -Tail 60 }
+          Get-Content "$env:ProgramData\ClinicServer\pgdata\log\*" -Tail 40 -ErrorAction SilentlyContinue

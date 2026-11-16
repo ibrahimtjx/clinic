@@ -9,3 +9,4 @@ clinic-ca.crt
 backups/
 clinic-ca-export.tgz
 .secrets/
+windows/out/

@@ -1,0 +1,16 @@
+<!-- Clinic backups and health heartbeat (ops_win.py). -->
+<service>
+  <id>ClinicOps</id>
+  <name>Clinic Backups</name>
+  <description>Clinic system: encrypted backups, WAL archiving and server health.</description>
+  <executable>%BASE%\..\python\python.exe</executable>
+  <arguments>"%BASE%\..\server\ops_win.py" run</arguments>
+  <depend>ClinicDB</depend>
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="30 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <logpath>%ProgramData%\ClinicServer\logs</logpath>
+  <log mode="roll-by-size"><sizeThreshold>10240</sizeThreshold><keepFiles>5</keepFiles></log>
+  <env name="PYTHONUTF8" value="1"/>
+  <env name="CLINIC_DATA" value="%ProgramData%\ClinicServer"/>
+</service>
