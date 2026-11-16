@@ -63,7 +63,13 @@ def _out(db: Session, user: User) -> UserOut:
 @router.get("/directory", response_model=list[DirectoryEntry])
 def directory(db: DbSession, _: CurrentUser) -> list[User]:
     """Active staff names, for pickers such as "assign patient to" (no account details)."""
-    return list(db.scalars(select(User).where(User.is_active, User.deleted_at.is_(None)).order_by(User.full_name_ar)))
+    return list(
+        db.scalars(
+            select(User)
+            .where(User.is_active, User.deleted_at.is_(None))
+            .order_by(User.full_name_ar)
+        )
+    )
 
 
 @router.get("", response_model=list[UserOut])
@@ -108,7 +114,9 @@ def get_user(user_id: int, db: DbSession, _: Principal = Admin) -> User:
 def update_user(user_id: int, body: UserUpdate, db: DbSession, p: Principal = Admin) -> UserOut:
     user = _get(db, user_id)
     updater = db.get(User, user.updated_by) if user.updated_by else None
-    check_version(user.version, body.version, updater.display_name if updater else None, user.updated_at)
+    check_version(
+        user.version, body.version, updater.display_name if updater else None, user.updated_at
+    )
     if body.full_name_ar is not None:
         user.full_name_ar = body.full_name_ar.strip()
     if body.full_name_en is not None:
@@ -125,7 +133,9 @@ def update_user(user_id: int, body: UserUpdate, db: DbSession, p: Principal = Ad
 
 
 @router.post("/{user_id}/reset-password", response_model=UserOut)
-def reset_password(user_id: int, body: ResetPasswordIn, db: DbSession, p: Principal = Admin) -> UserOut:
+def reset_password(
+    user_id: int, body: ResetPasswordIn, db: DbSession, p: Principal = Admin
+) -> UserOut:
     """Admin sets a temporary password; the user must change it at next sign-in."""
     user = _get(db, user_id)
     try:
@@ -182,4 +192,3 @@ def clear_user_pin(user_id: int, db: DbSession, p: Principal = Admin) -> UserOut
     user.updated_by = p.user.id
     db.commit()
     return _out(db, user)
-

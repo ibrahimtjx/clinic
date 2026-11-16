@@ -65,7 +65,9 @@ class Doctor(MasterMixin, Base):
     slot_minutes: Mapped[int] = mapped_column(SmallInteger, default=15, server_default="15")
 
     schedules: Mapped[list["DoctorSchedule"]] = relationship(
-        cascade="all, delete-orphan", lazy="selectin", order_by="(DoctorSchedule.weekday, DoctorSchedule.start_time)"
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="(DoctorSchedule.weekday, DoctorSchedule.start_time)",
     )
     commission_rules: Mapped[list["DoctorCommissionRule"]] = relationship(
         cascade="all, delete-orphan", lazy="selectin", order_by="DoctorCommissionRule.id"
@@ -99,7 +101,9 @@ class DoctorCommissionRule(Base):
     __audited__ = True
     __table_args__ = (
         CheckConstraint("percent >= 0 AND percent <= 100", name="ck_commission_percent"),
-        CheckConstraint("NOT (department_id IS NOT NULL AND service_id IS NOT NULL)", name="ck_commission_scope"),
+        CheckConstraint(
+            "NOT (department_id IS NOT NULL AND service_id IS NOT NULL)", name="ck_commission_scope"
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -113,7 +117,9 @@ class Service(MasterMixin, Base):
     __tablename__ = "services"
     __table_args__ = (
         CheckConstraint("min_price >= 0 AND cost_price >= 0", name="ck_services_nonneg"),
-        CheckConstraint("min_price <= sale_price AND sale_price <= max_price", name="ck_services_price_range"),
+        CheckConstraint(
+            "min_price <= sale_price AND sale_price <= max_price", name="ck_services_price_range"
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)

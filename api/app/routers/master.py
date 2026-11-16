@@ -72,7 +72,9 @@ def _phrase_filter(q, f):
 
 router = APIRouter()
 router.include_router(
-    master_router(Clinic, "/clinics", out=ClinicOut, create=ClinicIn, update=ClinicPatch, tag="clinics")
+    master_router(
+        Clinic, "/clinics", out=ClinicOut, create=ClinicIn, update=ClinicPatch, tag="clinics"
+    )
 )
 router.include_router(
     master_router(
@@ -97,7 +99,14 @@ router.include_router(
     )
 )
 router.include_router(
-    master_router(VisitType, "/visit-types", out=VisitTypeOut, create=VisitTypeIn, update=VisitTypePatch, tag="visit-types")
+    master_router(
+        VisitType,
+        "/visit-types",
+        out=VisitTypeOut,
+        create=VisitTypeIn,
+        update=VisitTypePatch,
+        tag="visit-types",
+    )
 )
 router.include_router(
     master_router(

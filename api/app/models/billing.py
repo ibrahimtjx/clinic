@@ -38,9 +38,7 @@ class InsuranceClass(MasterMixin, Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     company_id: Mapped[int] = mapped_column(ForeignKey("insurance_companies.id"), index=True)
     name: Mapped[str] = mapped_column(String(60))
-    patient_share_pct: Mapped[Decimal] = mapped_column(
-        PCT, default=Decimal(0), server_default="0"
-    )
+    patient_share_pct: Mapped[Decimal] = mapped_column(PCT, default=Decimal(0), server_default="0")
     max_patient_share_per_invoice: Mapped[Decimal | None] = mapped_column(MONEY)
     consultation_max_covered: Mapped[Decimal | None] = mapped_column(MONEY)
     daily_limit: Mapped[Decimal | None] = mapped_column(MONEY)
@@ -158,9 +156,7 @@ class _DocumentMixin(TimestampMixin, VersionMixin, SoftDeleteMixin):
     net: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0), server_default="0")
     vat: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0), server_default="0")
     total: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0), server_default="0")
-    insurance_share: Mapped[Decimal] = mapped_column(
-        MONEY, default=Decimal(0), server_default="0"
-    )
+    insurance_share: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0), server_default="0")
     patient_share: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0), server_default="0")
 
 
@@ -218,9 +214,7 @@ class DraftLine(Base):
     description_en: Mapped[str] = mapped_column(Text, default="", server_default="")
     price: Mapped[Decimal] = mapped_column(MONEY)
     qty: Mapped[Decimal] = mapped_column(Numeric(8, 2), default=Decimal(1), server_default="1")
-    discount_amount: Mapped[Decimal] = mapped_column(
-        MONEY, default=Decimal(0), server_default="0"
-    )
+    discount_amount: Mapped[Decimal] = mapped_column(MONEY, default=Decimal(0), server_default="0")
     discount_pct: Mapped[Decimal] = mapped_column(PCT, default=Decimal(0), server_default="0")
     gross: Mapped[Decimal] = mapped_column(MONEY)
     discount: Mapped[Decimal] = mapped_column(MONEY)

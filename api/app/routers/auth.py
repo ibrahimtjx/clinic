@@ -80,7 +80,13 @@ def _set_cookie(response: Response, session_id: uuid.UUID, secret: str) -> None:
 
 
 def _clear_cookie(response: Response) -> None:
-    response.delete_cookie(COOKIE, path=settings.cookie_path, secure=settings.cookie_secure, httponly=True, samesite="strict")
+    response.delete_cookie(
+        COOKIE,
+        path=settings.cookie_path,
+        secure=settings.cookie_secure,
+        httponly=True,
+        samesite="strict",
+    )
 
 
 def _authenticate(db: Session, request: Request, username: str, secret: str, method: str) -> User:
@@ -96,7 +102,9 @@ def _authenticate(db: Session, request: Request, username: str, secret: str, met
     invalid = HTTPException(status.HTTP_401_UNAUTHORIZED, detail={"code": "invalid_credentials"})
     if user is None:
         verify_secret(secret, None)  # similar timing for unknown usernames
-        log_event(db, "login_failed", "users", None, new={"username": username[:50], "method": method})
+        log_event(
+            db, "login_failed", "users", None, new={"username": username[:50], "method": method}
+        )
         db.commit()
         raise invalid
 
@@ -104,7 +112,8 @@ def _authenticate(db: Session, request: Request, username: str, secret: str, met
         log_event(db, "login_blocked", "users", user.id, new={"method": method}, user_id=user.id)
         db.commit()
         raise HTTPException(
-            status.HTTP_423_LOCKED, detail={"code": "account_locked", "until": user.locked_until.isoformat()}
+            status.HTTP_423_LOCKED,
+            detail={"code": "account_locked", "until": user.locked_until.isoformat()},
         )
 
     hashed = user.password_hash if method == "password" else user.pin_hash
@@ -121,11 +130,19 @@ def _authenticate(db: Session, request: Request, username: str, secret: str, met
             failed_logins=0 if locked else failed,
             locked_until=now + timedelta(minutes=sec.lockout_minutes) if locked else None,
         )
-        log_event(db, "login_failed", "users", user.id, new={"method": method, "locked": locked}, user_id=user.id)
+        log_event(
+            db,
+            "login_failed",
+            "users",
+            user.id,
+            new={"method": method, "locked": locked},
+            user_id=user.id,
+        )
         db.commit()
         if locked:
             raise HTTPException(
-                status.HTTP_423_LOCKED, detail={"code": "account_locked", "until": user.locked_until.isoformat()}
+                status.HTTP_423_LOCKED,
+                detail={"code": "account_locked", "until": user.locked_until.isoformat()},
             )
         raise invalid
 
@@ -137,11 +154,18 @@ def _authenticate(db: Session, request: Request, username: str, secret: str, met
 def _set_counters(db: Session, user: User, **values) -> None:
     """Sign-in counters are bookkeeping, not an edit of the user: they must not bump `version`,
     or an admin editing this user would get a false "changed by someone else" conflict."""
-    db.execute(update(User).where(User.id == user.id).values(**values).execution_options(synchronize_session=False))
+    db.execute(
+        update(User)
+        .where(User.id == user.id)
+        .values(**values)
+        .execution_options(synchronize_session=False)
+    )
     db.refresh(user)
 
 
-def _start_session(db: Session, request: Request, response: Response, user: User, method: str) -> TokenOut:
+def _start_session(
+    db: Session, request: Request, response: Response, user: User, method: str
+) -> TokenOut:
     secret, token_hash = new_refresh_secret()
     s = AuthSession(
         id=uuid.uuid4(),
@@ -185,7 +209,9 @@ def _session_from_cookie(db: Session, cookie: str | None) -> AuthSession | None:
         return None
     s = db.execute(
         select(AuthSession).where(
-            AuthSession.id == sid_uuid, AuthSession.revoked_at.is_(None), AuthSession.expires_at > func.now()
+            AuthSession.id == sid_uuid,
+            AuthSession.revoked_at.is_(None),
+            AuthSession.expires_at > func.now(),
         )
     ).scalar_one_or_none()
     if s is None or not constant_eq(s.token_hash, sha256(secret)):
@@ -209,12 +235,17 @@ def refresh(
     return TokenOut(access_token=token, expires_in=ttl, user=build_me(db, user))
 
 
-def _end_session(db: Session, request: Request, response: Response, cookie: str | None, reason: str) -> None:
+def _end_session(
+    db: Session, request: Request, response: Response, cookie: str | None, reason: str
+) -> None:
     s = _session_from_cookie(db, cookie)
     if s is not None:
         s.revoked_at = func.now()
         s.revoked_reason = reason
-        set_audit_context(db, AuditContext(user_id=s.user_id, machine=client_machine(request), ip=client_ip(request)))
+        set_audit_context(
+            db,
+            AuditContext(user_id=s.user_id, machine=client_machine(request), ip=client_ip(request)),
+        )
         log_event(db, reason, "auth_sessions", s.id)
         db.commit()
     _clear_cookie(response)
@@ -222,14 +253,20 @@ def _end_session(db: Session, request: Request, response: Response, cookie: str 
 
 @router.post("/logout", status_code=204)
 def logout(
-    request: Request, response: Response, db: DbSession, clinic_refresh: Annotated[str | None, Cookie()] = None
+    request: Request,
+    response: Response,
+    db: DbSession,
+    clinic_refresh: Annotated[str | None, Cookie()] = None,
 ) -> None:
     _end_session(db, request, response, clinic_refresh, "logout")
 
 
 @router.post("/lock", status_code=204)
 def lock(
-    request: Request, response: Response, db: DbSession, clinic_refresh: Annotated[str | None, Cookie()] = None
+    request: Request,
+    response: Response,
+    db: DbSession,
+    clinic_refresh: Annotated[str | None, Cookie()] = None,
 ) -> None:
     """Screen lock: ends the session on the server. Unlocking needs the PIN or password again."""
     _end_session(db, request, response, clinic_refresh, "lock")
@@ -245,7 +282,12 @@ def update_preferences(body: Preferences, principal: CurrentUserPending, db: DbS
     user = principal.user
     merged = {**(user.preferences or {}), **body.model_dump(exclude_none=True)}
     # UI preferences save in the background; like sign-in counters they do not bump `version`.
-    db.execute(update(User).where(User.id == user.id).values(preferences=merged).execution_options(synchronize_session=False))
+    db.execute(
+        update(User)
+        .where(User.id == user.id)
+        .values(preferences=merged)
+        .execution_options(synchronize_session=False)
+    )
     db.commit()
     db.refresh(user)
     return build_me(db, user)
@@ -253,7 +295,11 @@ def update_preferences(body: Preferences, principal: CurrentUserPending, db: DbS
 
 @router.post("/me/password", response_model=TokenOut)
 def change_password(
-    body: ChangePasswordIn, request: Request, response: Response, principal: CurrentUserPending, db: DbSession
+    body: ChangePasswordIn,
+    request: Request,
+    response: Response,
+    principal: CurrentUserPending,
+    db: DbSession,
 ) -> TokenOut:
     user = principal.user
     if not verify_secret(body.current_password, user.password_hash):
@@ -270,7 +316,11 @@ def change_password(
     # End every other session of this user; keep this one.
     db.execute(
         update(AuthSession)
-        .where(AuthSession.user_id == user.id, AuthSession.id != principal.session_id, AuthSession.revoked_at.is_(None))
+        .where(
+            AuthSession.user_id == user.id,
+            AuthSession.id != principal.session_id,
+            AuthSession.revoked_at.is_(None),
+        )
         .values(revoked_at=func.now(), revoked_reason="password_changed")
     )
     db.commit()

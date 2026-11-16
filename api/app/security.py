@@ -53,12 +53,17 @@ def hash_secret(secret: str) -> str:
 
 def verify_secret(secret: str, hashed: str | None) -> bool:
     try:
-        return bcrypt.checkpw(secret.encode()[:BCRYPT_MAX_BYTES], (hashed or _DUMMY_HASH).encode()) and hashed is not None
+        return (
+            bcrypt.checkpw(secret.encode()[:BCRYPT_MAX_BYTES], (hashed or _DUMMY_HASH).encode())
+            and hashed is not None
+        )
     except ValueError:
         return False
 
 
-def create_access_token(user_id: int, session_id: uuid.UUID, must_change_password: bool) -> tuple[str, int]:
+def create_access_token(
+    user_id: int, session_id: uuid.UUID, must_change_password: bool
+) -> tuple[str, int]:
     ttl = settings.access_token_minutes * 60
     now = datetime.now(UTC)
     payload = {
@@ -73,7 +78,9 @@ def create_access_token(user_id: int, session_id: uuid.UUID, must_change_passwor
 
 
 def decode_access_token(token: str) -> dict:
-    payload = jwt.decode(token, settings.jwt_secret, algorithms=[JWT_ALG], options={"require": ["exp", "sub", "sid"]})
+    payload = jwt.decode(
+        token, settings.jwt_secret, algorithms=[JWT_ALG], options={"require": ["exp", "sub", "sid"]}
+    )
     if payload.get("typ") != "access":
         raise jwt.InvalidTokenError("wrong token type")
     return payload

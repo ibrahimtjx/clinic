@@ -143,7 +143,9 @@ export async function apiDownload(path: string, query?: Query, fallbackName = 'd
   }
   if (!res.ok) throw new ApiError(res.status, await detailOf(res));
   const blob = await res.blob();
-  const name = res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] ?? fallbackName;
+  const cd = res.headers.get('content-disposition') ?? '';
+  const utf8 = /filename\*=UTF-8''([^;]+)/.exec(cd)?.[1];
+  const name = utf8 ? decodeURIComponent(utf8) : (/filename="(.+)"/.exec(cd)?.[1] ?? fallbackName);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = name;
@@ -152,3 +154,4 @@ export async function apiDownload(path: string, query?: Query, fallbackName = 'd
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
+

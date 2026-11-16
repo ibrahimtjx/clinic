@@ -42,7 +42,9 @@ class RolePermission(Base):
     __tablename__ = "role_permissions"
     __audited__ = True
 
-    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True)
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True
+    )
     permission: Mapped[str] = mapped_column(String(80), primary_key=True)
 
 
@@ -50,8 +52,12 @@ class UserRole(Base):
     __tablename__ = "user_roles"
     __audited__ = True
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id", ondelete="RESTRICT"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey("roles.id", ondelete="RESTRICT"), primary_key=True
+    )
 
 
 class User(TimestampMixin, VersionMixin, SoftDeleteMixin, Base):
@@ -72,7 +78,9 @@ class User(TimestampMixin, VersionMixin, SoftDeleteMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     failed_logins: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     preferences: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
 
@@ -100,7 +108,9 @@ class AuthSession(Base):
     method: Mapped[str] = mapped_column(String(20))  # password | pin
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    last_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_used_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_reason: Mapped[str | None] = mapped_column(String(40))
     machine: Mapped[str | None] = mapped_column(String(64))

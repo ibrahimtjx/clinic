@@ -1196,5 +1196,19 @@
     },
     "noMovements": "No money in or out in this shift yet.",
     "toAccount": "Kept on the patient's account"
+  },
+  "reports": {
+    "groups": {
+      "financial": "Financial",
+      "operational": "Operations"
+    },
+    "printPdf": "Print / PDF",
+    "choosePatient": "Choose a patient to see the statement.",
+    "period": "Period",
+    "day": "Day",
+    "all": "All",
+    "clinic": "Clinic",
+    "show": "Show report",
+    "searchPatient": "Name, file no. or mobile"
   }
 }

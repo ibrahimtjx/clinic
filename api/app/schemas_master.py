@@ -8,7 +8,19 @@ from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, field_valida
 
 # Theme color names the UI can render as soft tints (SPEC 4.2: no hard-coded colors).
 Color = Literal[
-    "neutral", "red", "pink", "grape", "violet", "indigo", "blue", "cyan", "teal", "green", "lime", "yellow", "orange"
+    "neutral",
+    "red",
+    "pink",
+    "grape",
+    "violet",
+    "indigo",
+    "blue",
+    "cyan",
+    "teal",
+    "green",
+    "lime",
+    "yellow",
+    "orange",
 ]
 
 # Money travels as a decimal string with 2 places (SPEC 2: never float).
@@ -18,7 +30,9 @@ Money = Annotated[
     PlainSerializer(lambda v: f"{v:.2f}", return_type=str),
 ]
 Percent = Annotated[
-    Decimal, Field(ge=0, le=100, max_digits=5, decimal_places=2), PlainSerializer(lambda v: f"{v:.2f}", return_type=str)
+    Decimal,
+    Field(ge=0, le=100, max_digits=5, decimal_places=2),
+    PlainSerializer(lambda v: f"{v:.2f}", return_type=str),
 ]
 
 Name = Annotated[str, Field(min_length=1, max_length=150)]
