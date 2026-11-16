@@ -36,8 +36,9 @@ cp .env.example .env
 ```
 
 Edit `.env` (`nano .env`). On **both** servers the same values for: `POSTGRES_USER`, `POSTGRES_PASSWORD`,
-`POSTGRES_DB`, `JWT_SECRET`, `REPLICATION_PASSWORD`, `MONITOR_PASSWORD`, `SERVER_NAME`. Make each password
-with `openssl rand -hex 24`.
+`POSTGRES_DB`, `JWT_SECRET`, `REPLICATION_PASSWORD`, `MONITOR_PASSWORD`, `SERVER_NAME` (e.g.
+`clinic-server`). Make each password with `openssl rand -hex 24`. Uncomment and set `BACKUP_DIR` and
+`BACKUP_KEY_FILE`.
 
 | Setting | Primary (192.168.1.10) | Standby (192.168.1.11) |
 |---|---|---|
