@@ -63,6 +63,7 @@ class Doctor(MasterMixin, Base):
     department_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id"))
     color: Mapped[str] = mapped_column(String(20), default="blue", server_default="blue")
     slot_minutes: Mapped[int] = mapped_column(SmallInteger, default=15, server_default="15")
+    room: Mapped[str] = mapped_column(String(50), default="", server_default="")
 
     schedules: Mapped[list["DoctorSchedule"]] = relationship(
         cascade="all, delete-orphan",

@@ -249,6 +249,7 @@ class DoctorIn(_Base):
     department_id: int | None = None
     color: Color = "blue"
     slot_minutes: int = Field(15, ge=5, le=240)
+    room: str = Field("", max_length=50)
     is_active: bool = True
     schedules: list[ScheduleItem] = []
     commission_rules: list[CommissionRuleItem] = []
@@ -265,6 +266,7 @@ class DoctorPatch(_Base):
     department_id: int | None = None
     color: Color | None = None
     slot_minutes: int | None = Field(None, ge=5, le=240)
+    room: str | None = Field(None, max_length=50)
     is_active: bool | None = None
     schedules: list[ScheduleItem] | None = None
     commission_rules: list[CommissionRuleItem] | None = None
@@ -290,6 +292,7 @@ class DoctorOut(_Out):
     department_id: int | None
     color: str
     slot_minutes: int
+    room: str
     schedules: list[ScheduleOut]
     # Only for users with settings.manage or report.financial; null for everyone else.
     commission_rules: list[CommissionRuleOut] | None

@@ -83,6 +83,7 @@ class User(TimestampMixin, VersionMixin, SoftDeleteMixin, Base):
     )
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     preferences: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
+    department_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id"))
 
     roles: Mapped[list[Role]] = relationship(
         secondary="user_roles", lazy="selectin", order_by=Role.id, viewonly=True

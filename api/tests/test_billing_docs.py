@@ -132,6 +132,8 @@ def test_quotation_numbering_totals_and_server_recalculation(client, setup):
 
 
 def test_price_limits_and_override(client, setup, make_user):
+    make_user("mgr", ["manager"])
+    login(client, "mgr")  # managers keep the range unless an admin grants the override
     res = client.post(
         "/quotations",
         json={"patient_id": setup["saudi"].id, "lines": [line(setup["cons"], price="300")]},
@@ -145,16 +147,20 @@ def test_price_limits_and_override(client, setup, make_user):
         },
     )
     assert free.json()["detail"]["code"] == "free_line_needs_override"
-    make_user("boss", ["admin"])
-    login(client, "boss")
-    ok = client.post(
-        "/quotations",
-        json={"patient_id": setup["saudi"].id, "lines": [line(setup["cons"], price="300")]},
-    ).json()
-    assert ok["lines"][0]["price_overridden"] is True
+    # The service price is a suggestion for doctors and reception (owner, 2026-11-16).
+    for username, role in [("boss", "admin"), ("dr.x", "doctor"), ("desk", "reception")]:
+        make_user(username, [role])
+        login(client, username)
+        ok = client.post(
+            "/quotations",
+            json={"patient_id": setup["saudi"].id, "lines": [line(setup["cons"], price="50")]},
+        ).json()
+        assert ok["lines"][0]["price_overridden"] is True, username
 
 
-def test_cash_choice_and_class_override_needs_permission(client, setup, db):
+def test_cash_choice_and_class_override_needs_permission(client, setup, db, make_user):
+    make_user("mgr", ["manager"])
+    login(client, "mgr")  # no invoice.price_override
     cash = client.post(
         "/pricing/preview",
         json={
@@ -233,7 +239,7 @@ def test_payment_order_send_to_reception_inbox(client, setup):
         json={"version": po["version"], "reception_note": "عاجل"},
     ).json()
     assert sent["status"] == "sent" and sent["sent_by_name"] == "مستخدم reem"
-    login(client, "amal")  # reception: payment.collect, no quotation.edit
+    login(client, "amal")  # reception: collects payments and may write bills too
     inbox = client.get("/payment-orders", params={"status": "sent"}).json()
     assert [x["order_no"] for x in inbox] == [po["order_no"]] and inbox[0][
         "reception_note"
@@ -244,7 +250,7 @@ def test_payment_order_send_to_reception_inbox(client, setup):
             "/payment-orders",
             json={"patient_id": setup["saudi"].id, "lines": [line(setup["xray"])]},
         ).status_code
-        == 403
+        == 201
     )
 
 
@@ -393,7 +399,8 @@ def test_insurance_class_crud_and_patient_class_link(client, setup, make_user):
 def test_billing_settings_and_permissions(client, setup, make_user):
     default = client.get("/settings/billing").json()
     assert Decimal(default["vat_rate"]) == Decimal(15) and default["quotation_valid_days"] == 30
-    login(client, "amal")
+    make_user("till", ["cashier"])
+    login(client, "till")  # no quotation.edit
     assert (
         client.post(
             "/quotations", json={"patient_id": setup["saudi"].id, "lines": [line(setup["cons"])]}

@@ -79,6 +79,7 @@ class UserOut(ORM):
     full_name_ar: str
     full_name_en: str
     is_active: bool
+    department_id: int | None
     roles: list[RoleRef]
     has_pin: bool
     locked_until: datetime | None
@@ -102,6 +103,7 @@ class UserCreate(BaseModel):
     full_name_en: str = Field("", max_length=150)
     password: str = Field(max_length=200)
     role_ids: list[int] = Field(min_length=1)
+    department_id: int | None = None
 
     @field_validator("full_name_ar", "full_name_en")
     @classmethod
@@ -114,6 +116,7 @@ class UserUpdate(BaseModel):
     full_name_ar: str | None = Field(None, min_length=1, max_length=150)
     full_name_en: str | None = Field(None, max_length=150)
     role_ids: list[int] | None = Field(None, min_length=1)
+    department_id: int | None = None  # send null to clear
 
 
 class ResetPasswordIn(BaseModel):

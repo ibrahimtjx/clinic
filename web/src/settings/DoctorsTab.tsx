@@ -53,6 +53,7 @@ const EMPTY: Form = {
   department_id: null,
   color: 'blue',
   slot_minutes: 15,
+  room: '',
   is_active: true,
   schedules: [],
   commission_rules: [],
@@ -110,6 +111,7 @@ export function DoctorsTab() {
                 <Table.Th>{t('master.name')}</Table.Th>
                 <Table.Th>{t('doctors.specialty')}</Table.Th>
                 <Table.Th>{t('services.department')}</Table.Th>
+                <Table.Th>{t('doctors.room')}</Table.Th>
                 <Table.Th>{t('doctors.workingDays')}</Table.Th>
                 <Table.Th>{t('doctors.slot')}</Table.Th>
                 <Table.Th>{t('users.status')}</Table.Th>
@@ -131,6 +133,9 @@ export function DoctorsTab() {
                     </Table.Td>
                     <Table.Td>{(lang === 'ar' ? d.specialty_ar : d.specialty_en) || '—'}</Table.Td>
                     <Table.Td>{nameOf(departments.data?.find((x) => x.id === d.department_id), lang) || '—'}</Table.Td>
+                    <Table.Td dir="auto" data-testid={`doctor-room-${d.id}`}>
+                      {d.room || '—'}
+                    </Table.Td>
                     <Table.Td>
                       <Group gap={4}>
                         {workDays.length === 0 ? (
@@ -261,6 +266,7 @@ function DoctorDrawer({ item, onClose }: { item: Doctor | 'new' | null; onClose:
                 onChange={(v) => set('department_id', v ? Number(v) : null)}
                 clearable
               />
+              <TextInput label={t('doctors.room')} description={t('doctors.roomHint')} value={form.room} onChange={(e) => set('room', e.currentTarget.value)} maxLength={50} data-testid="doctor-room" />
               <ColorSelect label={t('doctors.calendarColor')} value={form.color} onChange={(c: ColorName) => set('color', c)} />
               <NumberInput
                 label={t('doctors.slot')}

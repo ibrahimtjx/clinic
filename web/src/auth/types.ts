@@ -43,6 +43,7 @@ export interface User {
   full_name_ar: string;
   full_name_en: string;
   is_active: boolean;
+  department_id: number | null;
   roles: RoleRef[];
   has_pin: boolean;
   locked_until: string | null;

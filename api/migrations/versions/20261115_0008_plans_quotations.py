@@ -429,7 +429,13 @@ def upgrade() -> None:
     )
     op.create_index("ix_po_status_sent", "payment_orders", ["status", "sent_at"], unique=False)
     op.add_column("patient_insurance", sa.Column("class_id", sa.BigInteger(), nullable=True))
-    op.create_foreign_key("patient_insurance_class_id_fkey", "patient_insurance", "insurance_classes", ["class_id"], ["id"])
+    op.create_foreign_key(
+        "patient_insurance_class_id_fkey",
+        "patient_insurance",
+        "insurance_classes",
+        ["class_id"],
+        ["id"],
+    )
     op.add_column(
         "services",
         sa.Column("is_consultation", sa.Boolean(), server_default="false", nullable=False),

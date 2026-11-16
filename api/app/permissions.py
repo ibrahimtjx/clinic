@@ -94,7 +94,9 @@ DEFAULT_ROLES: dict[str, dict] = {
                 "queue.view",
                 "queue.manage",
                 "quotation.view",
+                "quotation.edit",
                 "invoice.view",
+                "invoice.price_override",
                 "payment.collect",
                 "report.operational",
             ]
@@ -116,6 +118,7 @@ DEFAULT_ROLES: dict[str, dict] = {
                 "plan.edit",
                 "quotation.view",
                 "quotation.edit",
+                "invoice.price_override",
                 "report.clinical",
             ]
         ),

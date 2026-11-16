@@ -26,7 +26,9 @@ from app.models import (
     Appointment,
     AppointmentStatus,
     DentalVisit,
+    Department,
     Doctor,
+    DoctorSchedule,
     InsuranceClass,
     InsuranceCompany,
     LabTest,
@@ -665,9 +667,70 @@ class _Demo:
         self.db.commit()
 
 
+EXTRA_DOCTORS = [
+    # name_ar, name_en, department, specialty, color, room
+    (
+        "د. سارة القحطاني",
+        "Dr. Sara Alqahtani",
+        "Endodontics",
+        ("أخصائية علاج العصب", "Endodontist"),
+        "teal",
+        3,
+    ),
+    (
+        "د. خالد الشهري",
+        "Dr. Khalid Alshehri",
+        "Prosthodontics",
+        ("أخصائي تركيبات", "Prosthodontist"),
+        "orange",
+        4,
+    ),
+    (
+        "د. لمى العتيبي",
+        "Dr. Lama Alotaibi",
+        "General dentistry",
+        ("طبيبة أسنان عامة", "General dentist"),
+        "pink",
+        5,
+    ),
+]
+
+
+def _more_doctors(db: Session) -> None:
+    """Three more demo doctors (no sign-in accounts), so departments and the calendar look lived-in."""
+    deps = {d.name_en: d for d in db.scalars(select(Department))}
+    top = db.scalar(select(func.max(Doctor.sort_order))) or 0
+    for i, (ar, en, dep, spec, color, room) in enumerate(EXTRA_DOCTORS):
+        if db.scalar(select(Doctor.id).where(Doctor.name_en == en)) or dep not in deps:
+            continue
+        doc = Doctor(
+            name_ar=ar,
+            name_en=en,
+            specialty_ar=spec[0],
+            specialty_en=spec[1],
+            department_id=deps[dep].id,
+            clinic_id=deps[dep].clinic_id,
+            color=color,
+            slot_minutes=20,
+            room=f"غرفة {room} / Room {room}",
+            sort_order=top + (i + 1) * 10,
+        )
+        days = [0, 1, 2, 3] if i % 2 == 0 else [1, 2, 3, 4]
+        doc.schedules = [
+            DoctorSchedule(weekday=d, start_time=time(9), end_time=time(14), kind="work")
+            for d in days
+        ] + [
+            DoctorSchedule(weekday=d, start_time=time(17), end_time=time(21), kind="work")
+            for d in days
+        ]
+        db.add(doc)
+    db.flush()
+
+
 def seed_demo(db: Session, seed: int = 2026) -> dict[str, int]:
     if db.get(Setting, DEMO_KEY) is not None:
         return {}
+    _more_doctors(db)
     d = _Demo(db, seed)
     d._pending = []
     pts = d.patients(150)

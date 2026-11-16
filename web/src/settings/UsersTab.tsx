@@ -9,6 +9,7 @@ import {
   Menu,
   Modal,
   PasswordInput,
+  Select,
   Skeleton,
   Stack,
   Table,
@@ -44,6 +45,7 @@ import { UnsavedChangesModal } from '../components/UnsavedChangesModal';
 import { api, ApiError } from '../lib/api';
 import { errorMessage } from '../lib/errors';
 import { formatDateTime } from '../lib/format';
+import { nameOf, useDepartments } from '../master/queries';
 import { keys, useRoles, useUserAction, useUsers } from './queries';
 
 export function UsersTab() {
@@ -209,7 +211,9 @@ function UserDrawer({ user, roles, onClose }: { user: User | 'new' | null; roles
     full_name_en: existing?.full_name_en ?? '',
     password: '',
     role_ids: existing?.roles.map((r) => r.id) ?? [],
+    department_id: existing?.department_id ?? null,
   };
+  const departments = useDepartments();
   const [form, setForm] = useState(initial);
   const [version, setVersion] = useState(existing?.version ?? 0);
   const [error, setError] = useState<unknown>(null);
@@ -235,7 +239,7 @@ function UserDrawer({ user, roles, onClose }: { user: User | 'new' | null; roles
       } else if (existing) {
         await api(`/users/${existing.id}`, {
           method: 'PATCH',
-          body: { version, full_name_ar: form.full_name_ar, full_name_en: form.full_name_en, role_ids: form.role_ids },
+          body: { version, full_name_ar: form.full_name_ar, full_name_en: form.full_name_en, role_ids: form.role_ids, department_id: form.department_id },
         });
       }
       await qc.invalidateQueries({ queryKey: keys.users });
@@ -253,7 +257,7 @@ function UserDrawer({ user, roles, onClose }: { user: User | 'new' | null; roles
   async function reload() {
     if (!existing) return;
     const fresh = await api<User>(`/users/${existing.id}`);
-    const next = { ...form, full_name_ar: fresh.full_name_ar, full_name_en: fresh.full_name_en, role_ids: fresh.roles.map((r) => r.id) };
+    const next = { ...form, full_name_ar: fresh.full_name_ar, full_name_en: fresh.full_name_en, role_ids: fresh.roles.map((r) => r.id), department_id: fresh.department_id };
     setForm(next);
     setVersion(fresh.version);
     setError(null);
@@ -293,6 +297,15 @@ function UserDrawer({ user, roles, onClose }: { user: User | 'new' | null; roles
             <TextInput label={t('auth.username')} value={form.username} onChange={(e) => set('username', e.currentTarget.value)} disabled={!isNew} dir="ltr" required description={isNew ? t('users.usernameHint') : undefined} />
             <TextInput label={t('users.nameAr')} value={form.full_name_ar} onChange={(e) => set('full_name_ar', e.currentTarget.value)} required dir="rtl" />
             <TextInput label={t('users.nameEn')} value={form.full_name_en} onChange={(e) => set('full_name_en', e.currentTarget.value)} dir="ltr" />
+            <Select
+              label={t('services.department')}
+              description={t('users.departmentHint')}
+              data={(departments.data ?? []).map((d) => ({ value: String(d.id), label: nameOf(d, lang) }))}
+              value={form.department_id == null ? null : String(form.department_id)}
+              onChange={(v) => set('department_id', v ? Number(v) : null)}
+              clearable
+              data-testid="user-department"
+            />
             {isNew && (
               <PasswordInput label={t('users.tempPassword')} description={t('users.tempPasswordHint')} value={form.password} onChange={(e) => set('password', e.currentTarget.value)} required minLength={10} autoComplete="new-password" />
             )}

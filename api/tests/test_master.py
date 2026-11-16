@@ -255,7 +255,7 @@ def test_saved_phrases_by_field(client, admin):
 
 # ---- clinic info ----
 def test_clinic_info(client, admin, make_user):
-    assert client.get("/settings/clinic").json()["name_ar"] == ""
+    assert client.get("/settings/clinic").json()["name_en"] == "White Pearl"  # default name
     body = {
         "name_ar": "مجمع النخبة الطبي",
         "name_en": "Elite Medical Complex",

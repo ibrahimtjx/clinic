@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_event
 from app.deps import CurrentUser, DbSession, Principal, check_version, require
-from app.models import AuthSession, Role, User, UserRole
+from app.models import AuthSession, Department, Role, User, UserRole
 from app.routers.auth import policy_error
 from app.schemas import DirectoryEntry, ResetPasswordIn, UserCreate, UserOut, UserUpdate
 from app.security import PolicyError, check_password_policy, hash_secret
@@ -55,6 +55,15 @@ def _admin_count_without(db: Session, user_id: int) -> int:
     )
 
 
+def _check_department(db: Session, dept_id: int | None) -> None:
+    if dept_id is not None:
+        d = db.get(Department, dept_id)
+        if d is None or d.deleted_at is not None:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "unknown_department"}
+            )
+
+
 def _out(db: Session, user: User) -> UserOut:
     db.refresh(user)
     return UserOut.model_validate(user)
@@ -89,7 +98,9 @@ def create_user(body: UserCreate, db: DbSession, p: Principal = Admin) -> UserOu
     except PolicyError as e:
         raise policy_error(e) from None
     _check_roles(db, body.role_ids)
+    _check_department(db, body.department_id)
     user = User(
+        department_id=body.department_id,
         username=body.username,
         full_name_ar=body.full_name_ar,
         full_name_en=body.full_name_en,
@@ -121,6 +132,9 @@ def update_user(user_id: int, body: UserUpdate, db: DbSession, p: Principal = Ad
         user.full_name_ar = body.full_name_ar.strip()
     if body.full_name_en is not None:
         user.full_name_en = body.full_name_en.strip()
+    if "department_id" in body.model_fields_set:
+        _check_department(db, body.department_id)
+        user.department_id = body.department_id
     if body.role_ids is not None:
         admin_role = db.scalar(select(Role.id).where(Role.key == "admin"))
         if admin_role not in body.role_ids and _admin_count_without(db, user.id) == 0:

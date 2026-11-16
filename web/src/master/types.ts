@@ -83,6 +83,7 @@ export interface Doctor extends Base {
   department_id: number | null;
   color: ColorName;
   slot_minutes: number;
+  room: string;
   schedules: ScheduleItem[];
   commission_rules: CommissionRule[] | null;
 }
