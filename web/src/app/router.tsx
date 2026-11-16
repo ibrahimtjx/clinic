@@ -6,6 +6,7 @@ import { BillingPage } from '../billing/BillingPage';
 import { DocumentEditor } from '../billing/DocumentEditor';
 import { InvoicePage } from '../billing/InvoicePage';
 import { BillingPrint } from '../print/BillingPrint';
+import { LabPrint, MedicalReportPrint, PrescriptionPrint } from '../print/ClinicalPrint';
 import { DentalPrint } from '../print/DentalPrint';
 import { ReportPrint } from '../print/ReportPrint';
 import { ReportsPage } from '../reports/ReportsPage';
@@ -32,6 +33,9 @@ export const routes = [
   { path: '/print/closing/:id', element: <ClosingPrint /> },
   { path: '/print/report/:key', element: <ReportPrint /> },
   { path: '/print/test/:kind', element: <TestPrint /> },
+  { path: '/print/prescription/:id', element: <PrescriptionPrint /> },
+  { path: '/print/lab/:id', element: <LabPrint /> },
+  { path: '/print/medical-report/:id', element: <MedicalReportPrint /> },
   {
     path: '/',
     element: <AppLayout />,

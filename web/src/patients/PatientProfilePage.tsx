@@ -68,6 +68,8 @@ import { nameOf, useDoctors } from '../master/queries';
 import { PatientAppointments, UpcomingCard } from '../appointments/PatientAppointments';
 import { PatientBillingTab } from '../billing/BillingPage';
 import { PlansTab } from '../billing/PlansTab';
+import { ClinicalTab } from '../clinical/ClinicalTab';
+import { FilesTab } from '../clinical/FilesTab';
 import { DentalTab } from '../dental/DentalTab';
 import { SendToDoctorModal, type SendTarget } from '../queue/SendToDoctorModal';
 import { DuplicateAlert, PatientFields, toBody, toForm, useDuplicates, validate, type PatientFormValues } from './PatientForm';
@@ -89,8 +91,8 @@ const TABS: TabDef[] = [
   { key: 'plans', icon: IconClipboardList, perm: 'plan.view' },
   { key: 'appointments', icon: IconCalendarEvent, perm: 'appointment.view' },
   { key: 'billing', icon: IconReceipt },
-  { key: 'files', icon: IconFiles, milestone: 'Phase 2' },
-  { key: 'prescriptions', icon: IconPill, milestone: 'Phase 2' },
+  { key: 'files', icon: IconFiles, perm: 'file.view' },
+  { key: 'prescriptions', icon: IconPill, perm: 'dental.view' },
   { key: 'activity', icon: IconHistory, perm: 'audit.view' },
 ];
 
@@ -137,6 +139,8 @@ export function PatientProfilePage() {
           {tab === 'dental' && can('dental.view') && <DentalTab patient={p} />}
           {tab === 'plans' && can('plan.view') && <PlansTab patient={p} />}
           {tab === 'billing' && <PatientBillingTab patientId={p.id} />}
+          {tab === 'files' && can('file.view') && <FilesTab patient={p} />}
+          {tab === 'prescriptions' && can('dental.view') && <ClinicalTab patient={p} />}
           {TABS.filter((x) => x.milestone).map(
             (x) =>
               tab === x.key && (

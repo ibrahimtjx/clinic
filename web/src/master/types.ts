@@ -1,7 +1,7 @@
 export const COLORS = ['neutral', 'red', 'pink', 'grape', 'violet', 'indigo', 'blue', 'cyan', 'teal', 'green', 'lime', 'yellow', 'orange'] as const;
 export type ColorName = (typeof COLORS)[number];
 
-interface Base {
+export interface Base {
   id: number;
   is_active: boolean;
   sort_order: number;

@@ -95,6 +95,24 @@ async def store(upload: UploadFile, today: date) -> Stored:
     return Stored(rel.as_posix(), ctype, size, digest.hexdigest(), width, height, has_thumb)
 
 
+def store_bytes(data: bytes, today: date) -> Stored:
+    """Store bytes that are already in memory (demo data, imports)."""
+    kind = sniff(data[:132])
+    if kind is None:
+        raise _err("file_type_not_allowed")
+    ctype, ext = kind
+    rel = Path(f"{today:%Y}") / f"{today:%m}" / f"{uuid.uuid4().hex}{ext}"
+    (root() / rel).parent.mkdir(parents=True, exist_ok=True)
+    (root() / rel).write_bytes(data)
+    width = height = None
+    has_thumb = False
+    if ctype in IMAGE_TYPES:
+        width, height, has_thumb = _thumbnail(root() / rel)
+    return Stored(
+        rel.as_posix(), ctype, len(data), hashlib.sha256(data).hexdigest(), width, height, has_thumb
+    )
+
+
 def _thumbnail(path: Path) -> tuple[int | None, int | None, bool]:
     """A small JPEG preview for the grid. Images Pillow cannot read are kept without one."""
     try:

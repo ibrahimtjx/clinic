@@ -1,9 +1,10 @@
 import { Badge, ColorSwatch, Group, SegmentedControl, Select, Text } from '@mantine/core';
-import { IconBuildingHospital, IconCalendarStats, IconCategory, IconQuote, IconShieldCheck, IconTag } from '@tabler/icons-react';
+import { IconBuildingHospital, IconCalendarStats, IconCategory, IconFlask, IconPill, IconQuote, IconShieldCheck, IconTag } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePrefs } from '../app/preferences';
+import type { LabTest, Medication } from '../clinical/types';
 import { MasterListTab } from '../master/MasterListTab';
 import { nameOf, useClinics } from '../master/queries';
 import type { InsuranceCompany } from '../patients/types';
@@ -178,6 +179,59 @@ export function InsuranceCompaniesTab() {
       ]}
       defaults={{ code: '', name_ar: '', name_en: '' }}
       testId="insurance-tab"
+    />
+  );
+}
+
+export function MedicationsTab() {
+  const { t } = useTranslation();
+  return (
+    <MasterListTab<Medication>
+      resource="medications"
+      title={t('settings.tabs.medications')}
+      hint={t('clinical.medicationsHint')}
+      icon={IconPill}
+      fields={[
+        { key: 'name', kind: 'textLtr', label: t('clinical.drug'), required: true },
+        { key: 'form', kind: 'textLtr', label: t('clinical.form') },
+        { key: 'dose', kind: 'text', label: t('clinical.dose') },
+        { key: 'frequency', kind: 'text', label: t('clinical.frequency') },
+        { key: 'duration', kind: 'text', label: t('clinical.duration') },
+        { key: 'instructions', kind: 'text', label: t('clinical.instructions') },
+      ]}
+      columns={[
+        { label: t('clinical.drug'), render: (m) => <Text size="sm" dir="ltr">{m.name}</Text> },
+        { label: t('clinical.dose'), render: (m) => <Text size="sm" dir="auto">{[m.dose, m.frequency, m.duration].filter(Boolean).join(' · ')}</Text> },
+      ]}
+      defaults={{ name: '', form: '', dose: '', frequency: '', duration: '', instructions: '' }}
+      testId="medications-tab"
+    />
+  );
+}
+
+export function LabTestsTab() {
+  const { t } = useTranslation();
+  const { lang } = usePrefs();
+  const names = useNameFields();
+  return (
+    <MasterListTab<LabTest>
+      resource="lab-tests"
+      title={t('settings.tabs.labTests')}
+      hint={t('clinical.labTestsHint')}
+      icon={IconFlask}
+      fields={[
+        { key: 'code', kind: 'textLtr', label: t('services.code') },
+        ...names,
+        { key: 'unit', kind: 'textLtr', label: t('clinical.unit') },
+        { key: 'reference_range', kind: 'textLtr', label: t('clinical.reference') },
+      ]}
+      columns={[
+        { label: t('services.code'), render: (x) => <Text size="sm" dir="ltr">{x.code}</Text> },
+        { label: t('master.name'), render: (x) => nameOf(x, lang) },
+        { label: t('clinical.reference'), render: (x) => <Text size="sm" dir="ltr">{[x.reference_range, x.unit].filter(Boolean).join(' ')}</Text> },
+      ]}
+      defaults={{ code: '', name_ar: '', name_en: '', unit: '', reference_range: '' }}
+      testId="lab-tests-tab"
     />
   );
 }

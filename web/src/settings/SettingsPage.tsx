@@ -4,6 +4,7 @@ import {
   IconCalendarStats,
   IconCategory,
   IconDeviceDesktop,
+  IconFlask,
   IconHash,
   IconHistory,
   IconId,
@@ -18,6 +19,7 @@ import {
   IconUsers,
   IconUsersGroup,
   IconList,
+  IconPill,
   type Icon,
 } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
@@ -29,7 +31,7 @@ import { EmptyState } from '../components/EmptyState';
 import { AuditTab } from './AuditTab';
 import { ClinicInfoTab } from './ClinicInfoTab';
 import { DoctorsTab } from './DoctorsTab';
-import { ClinicsTab, DepartmentsTab, InsuranceCompaniesTab, PhrasesTab, StatusesTab, VisitTypesTab } from './ListTabs';
+import { ClinicsTab, DepartmentsTab, InsuranceCompaniesTab, LabTestsTab, MedicationsTab, PhrasesTab, StatusesTab, VisitTypesTab } from './ListTabs';
 import { BillingSettingsTab, InsuranceClassesTab } from './InsuranceClassesTab';
 import { NumberingTab } from './NumberingTab';
 import { QueueSettingsTab } from './QueueSettingsTab';
@@ -67,6 +69,8 @@ const GROUPS: { key: string; tabs: Tab[] }[] = [
       { key: 'insurance-classes', perm: 'settings.manage', icon: IconShieldCheck, el: <InsuranceClassesTab /> },
       { key: 'billing-settings', perm: 'settings.manage', icon: IconReceipt2, el: <BillingSettingsTab /> },
       { key: 'phrases', perm: 'settings.manage', icon: IconQuote, el: <PhrasesTab /> },
+      { key: 'medications', perm: 'settings.manage', icon: IconPill, el: <MedicationsTab /> },
+      { key: 'lab-tests', perm: 'settings.manage', icon: IconFlask, el: <LabTestsTab /> },
       { key: 'numbering', perm: 'settings.manage', icon: IconHash, el: <NumberingTab /> },
       { key: 'queue-settings', perm: 'settings.manage', icon: IconUsersGroup, el: <QueueSettingsTab /> },
     ],

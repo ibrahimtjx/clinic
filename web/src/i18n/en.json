@@ -251,7 +251,9 @@
       "insuranceClasses": "Insurance classes",
       "billingSettings": "Billing and VAT",
       "thisPc": "This PC",
-      "systemHealth": "System health"
+      "systemHealth": "System health",
+      "medications": "Medications",
+      "labTests": "Lab tests"
     },
     "groups": {
       "clinic": "Clinic",
@@ -314,7 +316,8 @@
     "dental": "Dental record",
     "plan": "Treatment plans",
     "billing": "Billing and payments",
-    "report": "Reports"
+    "report": "Reports",
+    "files": "Images and documents"
   },
   "perms": {
     "user_manage": "Manage users",
@@ -350,7 +353,10 @@
     "report_revenue": "Revenue report",
     "report_financial": "Financial reports",
     "report_clinical": "Clinical reports",
-    "report_operational": "Operational reports"
+    "report_operational": "Operational reports",
+    "file_view": "View images and documents",
+    "file_upload": "Upload images and documents",
+    "file_delete": "Remove images and documents"
   },
   "security": {
     "auto_lock_minutes": "Auto-lock (minutes)",
@@ -426,7 +432,15 @@
       "credit_notes": "Credit notes",
       "receipts": "Receipts",
       "cash_closings": "Cash box closings",
-      "system_status": "Server status"
+      "system_status": "Server status",
+      "patient_files": "Patient files",
+      "prescriptions": "Prescriptions",
+      "prescription_items": "Prescription items",
+      "lab_requests": "Lab requests",
+      "lab_request_items": "Lab tests requested",
+      "medical_reports": "Medical reports",
+      "medications": "Medications",
+      "lab_tests": "Lab tests"
     }
   },
   "errors": {
@@ -1010,7 +1024,6 @@
     "markSent": "Given to patient",
     "accept": "Accept",
     "convert": "Convert to payment order",
-    "signature": "Patient signature",
     "gross": "Gross",
     "discounts": "Discounts",
     "netBeforeVat": "Net before VAT",
@@ -1278,6 +1291,103 @@
       "disk_low": "Only {{pct}}% disk space left on {{node}}.",
       "backup_low": "Only {{pct}}% space left on the backup drive of {{node}}.",
       "ops_error": "{{node}}: {{message}}"
+    }
+  },
+  "files": {
+    "allKinds": "All types",
+    "allowed": "Images (JPG, PNG, TIFF, BMP, GIF, WEBP), PDF and DICOM, up to 50 MB each.",
+    "choose": "Files",
+    "compare": "Compare",
+    "deleteConfirm": "Remove this file from the patient? It stays in the backups.",
+    "download": "Download",
+    "empty": "No images or documents yet",
+    "emptyHint": "Upload X-rays, photos, or scanned papers such as signed consent forms.",
+    "fit": "Fit",
+    "kind": "Type",
+    "noPreview": "No preview for this file",
+    "noPreviewHint": "Download it to open it in its program (e.g. a DICOM viewer).",
+    "noVisit": "Not linked to a visit",
+    "pickAnother": "Pick one more image to compare.",
+    "takenOn": "Date taken",
+    "title": "Title",
+    "titleHint": "e.g. Before treatment",
+    "tooth": "Tooth",
+    "toothN": "tooth {{n}}",
+    "upload": "Upload",
+    "uploadN": "Upload {{n}}",
+    "uploaded": "{{n}} file(s) uploaded",
+    "visit": "Visit",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "kinds": {
+      "xray": "X-ray (periapical / bitewing)",
+      "panoramic": "Panoramic",
+      "ceph": "Cephalometric",
+      "cbct": "CBCT",
+      "intraoral": "Intraoral photo",
+      "extraoral": "Extraoral photo",
+      "document": "Document",
+      "consent": "Signed consent form",
+      "lab_result": "Lab result",
+      "referral": "Referral",
+      "id_card": "ID / Iqama",
+      "insurance_card": "Insurance card",
+      "other": "Other"
+    }
+  },
+  "clinical": {
+    "addDrug": "Add drug",
+    "allergies": "Allergies",
+    "body": "Text",
+    "cancel": "Cancel document",
+    "cancelReason": "Reason",
+    "cancelTitle": "Cancel this document",
+    "clinicalInfo": "Clinical information",
+    "diagnosis": "Diagnosis",
+    "dose": "Dose",
+    "drug": "Drug",
+    "duration": "Duration",
+    "editLab": "Edit lab request",
+    "editPrescription": "Edit prescription",
+    "editReport": "Edit report",
+    "enterResults": "Results",
+    "form": "Form",
+    "frequency": "Frequency",
+    "instructions": "Instructions",
+    "lab": "Lab",
+    "labName": "Laboratory",
+    "labTestsHint": "Tests offered when requesting lab work. Doctors can also type a test.",
+    "language": "Language",
+    "medicationsHint": "Quick picks for prescriptions; doses are defaults the doctor adjusts. Doctors can also type any drug.",
+    "newLab": "New lab request",
+    "newPrescription": "New prescription",
+    "newReport": "New report",
+    "noLab": "No lab requests",
+    "noPrescriptions": "No prescriptions",
+    "noReports": "No medical reports",
+    "prescriptions": "Prescriptions",
+    "quantity": "Quantity",
+    "recipient": "To",
+    "reference": "Reference range",
+    "reportKind": "Type",
+    "reports": "Medical reports",
+    "tests": "Tests",
+    "unit": "Unit",
+    "status": {
+      "active": "Active",
+      "resulted": "Results in",
+      "cancelled": "Cancelled"
+    },
+    "flags": {
+      "normal": "Normal",
+      "low": "Low",
+      "high": "High",
+      "abnormal": "Abnormal"
+    },
+    "reportKinds": {
+      "report": "Medical report",
+      "referral": "Referral letter",
+      "attendance": "Attendance certificate"
     }
   }
 }

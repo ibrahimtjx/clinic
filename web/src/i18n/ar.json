@@ -251,7 +251,9 @@
       "insuranceClasses": "فئات التأمين",
       "billingSettings": "الفوترة والضريبة",
       "thisPc": "هذا الجهاز",
-      "systemHealth": "حالة النظام"
+      "systemHealth": "حالة النظام",
+      "medications": "الأدوية",
+      "labTests": "التحاليل"
     },
     "groups": {
       "clinic": "العيادة",
@@ -314,7 +316,8 @@
     "dental": "السجل السني",
     "plan": "خطط العلاج",
     "billing": "الفواتير والمدفوعات",
-    "report": "التقارير"
+    "report": "التقارير",
+    "files": "الصور والمستندات"
   },
   "perms": {
     "user_manage": "إدارة المستخدمين",
@@ -350,7 +353,10 @@
     "report_revenue": "تقرير الإيرادات",
     "report_financial": "التقارير المالية",
     "report_clinical": "التقارير السريرية",
-    "report_operational": "التقارير التشغيلية"
+    "report_operational": "التقارير التشغيلية",
+    "file_view": "عرض الصور والمستندات",
+    "file_upload": "رفع الصور والمستندات",
+    "file_delete": "إزالة الصور والمستندات"
   },
   "security": {
     "auto_lock_minutes": "القفل التلقائي (دقائق)",
@@ -426,7 +432,15 @@
       "credit_notes": "الإشعارات الدائنة",
       "receipts": "السندات",
       "cash_closings": "إقفال الصندوق",
-      "system_status": "حالة الخوادم"
+      "system_status": "حالة الخوادم",
+      "patient_files": "ملفات المرضى",
+      "prescriptions": "الوصفات",
+      "prescription_items": "أدوية الوصفات",
+      "lab_requests": "طلبات التحاليل",
+      "lab_request_items": "التحاليل المطلوبة",
+      "medical_reports": "التقارير الطبية",
+      "medications": "الأدوية",
+      "lab_tests": "التحاليل"
     }
   },
   "errors": {
@@ -1010,7 +1024,6 @@
     "markSent": "تم تسليمه للمريض",
     "accept": "قبول العرض",
     "convert": "تحويل لأمر دفع",
-    "signature": "توقيع المريض",
     "gross": "الإجمالي قبل الخصم",
     "discounts": "الخصومات",
     "netBeforeVat": "الصافي قبل الضريبة",
@@ -1278,6 +1291,103 @@
       "disk_low": "المتبقي {{pct}}% فقط من القرص على {{node}}.",
       "backup_low": "المتبقي {{pct}}% فقط من قرص النسخ على {{node}}.",
       "ops_error": "{{node}}: {{message}}"
+    }
+  },
+  "files": {
+    "allKinds": "كل الأنواع",
+    "allowed": "صور (JPG وPNG وTIFF وBMP وGIF وWEBP) وملفات PDF وDICOM، حتى 50 ميغابايت للملف.",
+    "choose": "الملفات",
+    "compare": "مقارنة",
+    "deleteConfirm": "إزالة هذا الملف من ملف المريض؟ يبقى في النسخ الاحتياطية.",
+    "download": "تنزيل",
+    "empty": "لا توجد صور أو مستندات بعد",
+    "emptyHint": "ارفع الأشعة والصور أو الأوراق الممسوحة مثل الإقرارات الموقّعة.",
+    "fit": "ملاءمة",
+    "kind": "النوع",
+    "noPreview": "لا توجد معاينة لهذا الملف",
+    "noPreviewHint": "نزّله لفتحه في برنامجه (مثل عارض DICOM).",
+    "noVisit": "غير مرتبط بزيارة",
+    "pickAnother": "اختر صورة أخرى للمقارنة.",
+    "takenOn": "تاريخ التصوير",
+    "title": "العنوان",
+    "titleHint": "مثال: قبل العلاج",
+    "tooth": "السن",
+    "toothN": "السن {{n}}",
+    "upload": "رفع",
+    "uploadN": "رفع {{n}}",
+    "uploaded": "تم رفع {{n}} ملف",
+    "visit": "الزيارة",
+    "zoomIn": "تكبير",
+    "zoomOut": "تصغير",
+    "kinds": {
+      "xray": "أشعة صغيرة (ذروية / مجنحة)",
+      "panoramic": "بانوراما",
+      "ceph": "سيفالومتري",
+      "cbct": "أشعة مقطعية CBCT",
+      "intraoral": "صورة داخل الفم",
+      "extraoral": "صورة خارج الفم",
+      "document": "مستند",
+      "consent": "إقرار موقّع",
+      "lab_result": "نتيجة مختبر",
+      "referral": "تحويل",
+      "id_card": "الهوية / الإقامة",
+      "insurance_card": "بطاقة التأمين",
+      "other": "أخرى"
+    }
+  },
+  "clinical": {
+    "addDrug": "إضافة دواء",
+    "allergies": "الحساسية",
+    "body": "النص",
+    "cancel": "إلغاء المستند",
+    "cancelReason": "السبب",
+    "cancelTitle": "إلغاء هذا المستند",
+    "clinicalInfo": "معلومات سريرية",
+    "diagnosis": "التشخيص",
+    "dose": "الجرعة",
+    "drug": "الدواء",
+    "duration": "المدة",
+    "editLab": "تعديل طلب التحاليل",
+    "editPrescription": "تعديل الوصفة",
+    "editReport": "تعديل التقرير",
+    "enterResults": "النتائج",
+    "form": "الشكل",
+    "frequency": "عدد المرات",
+    "instructions": "تعليمات",
+    "lab": "المختبر",
+    "labName": "المختبر",
+    "labTestsHint": "التحاليل التي تظهر عند طلب فحوصات. يمكن للطبيب كتابة تحليل غيرها.",
+    "language": "اللغة",
+    "medicationsHint": "اختيارات سريعة للوصفات؛ الجرعات افتراضية يعدّلها الطبيب. يمكن للطبيب كتابة أي دواء.",
+    "newLab": "طلب تحاليل جديد",
+    "newPrescription": "وصفة جديدة",
+    "newReport": "تقرير جديد",
+    "noLab": "لا توجد طلبات تحاليل",
+    "noPrescriptions": "لا توجد وصفات",
+    "noReports": "لا توجد تقارير طبية",
+    "prescriptions": "الوصفات",
+    "quantity": "الكمية",
+    "recipient": "إلى",
+    "reference": "المعدل الطبيعي",
+    "reportKind": "النوع",
+    "reports": "التقارير الطبية",
+    "tests": "التحاليل",
+    "unit": "الوحدة",
+    "status": {
+      "active": "سارية",
+      "resulted": "وصلت النتائج",
+      "cancelled": "ملغاة"
+    },
+    "flags": {
+      "normal": "طبيعي",
+      "low": "منخفض",
+      "high": "مرتفع",
+      "abnormal": "غير طبيعي"
+    },
+    "reportKinds": {
+      "report": "تقرير طبي",
+      "referral": "خطاب تحويل",
+      "attendance": "إشعار مراجعة"
     }
   }
 }

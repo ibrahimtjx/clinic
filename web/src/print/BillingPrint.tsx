@@ -86,6 +86,13 @@ export function BillingPrint() {
           </Stack>
           {d.notes && <Text size="sm">{d.notes}</Text>}
           {kind === 'quotation' && <Text size="xs">{t('billing.quoteFooter')}</Text>}
+          {kind === 'quotation' && (
+            <Group justify="space-between" mt={40}>
+              <Text size="sm">توقيع المريض / Patient signature: ____________________</Text>
+              <Text size="sm">التاريخ / Date: ____________</Text>
+              <Text size="sm">توقيع الطبيب / Doctor: ____________________</Text>
+            </Group>
+          )}
         </Stack>
       )}
     </PrintLayout>
