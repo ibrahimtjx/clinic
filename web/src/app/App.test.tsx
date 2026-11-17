@@ -58,6 +58,7 @@ describe('app shell', () => {
     await screen.findByTestId('server-time');
     expect(screen.getAllByText('Reports').length).toBeGreaterThan(0);
     expect(screen.queryByText('Appointments')).not.toBeInTheDocument();
-    expect(screen.queryByText('Settings')).not.toBeInTheDocument();
+    // Settings is for everyone: each person's Appearance (text size, font) lives there.
+    expect(screen.getAllByText('Settings').length).toBeGreaterThan(0);
   });
 });

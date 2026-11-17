@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, type ReactNode } from 'react';
 
 import i18n, { dirOf, type Lang } from '../i18n';
 import type { DigitStyle } from '../lib/format';
+import type { FontKey } from './theme';
 
 /**
  * Per-user UI preferences (language, digits). Until sign-in exists (M1) they are kept
@@ -14,6 +15,10 @@ interface Prefs {
   setLang: (l: Lang) => void;
   digits: DigitStyle;
   setDigits: (d: DigitStyle) => void;
+  font: FontKey;
+  setFont: (f: FontKey) => void;
+  fontScale: number;
+  setFontScale: (n: number) => void;
 }
 
 const PrefsContext = createContext<Prefs | null>(null);
@@ -22,10 +27,18 @@ export function PreferencesProvider({
   children,
   lang,
   setLang,
+  font = 'plex',
+  setFont = () => {},
+  fontScale = 100,
+  setFontScale = () => {},
 }: {
   children: ReactNode;
   lang: Lang;
   setLang: (l: Lang) => void;
+  font?: FontKey;
+  setFont?: (f: FontKey) => void;
+  fontScale?: number;
+  setFontScale?: (n: number) => void;
 }) {
   const [digits, setDigits] = useLocalStorage<DigitStyle>({ key: 'clinic.digits', defaultValue: 'latn' });
 
@@ -37,7 +50,7 @@ export function PreferencesProvider({
     void i18n.changeLanguage(lang);
   }, [lang, setDirection]);
 
-  return <PrefsContext.Provider value={{ lang, setLang, digits, setDigits }}>{children}</PrefsContext.Provider>;
+  return <PrefsContext.Provider value={{ lang, setLang, digits, setDigits, font, setFont, fontScale, setFontScale }}>{children}</PrefsContext.Provider>;
 }
 
 export function usePrefs(): Prefs {

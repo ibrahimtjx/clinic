@@ -37,6 +37,7 @@ from app.models import (
     PatientFile,
     PatientInsurance,
     QueueEntry,
+    ReferralSource,
     Service,
     Setting,
     ToothFinding,
@@ -131,9 +132,12 @@ class _Demo:
         )
         self.p(self.reception)
         out = []
+        sources = list(db.scalars(select(ReferralSource.id).order_by(ReferralSource.sort_order)))
+        weights = [9, 8, 6, 2, 7, 5, 10, 4, 3, 2, 1][: len(sources)]
         for i in range(n):
             pt = Patient(
                 **fake_patient(start + i, rnd),
+                referral_source_id=rnd.choices(sources, weights)[0] if sources else None,
                 created_by=self.reception.id,
                 updated_by=self.reception.id,
             )

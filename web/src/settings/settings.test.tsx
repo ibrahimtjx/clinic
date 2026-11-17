@@ -55,7 +55,10 @@ describe('settings sections', () => {
     fakeApi({ me: makeMe({ permissions: ['audit.view'] }), routes: { 'GET /api/audit': () => [200, { items: [], next_cursor: null }] } });
     renderApp('/settings', 'en');
     expect(await screen.findByTestId('settings-nav-audit')).toBeInTheDocument();
+    expect(screen.getByTestId('settings-nav-appearance')).toBeInTheDocument();
     expect(screen.queryByTestId('settings-nav-services')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('appearance-tab')).toBeInTheDocument(); // the first section
+    screen.getByTestId('settings-nav-audit').click();
     await waitFor(() => expect(screen.getByText('No entries')).toBeInTheDocument());
   });
 

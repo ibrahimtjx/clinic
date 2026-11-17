@@ -14,6 +14,7 @@ fn main() {
             "print_ready",
             "save_pdf",
             "check_update",
+            "open_whatsapp",
         ]),
     ))
     .expect("failed to run tauri-build");

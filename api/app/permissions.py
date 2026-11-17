@@ -34,6 +34,7 @@ _CATALOG: list[tuple[str, list[str]]] = [
         "appointment",
         [
             "appointment.view",
+            "appointment.view_all",
             "appointment.create",
             "appointment.edit",
             "appointment.delete",
@@ -56,7 +57,16 @@ _CATALOG: list[tuple[str, list[str]]] = [
             "cashbox.close",
         ],
     ),
-    ("report", ["report.revenue", "report.financial", "report.clinical", "report.operational"]),
+    (
+        "report",
+        [
+            "report.revenue",
+            "report.financial",
+            "report.clinical",
+            "report.operational",
+            "report.own",
+        ],
+    ),
 ]
 
 PERMISSIONS: list[Perm] = [Perm(k, g) for g, keys in _CATALOG for k in keys]
@@ -120,6 +130,7 @@ DEFAULT_ROLES: dict[str, dict] = {
                 "quotation.edit",
                 "invoice.price_override",
                 "report.clinical",
+                "report.own",
             ]
         ),
     },

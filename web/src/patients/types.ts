@@ -28,7 +28,7 @@ export interface Patient {
   sms_opt_out: boolean;
   chronic_diseases: string;
   allergies: string;
-  referral_source: string | null;
+  referral_source_id: number | null;
   notes: string;
   balance: string;
   deposit_balance?: string;

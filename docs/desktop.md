@@ -42,6 +42,12 @@ How it works: a hidden window loads the print page from the server; when its dat
 the app, and WebView2 (Microsoft Edge's engine, part of Windows) prints it to the chosen printer. No other
 program is installed.
 
+## WhatsApp reminders
+
+From 0.11.0 the app opens WhatsApp reminders (wa.me links) in WhatsApp Desktop or the default browser.
+Older versions fall back to the browser's own way. Sign in to WhatsApp on the reception PC with the
+clinic's number once.
+
 ## Updates from the clinic server
 
 The app checks `https://SERVER/desktop/latest.json` at start (and from Settings → This PC). Updates must

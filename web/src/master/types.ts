@@ -30,6 +30,10 @@ export interface VisitType extends Base {
   name_en: string;
   color: ColorName;
 }
+export interface ReferralSource extends Base {
+  name_ar: string;
+  name_en: string;
+}
 export const PHRASE_FIELDS = [
   'appointment_note',
   'chief_complaint',

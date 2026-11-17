@@ -4,10 +4,13 @@ from app.deps import CurrentUser, DbSession, Principal, require
 from app.services import numbering
 from app.services.settings import (
     CLINIC_KEY,
+    WHATSAPP_KEY,
     ClinicInfo,
     SecuritySettings,
+    WhatsAppSettings,
     get_clinic_info,
     get_security,
+    get_whatsapp_settings,
     save_security,
     save_setting,
 )
@@ -56,3 +59,17 @@ def write_numbering(
     save_setting(db, numbering.KEY, body, p.user.id)
     db.commit()
     return numbering.preview(db)
+
+
+@router.get("/whatsapp", response_model=WhatsAppSettings)
+def read_whatsapp(db: DbSession, _: CurrentUser) -> WhatsAppSettings:
+    return get_whatsapp_settings(db)
+
+
+@router.put("/whatsapp", response_model=WhatsAppSettings)
+def write_whatsapp(
+    body: WhatsAppSettings, db: DbSession, p: Principal = Depends(require("settings.manage"))
+) -> WhatsAppSettings:
+    save_setting(db, WHATSAPP_KEY, body, p.user.id)
+    db.commit()
+    return get_whatsapp_settings(db)

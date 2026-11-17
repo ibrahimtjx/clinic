@@ -162,6 +162,16 @@ class VisitType(MasterMixin, Base):
     color: Mapped[str] = mapped_column(String(20), default="neutral", server_default="neutral")
 
 
+class ReferralSource(MasterMixin, Base):
+    """How the patient found the clinic (TikTok, a friend, another doctor…), an editable list."""
+
+    __tablename__ = "referral_sources"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    name_ar: Mapped[str] = mapped_column(String(100))
+    name_en: Mapped[str] = mapped_column(String(100))
+
+
 class SavedPhrase(MasterMixin, Base):
     __tablename__ = "saved_phrases"
 

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { api } from '../lib/api';
-import type { AppointmentStatus, Clinic, ClinicInfo, Department, Doctor, PhraseField, SavedPhrase, Service, VisitType } from './types';
+import type { AppointmentStatus, Clinic, ClinicInfo, Department, Doctor, PhraseField, ReferralSource, SavedPhrase, Service, VisitType } from './types';
 
 export type Resource =
   | 'clinics'
@@ -13,7 +13,8 @@ export type Resource =
   | 'doctors'
   | 'insurance-companies'
   | 'medications'
-  | 'lab-tests';
+  | 'lab-tests'
+  | 'referral-sources';
 
 interface ListOpts {
   includeInactive?: boolean;
@@ -40,6 +41,7 @@ export const useClinics = (o?: ListOpts) => useList<Clinic>('clinics', o);
 export const useDepartments = (o?: ListOpts) => useList<Department>('departments', o);
 export const useStatuses = (o?: ListOpts) => useList<AppointmentStatus>('appointment-statuses', o);
 export const useVisitTypes = (o?: ListOpts) => useList<VisitType>('visit-types', o);
+export const useReferralSources = (o?: ListOpts) => useList<ReferralSource>('referral-sources', o);
 export const useServices = (o?: ListOpts) => useList<Service>('services', o);
 export const useDoctors = (o?: ListOpts) => useList<Doctor>('doctors', o);
 export const usePhrases = (fieldKey: PhraseField | undefined, o: ListOpts = {}) =>

@@ -37,6 +37,7 @@ import type { Patient } from '../patients/types';
 import { hhmm, isoAt, localDate, minutesOf, parseHHMM, todayStr } from './time';
 import type { Appointment, DraftAppointment } from './types';
 import { printDoc } from '../lib/print';
+import { WhatsAppButton } from './WhatsAppReminder';
 
 interface Form {
   patient_id: number | null;
@@ -332,6 +333,7 @@ export function AppointmentDrawer({
               </Text>
             )}
             <Group justify="flex-end" mt="md">
+              {appointment && <WhatsAppButton appointment={appointment} doctor={doctors.data?.find((d) => d.id === appointment.doctor_id)} />}
               <Button variant="default" onClick={requestClose}>
                 {t('common.cancel')}
               </Button>

@@ -181,7 +181,13 @@ class MedicalReport(_ClinicalDoc, Base):
     __tablename__ = "medical_reports"
     __table_args__ = (
         CheckConstraint("status IN ('active','cancelled')", name="ck_report_status"),
-        CheckConstraint("kind IN ('report','referral','attendance')", name="ck_report_kind"),
+        CheckConstraint(
+            "kind IN ('report','referral','attendance','sick_leave')", name="ck_report_kind"
+        ),
+        CheckConstraint(
+            "kind <> 'sick_leave' OR (leave_from IS NOT NULL AND leave_to >= leave_from)",
+            name="ck_report_leave_dates",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -190,3 +196,6 @@ class MedicalReport(_ClinicalDoc, Base):
     recipient: Mapped[str] = mapped_column(String(200), default="", server_default="")
     title: Mapped[str] = mapped_column(String(200), default="", server_default="")
     body: Mapped[str] = mapped_column(Text)
+    # Sick leave certificates: the days off, both inclusive.
+    leave_from: Mapped[date | None] = mapped_column(Date)
+    leave_to: Mapped[date | None] = mapped_column(Date)

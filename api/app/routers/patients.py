@@ -22,6 +22,7 @@ from app.models import (
     Patient,
     PatientAssignment,
     PatientInsurance,
+    ReferralSource,
     User,
 )
 from app.schemas import AuditOut
@@ -249,7 +250,13 @@ def _check_class(db: Session, ins) -> None:
         raise _err("insurance_class_mismatch")
 
 
-def _check_refs(db: Session, doctor_id: int | None, company_id: int | None) -> None:
+def _check_refs(
+    db: Session, doctor_id: int | None, company_id: int | None, source_id: int | None = None
+) -> None:
+    if source_id is not None:
+        r = db.get(ReferralSource, source_id)
+        if r is None or r.deleted_at is not None:
+            raise _err("unknown_referral_source")
     if doctor_id is not None:
         d = db.get(Doctor, doctor_id)
         if d is None or d.deleted_at is not None:
@@ -272,7 +279,12 @@ def create_patient(
                 status.HTTP_409_CONFLICT,
                 matches=[d.model_dump() for d in dups],
             )
-    _check_refs(db, body.default_doctor_id, body.insurance.company_id if body.insurance else None)
+    _check_refs(
+        db,
+        body.default_doctor_id,
+        body.insurance.company_id if body.insurance else None,
+        body.referral_source_id,
+    )
     _check_class(db, body.insurance)
     data = body.model_dump(exclude={"allow_duplicate", "insurance"}, exclude_none=True)
     patient = Patient(**data, created_by=p.user.id, updated_by=p.user.id)
@@ -306,7 +318,10 @@ def update_patient(
     if "name_ar" in fields and not fields["name_ar"]:
         raise _err("name_required")
     _check_refs(
-        db, fields.get("default_doctor_id"), body.insurance.company_id if body.insurance else None
+        db,
+        fields.get("default_doctor_id"),
+        body.insurance.company_id if body.insurance else None,
+        fields.get("referral_source_id"),
     )
     _check_class(db, body.insurance)
     for k, v in fields.items():

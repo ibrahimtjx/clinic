@@ -1,5 +1,6 @@
 import { Grid, NavLink, Paper, Stack, Text, Title } from '@mantine/core';
 import {
+  IconBrandWhatsapp,
   IconBuildingHospital,
   IconCalendarStats,
   IconCategory,
@@ -8,11 +9,13 @@ import {
   IconHash,
   IconHistory,
   IconId,
+  IconTypography,
   IconQuote,
   IconReceipt2,
   IconServerBolt,
   IconShieldCheck,
   IconShieldLock,
+  IconSpeakerphone,
   IconStethoscope,
   IconTag,
   IconUserShield,
@@ -28,10 +31,11 @@ import { Link, Navigate, useParams } from 'react-router';
 
 import { useAuth } from '../auth/AuthProvider';
 import { EmptyState } from '../components/EmptyState';
+import { AppearanceTab } from './AppearanceTab';
 import { AuditTab } from './AuditTab';
 import { ClinicInfoTab } from './ClinicInfoTab';
 import { DoctorsTab } from './DoctorsTab';
-import { ClinicsTab, DepartmentsTab, InsuranceCompaniesTab, LabTestsTab, MedicationsTab, PhrasesTab, StatusesTab, VisitTypesTab } from './ListTabs';
+import { ClinicsTab, DepartmentsTab, InsuranceCompaniesTab, LabTestsTab, MedicationsTab, PhrasesTab, ReferralSourcesTab, StatusesTab, VisitTypesTab } from './ListTabs';
 import { BillingSettingsTab, InsuranceClassesTab } from './InsuranceClassesTab';
 import { NumberingTab } from './NumberingTab';
 import { QueueSettingsTab } from './QueueSettingsTab';
@@ -41,15 +45,18 @@ import { ServicesTab } from './ServicesTab';
 import { SystemHealthTab } from './SystemHealthTab';
 import { ThisPcTab } from './ThisPcTab';
 import { UsersTab } from './UsersTab';
+import { WhatsAppTab } from './WhatsAppTab';
 
 interface Tab {
   key: string;
+  /** Empty: every signed-in user (their own preferences). */
   perm: string;
   icon: Icon;
   el: ReactNode;
 }
 
 const GROUPS: { key: string; tabs: Tab[] }[] = [
+  { key: 'me', tabs: [{ key: 'appearance', perm: '', icon: IconTypography, el: <AppearanceTab /> }] },
   {
     key: 'clinic',
     tabs: [
@@ -68,11 +75,13 @@ const GROUPS: { key: string; tabs: Tab[] }[] = [
       { key: 'insurance-companies', perm: 'settings.manage', icon: IconShieldCheck, el: <InsuranceCompaniesTab /> },
       { key: 'insurance-classes', perm: 'settings.manage', icon: IconShieldCheck, el: <InsuranceClassesTab /> },
       { key: 'billing-settings', perm: 'settings.manage', icon: IconReceipt2, el: <BillingSettingsTab /> },
+      { key: 'referral-sources', perm: 'settings.manage', icon: IconSpeakerphone, el: <ReferralSourcesTab /> },
       { key: 'phrases', perm: 'settings.manage', icon: IconQuote, el: <PhrasesTab /> },
       { key: 'medications', perm: 'settings.manage', icon: IconPill, el: <MedicationsTab /> },
       { key: 'lab-tests', perm: 'settings.manage', icon: IconFlask, el: <LabTestsTab /> },
       { key: 'numbering', perm: 'settings.manage', icon: IconHash, el: <NumberingTab /> },
       { key: 'queue-settings', perm: 'settings.manage', icon: IconUsersGroup, el: <QueueSettingsTab /> },
+      { key: 'whatsapp', perm: 'settings.manage', icon: IconBrandWhatsapp, el: <WhatsAppTab /> },
     ],
   },
   {
@@ -100,7 +109,7 @@ export function SettingsPage() {
   const { t } = useTranslation();
   const { can } = useAuth();
   const { tab } = useParams();
-  const groups = GROUPS.map((g) => ({ ...g, tabs: g.tabs.filter((x) => can(x.perm)) })).filter((g) => g.tabs.length);
+  const groups = GROUPS.map((g) => ({ ...g, tabs: g.tabs.filter((x) => !x.perm || can(x.perm)) })).filter((g) => g.tabs.length);
   const all = groups.flatMap((g) => g.tabs);
 
   if (!all.length) return <EmptyState icon={IconShieldLock} title={t('errors.forbidden')} hint={t('settings.noAccess')} />;

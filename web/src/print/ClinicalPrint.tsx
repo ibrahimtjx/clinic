@@ -189,6 +189,7 @@ const REPORT_TITLES = {
   report: ['تقرير طبي', 'Medical report'],
   referral: ['خطاب تحويل', 'Referral letter'],
   attendance: ['إشعار مراجعة', 'Attendance certificate'],
+  sick_leave: ['تقرير إجازة مرضية', 'Sick leave certificate'],
 } as const;
 
 export function MedicalReportPrint() {
@@ -211,6 +212,19 @@ export function MedicalReportPrint() {
             <Text size="md" fw={600}>
               {r.recipient}
             </Text>
+          )}
+          {r.kind === 'sick_leave' && r.leave_from && r.leave_to && (
+            <SimpleGrid cols={3} spacing={4} style={{ border: '1px solid var(--app-border)', borderRadius: 6, padding: 8 }} data-testid="leave-print">
+              <Text size="md">
+                {en ? 'From' : 'من تاريخ'}: <b>{formatDate(r.leave_from, en ? 'en' : 'ar', digits)}</b>
+              </Text>
+              <Text size="md">
+                {en ? 'To' : 'إلى تاريخ'}: <b>{formatDate(r.leave_to, en ? 'en' : 'ar', digits)}</b>
+              </Text>
+              <Text size="md">
+                {en ? 'Days' : 'عدد الأيام'}: <b>{r.leave_days}</b>
+              </Text>
+            </SimpleGrid>
           )}
           <Text size="md" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.9 }}>
             {r.body}

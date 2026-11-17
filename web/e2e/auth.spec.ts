@@ -75,9 +75,13 @@ test('admin creates a user who must set a password at first sign-in; audit log r
   await expect(table).toContainText('تسجيل دخول'); // sign-in
 });
 
-test('permission matrix hides settings from reception', async ({ page }) => {
+test('reception sees only their own Appearance in settings, and the font size applies', async ({ page }) => {
   await signIn(page, 'reception', DEV_PASSWORD);
-  await expect(page.locator('a[href="/settings"]')).toHaveCount(0);
-  await page.goto('/settings/users');
-  await expect(page.getByText('ليست لديك صلاحية لأي من الإعدادات.')).toBeVisible();
+  await page.goto('/settings/users'); // not allowed: falls back to the first section they may open
+  await expect(page.getByTestId('appearance-tab')).toBeVisible();
+  await expect(page.getByTestId('settings-nav-users')).toHaveCount(0);
+  await page.getByTestId('font-size').getByText('كبير', { exact: true }).click();
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.fontSize)).toBe('110%');
+  await page.getByTestId('font-size').getByText('عادي').click();
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.fontSize)).toBe('');
 });

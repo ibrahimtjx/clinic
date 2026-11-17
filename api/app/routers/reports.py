@@ -18,7 +18,13 @@ from app.reports.pdf import to_html, to_pdf
 from app.services.settings import get_clinic_info
 
 router = APIRouter(prefix="/reports", tags=["reports"])
-REPORT_PERMS = ("report.revenue", "report.financial", "report.clinical", "report.operational")
+REPORT_PERMS = (
+    "report.revenue",
+    "report.financial",
+    "report.clinical",
+    "report.operational",
+    "report.own",
+)
 
 
 def _any(p: Principal, perms: tuple[str, ...]) -> bool:
@@ -128,7 +134,26 @@ def _filters(
         ) from None
 
 
-def _run(db, spec: Spec, f: Filters) -> Report:
+def own_doctor_id(db, p: Principal) -> int | None:
+    return db.scalar(
+        select(Doctor.id).where(Doctor.user_id == p.user.id, Doctor.deleted_at.is_(None))
+    )
+
+
+def _run(db, spec: Spec, f: Filters, p: Principal) -> Report:
+    # A doctor who may not see the whole clinic gets their own figures only (owner, 2026-11-17).
+    restricted = not (p.can("report.financial") or p.can("appointment.view_all"))
+    if spec.key == "doctor_statement" and not p.can("report.financial"):
+        restricted = True
+    if restricted and ("doctor" in spec.filters or "doctor_required" in spec.filters):
+        mine = own_doctor_id(db, p)
+        if mine is None:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"code": "not_a_doctor"})
+        f.doctor_id = mine
+    if "doctor_required" in spec.filters and not f.doctor_id:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "doctor_required"}
+        )
     if "patient_required" in spec.filters and not f.patient_id:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "patient_required"}
@@ -159,7 +184,7 @@ def run_report(
     key: str, db: DbSession, f: Filters = Depends(_filters), p: Principal = Depends(require())
 ) -> dict:
     spec = _spec(key, p)
-    rep = _run(db, spec, f)
+    rep = _run(db, spec, f, p)
     patient = db.get(Patient, f.patient_id) if f.patient_id else None
     return {
         "key": spec.key,
@@ -207,7 +232,7 @@ def export_excel(
     p: Principal = Depends(require()),
 ) -> Response:
     spec = _spec(key, p)
-    rep = _run(db, spec, f)
+    rep = _run(db, spec, f, p)
     now = db.scalar(select(func.now()))
     data = to_xlsx(spec, rep, get_clinic_info(db).model_dump(), _period(f), lang, now)
     # Exports leave the system with patient data: record who took what (SPEC 3.4).
@@ -237,7 +262,7 @@ def export_pdf(
 ) -> Response:
     """The report as PDF, rendered on the server with WeasyPrint (Arabic shaping by Pango)."""
     spec = _spec(key, p)
-    rep = _run(db, spec, f)
+    rep = _run(db, spec, f, p)
     now = db.scalar(select(func.now()))
     patient = db.get(Patient, f.patient_id) if f.patient_id else None
     html = to_html(

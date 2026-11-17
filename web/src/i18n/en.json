@@ -71,7 +71,7 @@
     "openDesign": "Open the design system"
   },
   "home": {
-    "welcome": "Welcome",
+    "welcome": "Welcome,",
     "hint": "This is the welcome page of the program. It can show any information you would like here: tell us what you want to see, or request a feature.",
     "serverTime": "Server time",
     "version": "Version"
@@ -253,13 +253,17 @@
       "thisPc": "This PC",
       "systemHealth": "System health",
       "medications": "Medications",
-      "labTests": "Lab tests"
+      "labTests": "Lab tests",
+      "appearance": "Appearance",
+      "referralSources": "How patients found us",
+      "whatsapp": "WhatsApp reminders"
     },
     "groups": {
       "clinic": "Clinic",
       "lists": "Lists",
       "access": "Access and security",
-      "pc": "This PC"
+      "pc": "This PC",
+      "me": "Me"
     }
   },
   "users": {
@@ -357,7 +361,9 @@
     "report_operational": "Operational reports",
     "file_view": "View images and documents",
     "file_upload": "Upload images and documents",
-    "file_delete": "Remove images and documents"
+    "file_delete": "Remove images and documents",
+    "appointment_view_all": "See every doctor's appointments",
+    "report_own": "Own doctor statement"
   },
   "security": {
     "auto_lock_minutes": "Auto-lock (minutes)",
@@ -549,7 +555,13 @@
     "nothing_to_credit": "Nothing left to credit on this invoice.",
     "credit_exceeds_line": "That quantity was already credited or is more than the line.",
     "unknown_invoice": "Invoice not found.",
-    "unknown_invoice_line": "Invoice line not found."
+    "unknown_invoice_line": "Invoice line not found.",
+    "doctor_required": "Choose a doctor first.",
+    "not_a_doctor": "This report is for doctors: your account is not linked to a doctor.",
+    "unknown_referral_source": "Referral source not found.",
+    "leave_dates_required": "Choose the leave dates.",
+    "leave_dates_order": "The leave ends before it starts.",
+    "leave_too_long": "A sick leave can be at most {{max_days}} days."
   },
   "weekdays": [
     "Sunday",
@@ -600,7 +612,8 @@
     "phrasesHint": "Ready-made phrases inserted into text fields with the quote button.",
     "field": "Field",
     "phraseText": "Phrase",
-    "insuranceHint": "Insurance companies. Classes and coverage rules come with quotations (M7)."
+    "insuranceHint": "Insurance companies. Classes and coverage rules come with quotations (M7).",
+    "referralSourcesHint": "How patients found the clinic. Add new sources any time; removed ones stay on existing patients."
   },
   "phraseFields": {
     "appointment_note": "Appointment note",
@@ -808,7 +821,8 @@
       "name": "Name is required (at least 2 letters)",
       "nationalId": "National ID is 10 digits",
       "dob": "Date of birth is in the future"
-    }
+    },
+    "referralHint": "How the patient heard about the clinic"
   },
   "appointments": {
     "edit": "Edit appointment",
@@ -1240,7 +1254,8 @@
     "all": "All",
     "clinic": "Clinic",
     "show": "Show report",
-    "searchPatient": "Name, file no. or mobile"
+    "searchPatient": "Name, file no. or mobile",
+    "chooseDoctor": "Choose a doctor"
   },
   "thisPc": {
     "browserTitle": "Open this in the desktop app",
@@ -1397,8 +1412,15 @@
     "reportKinds": {
       "report": "Medical report",
       "referral": "Referral letter",
-      "attendance": "Attendance certificate"
-    }
+      "attendance": "Attendance certificate",
+      "sick_leave": "Sick leave certificate"
+    },
+    "sickLeave": "Sick leave",
+    "newSickLeave": "New sick leave",
+    "noSickLeave": "No sick leave certificates yet",
+    "leaveDates": "Leave from – to",
+    "leaveDays": "Days: {{count}}",
+    "leaveRange": "From {{from}} to {{to}} (days: {{count}})"
   },
   "departments": {
     "doctors": "Doctors ({{n}})",
@@ -1419,5 +1441,47 @@
     "crashedHint": "Your data is safe. Reload the page; if it happens again, note what you were doing and tell the administrator.",
     "home": "Back to the start",
     "reload": "Reload"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "hint": "How the system looks for you. Saved to your account, so it follows you to any PC.",
+    "size": "Text size",
+    "sizes": {
+      "90": "Small",
+      "100": "Normal",
+      "110": "Large",
+      "120": "Larger",
+      "135": "Largest"
+    },
+    "font": "Font",
+    "fonts": {
+      "plex": "IBM Plex (default)",
+      "tajawal": "Tajawal",
+      "cairo": "Cairo",
+      "naskh": "Noto Naskh (traditional)"
+    },
+    "current": "In use",
+    "sample": "مرحبًا بكم في عيادة اللؤلؤة البيضاء",
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "digits": "Digits"
+  },
+  "whatsapp": {
+    "remind": "WhatsApp reminder",
+    "noMobile": "The patient has no mobile number",
+    "language": "Message language",
+    "reminders": "WhatsApp reminders",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "progress": "{{done}} of {{total}} opened",
+    "how": "Each button opens WhatsApp with the reminder written for that patient; press Send in WhatsApp. WhatsApp (or WhatsApp Web) must be signed in on this PC with the clinic's number.",
+    "none": "No appointments to remind.",
+    "opened": "Opened",
+    "settingsHint": "The reminder text staff send from an appointment or from WhatsApp reminders in the calendar. Placeholders: {patient} {day} {date} {time} {doctor} {room} {clinic} {phone}.",
+    "templateAr": "Arabic message",
+    "templateEn": "English message",
+    "preview": "Preview"
   }
 }

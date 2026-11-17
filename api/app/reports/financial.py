@@ -468,6 +468,97 @@ def doctor_production(db: Session, f: Filters) -> Report:
     )
 
 
+# ---------------------------------------------------------------- one doctor's statement
+@report(
+    key="doctor_statement",
+    ar="كشف حساب الطبيب",
+    en="Doctor statement",
+    group="financial",
+    perms=("report.own", "report.financial"),
+    filters=("date_range", "doctor_required"),
+    description_ar="فواتير الطبيب في الفترة، والمحصّل والمسترد والعمولة. الطبيب يرى كشفه فقط.",
+    description_en="A doctor's invoices in the period, with collected, refunded and commission. Doctors see their own only.",
+)
+def doctor_statement(db: Session, f: Filters) -> Report:
+    invs = list(
+        db.scalars(
+            select(Invoice)
+            .where(Invoice.doctor_id == f.doctor_id, *within(Invoice.issued_at, f))
+            .order_by(Invoice.issued_at, Invoice.id)
+        )
+    )
+    patients = (
+        {
+            p.id: p
+            for p in db.scalars(select(Patient).where(Patient.id.in_({i.patient_id for i in invs})))
+        }
+        if invs
+        else {}
+    )
+    owed = ledger.outstanding(db, [i.id for i in invs]) if invs else {}
+    rows = []
+    for inv in invs:
+        pt = patients[inv.patient_id]
+        rows.append(
+            {
+                "invoice_no": inv.invoice_no,
+                "at": inv.issued_at,
+                "patient": f"{pt.name_ar} ({pt.file_no})",
+                "patient_en": f"{pt.name_en or pt.name_ar} ({pt.file_no})",
+                "net": inv.net,
+                "vat": inv.vat,
+                "total": inv.total,
+                "patient_share": inv.patient_share,
+                "outstanding": owed.get(inv.id, Z),
+            }
+        )
+    sec = Section(
+        "invoices",
+        "الفواتير",
+        "Invoices",
+        [
+            Col("invoice_no", "رقم الفاتورة", "Invoice no."),
+            Col("at", "التاريخ والوقت", "Date and time", "datetime"),
+            Col("patient", "المريض (رقم الملف)", "Patient (file no.)"),
+            Col("net", "الصافي بدون ضريبة", "Net without VAT", "money"),
+            Col("vat", "الضريبة", "VAT", "money"),
+            Col("total", "الإجمالي", "Total", "money"),
+            Col("patient_share", "حصة المريض", "Patient's share", "money"),
+            Col("outstanding", "المتبقي على المريض", "Still owed", "money"),
+        ],
+        rows,
+        totals(rows, ["net", "vat", "total", "patient_share", "outstanding"]),
+    )
+    # Collected, refunded and commission: the same figures as the production report, for this doctor.
+    prod_rows = doctor_production(db, f).sections[0].rows
+    figures = prod_rows[0] if prod_rows else {}
+    summary = [
+        Item("عدد الفواتير", "Invoices", len(invs), "int"),
+        Item(
+            "صافي الفواتير (بدون ضريبة)",
+            "Invoiced net (without VAT)",
+            sum((i.net for i in invs), Z),
+        ),
+        Item(
+            "المحصّل في الفترة (بدون ضريبة)",
+            "Collected in the period (without VAT)",
+            figures.get("collected", Z),
+        ),
+        Item("المسترد في الفترة", "Refunded in the period", figures.get("refunded", Z)),
+        Item("العمولة", "Commission", figures.get("commission", Z)),
+    ]
+    return Report(
+        [sec],
+        summary=summary,
+        notes_ar=[
+            "المحصّل يشمل ما دُفع في الفترة على فواتير هذا الطبيب، حتى لو صدرت الفاتورة قبلها."
+        ],
+        notes_en=[
+            "Collected counts money paid in the period on this doctor's invoices, even if the invoice is older."
+        ],
+    )
+
+
 # ---------------------------------------------------------------- patient account statement
 @report(
     key="account_statement",
