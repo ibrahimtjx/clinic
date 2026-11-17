@@ -232,7 +232,7 @@ function UploadModal({ opened, patient, onClose }: { opened: boolean; patient: P
         </Text>
         <SimpleGrid cols={2}>
           <Select label={t('files.kind')} data={FILE_KINDS.map((k) => ({ value: k, label: t(`files.kinds.${k}`) }))} value={kind} onChange={(v) => v && setKind(v as FileKind)} allowDeselect={false} />
-          <DatePickerInput label={t('files.takenOn')} value={takenOn} onChange={setTakenOn} valueFormat="DD/MM/YYYY" />
+          <DatePickerInput label={t('files.takenOn')} value={takenOn} onChange={setTakenOn} valueFormat="DD/MM/YYYY" maxDate={new Date()} />
           <TextInput label={t('files.title')} value={title} onChange={(e) => setTitle(e.currentTarget.value)} placeholder={t('files.titleHint')} maxLength={200} />
           <NumberInput label={t('files.tooth')} value={tooth} onChange={setTooth} min={11} max={85} hideControls />
         </SimpleGrid>

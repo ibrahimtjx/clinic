@@ -78,9 +78,9 @@ def test_visit_type_crud_soft_delete_restore_and_audit(client, admin, db):
     assert any(x["id"] == vt["id"] and x["deleted_at"] for x in deleted)
     assert client.post(f"/visit-types/{vt['id']}/restore").json()["deleted_at"] is None
     actions = db.scalars(
-        select(AuditLog.action).where(
-            AuditLog.table_name == "visit_types", AuditLog.record_id == str(vt["id"])
-        )
+        select(AuditLog.action)
+        .where(AuditLog.table_name == "visit_types", AuditLog.record_id == str(vt["id"]))
+        .order_by(AuditLog.id)
     ).all()
     assert actions == ["create", "update", "delete", "restore"]
 

@@ -96,6 +96,13 @@ class VisitPatch(_Teeth):
 class AddendumIn(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
 
+    @field_validator("text")
+    @classmethod
+    def _not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("blank")
+        return v
+
 
 class AddendumOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -286,6 +293,9 @@ def dental_record(
 def create_visit(patient_id: int, body: VisitIn, db: DbSession, p: Principal = Editor) -> VisitOut:
     _patient(db, patient_id)
     _check_refs(db, patient_id, body.doctor_id, body.department_id, body.appointment_id)
+    from app.routers.clinical import own_doctor_only
+
+    own_doctor_only(db, body.doctor_id, p)
     now = db.scalar(select(func.now()))
     if body.visit_at and body.visit_at > now + timedelta(minutes=5):
         raise _err("visit_in_future")

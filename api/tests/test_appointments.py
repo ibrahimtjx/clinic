@@ -384,9 +384,9 @@ def test_soft_delete_and_permissions(client, setup, make_user, db):
     login(client, "faisal")
     assert client.get("/appointments", params={"patient_id": setup["p1"].id}).status_code == 403
     actions = db.scalars(
-        select(AuditLog.action).where(
-            AuditLog.table_name == "appointments", AuditLog.record_id == str(a["id"])
-        )
+        select(AuditLog.action)
+        .where(AuditLog.table_name == "appointments", AuditLog.record_id == str(a["id"]))
+        .order_by(AuditLog.id)
     ).all()
     assert actions == ["create", "delete"]
 

@@ -147,6 +147,26 @@ begin
   Result := S;
 end;
 
+// Setup leaves a note when the network is marked Public: offer to make it Private, or other PCs
+// cannot reach the server (the firewall rule covers private and work networks only).
+procedure OfferPrivateNetwork();
+var
+  Flag, Names: String;
+  Lines: TArrayOfString;
+  Code: Integer;
+begin
+  Flag := ExpandConstant('{commonappdata}\ClinicServer\logs\network-public.txt');
+  if WizardSilent() or not FileExists(Flag) then Exit;
+  if LoadStringsFromFile(Flag, Lines) and (GetArrayLength(Lines) > 0) then Names := Lines[0] else Names := '';
+  if MsgBox('This PC''s network "' + Names + '" is set to Public, so the clinic''s other PCs cannot reach this server.' + #13#10#13#10 +
+      'Set it to Private now? Only do this on the clinic''s own network, not on public Wi-Fi.', mbConfirmation, MB_YESNO) = IDYES then
+  begin
+    Exec('powershell.exe', '-NoProfile -Command "Get-NetConnectionProfile | Where-Object NetworkCategory -eq ''Public'' | Set-NetConnectionProfile -NetworkCategory Private"',
+      '', SW_HIDE, ewWaitUntilTerminated, Code);
+    DeleteFile(Flag);
+  end;
+end;
+
 // Silent installs (IT, tests) see the failure as exit code 1.
 function GetCustomSetupExitCode(): Integer;
 begin
@@ -199,4 +219,5 @@ begin
     Exit;
   end;
   DeleteFile(ParamsFile);
+  OfferPrivateNetwork();
 end;

@@ -155,6 +155,19 @@ function Add-DemoData($vars) {
   } finally { Pop-Location }
 }
 
+# The firewall rule opens the clinic on private and work networks only. A network marked Public
+# (Windows' default for a new Wi-Fi) keeps every other PC out: tell the installer, which asks.
+function Test-PublicNetwork {
+  $flag = Join-Path $Data 'logs\network-public.txt'
+  Remove-Item $flag -ErrorAction SilentlyContinue
+  $public = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' })
+  if ($public.Count -gt 0) {
+    $names = ($public | ForEach-Object { $_.Name }) -join ', '
+    Say "WARNING: the network '$names' is set to Public, so other PCs cannot reach this server."
+    [System.IO.File]::WriteAllText($flag, $names, (New-Object System.Text.UTF8Encoding $false))
+  }
+}
+
 # Reinstalling after an uninstall (the data was kept) takes the upgrade path, but the uninstall removed
 # the database service and the firewall rule: put back whatever is missing.
 function Restore-Missing {
@@ -185,6 +198,7 @@ if (Test-Path $EnvFile) {
     Remove-Item $ParamsFile -Force -ErrorAction SilentlyContinue
     if ($up.demo_data) { Add-DemoData $vars }
   }
+  Test-PublicNetwork
   Say 'Upgrade done.'
   Stop-Transcript | Out-Null
   exit 0
@@ -308,6 +322,7 @@ Backups/restore:   "$App\server\clinic-ops.cmd" backup-now | restore-dump FILE |
 Forgot a password: Start menu > Clinic Server > Reset a password (right-click, Run as administrator)
 "@
 [System.IO.File]::WriteAllText((Join-Path $Data 'README.txt'), $readme, (New-Object System.Text.UTF8Encoding $true))
+Test-PublicNetwork
 Say "Done. Open https://$serverName"
 Stop-Transcript | Out-Null
 exit 0

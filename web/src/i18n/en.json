@@ -513,6 +513,12 @@
     "visit_in_future": "The visit time is in the future.",
     "unknown_visit": "Visit not found.",
     "price_out_of_range": "The price is outside the allowed range.",
+    "discount_too_large": "The discount is larger than the line.",
+    "invalid_filters": "Check the dates: the end must be after the start, and the range at most two years.",
+    "other_doctor": "Doctors write in their own name. Choose yourself as the doctor.",
+    "duplicate_lab_item": "The same test appears twice in the results.",
+    "unknown_lab_item": "That test is not on this request.",
+    "date_in_future": "The date cannot be in the future.",
     "free_line_needs_override": "A line without a service needs the price override permission.",
     "no_lines": "Add at least one line.",
     "document_closed": "This document cannot be changed in its current status.",
@@ -1405,5 +1411,13 @@
     "noPatients": "No patients seen recently.",
     "visits": "Visits",
     "lastVisit": "Last visit"
+  },
+  "errorPage": {
+    "notFound": "Page not found",
+    "notFoundHint": "This address is not part of the system. Check it, or go back to the start.",
+    "crashed": "This screen ran into a problem",
+    "crashedHint": "Your data is safe. Reload the page; if it happens again, note what you were doing and tell the administrator.",
+    "home": "Back to the start",
+    "reload": "Reload"
   }
 }

@@ -22,7 +22,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconFlask, IconPencil, IconPill, IconPlus, IconPrinter, IconReportMedical, IconTrash, IconX } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePrefs } from '../app/preferences';
@@ -78,6 +78,12 @@ function DoctorSelect({ value, onChange }: { value: number | null; onChange: (v:
   const { t } = useTranslation();
   const { lang } = usePrefs();
   const doctors = useDoctors();
+  const { me } = useAuth();
+  // A doctor writes in their own name (the server refuses another doctor's); other staff choose.
+  const mine = doctors.data?.find((d) => d.user_id === me?.id);
+  useEffect(() => {
+    if (mine && value !== mine.id) onChange(mine.id);
+  }, [mine, value, onChange]);
   return (
     <Select
       label={t('appointments.doctor')}
@@ -85,6 +91,7 @@ function DoctorSelect({ value, onChange }: { value: number | null; onChange: (v:
       data={(doctors.data ?? []).map((d) => ({ value: String(d.id), label: nameOf(d, lang) }))}
       value={value ? String(value) : null}
       onChange={(v) => onChange(v ? Number(v) : null)}
+      disabled={!!mine}
       searchable
     />
   );

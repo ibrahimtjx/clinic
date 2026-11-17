@@ -97,7 +97,11 @@ services and the firewall rule.
 ## If the other PCs cannot connect
 
 - On the server: Settings → Network & internet → the network → **Private network**. The firewall rule
-  only opens the clinic on private and work networks, not on networks marked Public.
+  only opens the clinic on private and work networks, not on networks marked Public. The installer
+  checks this and offers to switch it.
+- If the server's address changes (new Wi-Fi, router restart), the server starts answering on the new one
+  within a minute; `clinic-ops addresses` shows the addresses and applies a change at once. A fixed
+  address for the server in the router avoids the change altogether.
 - Use the server's address (`ipconfig` on the server) or a name the router knows; `localhost` only works on
   the server itself. Check from a PC with `Test-NetConnection <server address> -Port 443`.
 - On the server, `Get-Service Clinic*` should show four services Running (ClinicDB, ClinicAPI, ClinicWeb,

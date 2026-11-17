@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -133,10 +133,29 @@ def _patient(db: Session, pid: int) -> Patient:
     return p
 
 
-def _refs(db: Session, patient_id: int, doctor_id: int, visit_id: int | None) -> None:
+def _not_blank(v: str | None) -> str | None:
+    if v is not None and not v.strip():
+        raise ValueError("blank")
+    return v
+
+
+def own_doctor_only(db: Session, doctor_id: int, p: Principal) -> None:
+    """A signed-in doctor writes in their own name; staff who are not doctors may choose the doctor."""
+    mine = db.scalar(
+        select(Doctor.id).where(Doctor.user_id == p.user.id, Doctor.deleted_at.is_(None))
+    )
+    if mine is not None and mine != doctor_id:
+        raise _err("other_doctor")
+
+
+def _refs(
+    db: Session, patient_id: int, doctor_id: int, visit_id: int | None, p: Principal | None = None
+) -> None:
     d = db.get(Doctor, doctor_id)
     if d is None or d.deleted_at is not None:
         raise _err("unknown_doctor")
+    if p is not None:
+        own_doctor_only(db, doctor_id, p)
     if visit_id is not None:
         v = db.get(DentalVisit, visit_id)
         if v is None or v.patient_id != patient_id or v.deleted_at is not None:
@@ -287,7 +306,7 @@ def get_prescription(rid: int, db: DbSession, p: Principal = Viewer) -> RxOut:
 @router.post("/patients/{pid}/prescriptions", response_model=RxOut, status_code=201)
 def create_prescription(pid: int, body: RxIn, db: DbSession, p: Principal = Editor) -> RxOut:
     _patient(db, pid)
-    _refs(db, pid, body.doctor_id, body.visit_id)
+    _refs(db, pid, body.doctor_id, body.visit_id, p)
     rx = Prescription(
         patient_id=pid,
         doctor_id=body.doctor_id,
@@ -437,7 +456,7 @@ def get_lab_request(lid: int, db: DbSession, p: Principal = Viewer) -> LabOut:
 @router.post("/patients/{pid}/lab-requests", response_model=LabOut, status_code=201)
 def create_lab_request(pid: int, body: LabIn, db: DbSession, p: Principal = Editor) -> LabOut:
     _patient(db, pid)
-    _refs(db, pid, body.doctor_id, body.visit_id)
+    _refs(db, pid, body.doctor_id, body.visit_id, p)
     r = LabRequest(
         patient_id=pid,
         doctor_id=body.doctor_id,
@@ -483,6 +502,9 @@ def enter_results(lid: int, body: ResultsIn, db: DbSession, p: Principal = Edito
     if r.status == "cancelled":
         raise _err("document_closed", status.HTTP_409_CONFLICT)
     by_seq = {it.seq: it for it in r.items}
+    seqs = [res.seq for res in body.results]
+    if len(seqs) != len(set(seqs)):
+        raise _err("duplicate_lab_item")
     for res in body.results:
         it = by_seq.get(res.seq)
         if it is None:
@@ -521,6 +543,12 @@ class ReportIn(BaseModel):
     recipient: str = Field("", max_length=200)
     title: str = Field("", max_length=200)
     body: str = Field(min_length=1, max_length=20000)
+
+    @field_validator("body")
+    @classmethod
+    def _body(cls, v: str) -> str:
+        return _not_blank(v)
+
     notes: str = Field("", max_length=2000)
 
 
@@ -532,6 +560,11 @@ class ReportPatch(BaseModel):
     title: str | None = Field(None, max_length=200)
     body: str | None = Field(None, min_length=1, max_length=20000)
     notes: str | None = Field(None, max_length=2000)
+
+    @field_validator("body")
+    @classmethod
+    def _body(cls, v: str | None) -> str | None:
+        return _not_blank(v)
 
 
 class ReportOut(_DocOut):
@@ -578,7 +611,7 @@ def get_report(rid: int, db: DbSession, p: Principal = Viewer) -> ReportOut:
 @router.post("/patients/{pid}/medical-reports", response_model=ReportOut, status_code=201)
 def create_report(pid: int, body: ReportIn, db: DbSession, p: Principal = Editor) -> ReportOut:
     _patient(db, pid)
-    _refs(db, pid, body.doctor_id, body.visit_id)
+    _refs(db, pid, body.doctor_id, body.visit_id, p)
     r = MedicalReport(
         patient_id=pid,
         issued_at=_now(db),
