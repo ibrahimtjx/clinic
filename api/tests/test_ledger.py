@@ -2,6 +2,7 @@
 """M8: paying payment orders, final invoices, receipts, credit notes, deposits, cash box."""
 
 import base64
+from decimal import Decimal
 
 import pytest
 from sqlalchemy import select, text
@@ -83,30 +84,73 @@ def test_collect_issues_invoice_and_receipt_with_chain_and_qr(client, setup, db)
     assert collect(client, got, [cash(1)]).status_code == 409
     # The next invoice continues the chain.
     po2 = send_po(client, setup["saudi"], [line(setup["xray"])])
-    inv2 = collect(client, po2, []).json()["invoice"]
+    inv2 = collect(client, po2, [cash(po2["patient_share"])]).json()["invoice"]
     assert inv2["previous_hash"] == inv["hash"]
     assert int(inv2["invoice_no"][-6:]) == int(inv["invoice_no"][-6:]) + 1
 
 
-def test_partial_payment_balance_and_later_payment(client, setup, db):
-    po = send_po(client, setup["resident"], [line(setup["veneer"])])  # excluded: patient pays 1380
-    inv = collect(client, po, [cash("500")]).json()["invoice"]
-    assert inv["outstanding"] == "880.00" and bal(db, setup["resident"]) == ("880.00", "0.00")
-    acct = client.get(f"/patients/{setup['resident'].id}/account").json()
-    assert [u["invoice_no"] for u in acct["unpaid"]] == [inv["invoice_no"]] and acct[
-        "balance"
-    ] == "880.00"
-    over = client.post(
-        f"/patients/{setup['resident'].id}/payments", json={"payments": [cash("900")]}
+def test_partial_payment_invoices_only_what_was_paid(client, setup, db):
+    """Owner, 2026-11-18: each payment issues an invoice for what was paid; the rest is owed."""
+    rid = setup["resident"].id
+    po = send_po(client, setup["resident"], [line(setup["veneer"])])  # not covered: patient 1380
+    res = collect(client, po, [cash("500")]).json()
+    inv = res["invoice"]
+    assert (inv["patient_share"], inv["total"], inv["outstanding"]) == ("500.00", "500.00", "0.00")
+    assert inv["vat"] == "65.22" and res["remaining"] == "880.00"
+    assert bal(db, setup["resident"]) == ("880.00", "0.00")
+    got = client.get(f"/payment-orders/{po['id']}").json()
+    assert (got["status"], got["paid_amount"], got["remaining"]) == (
+        "part_paid",
+        "500.00",
+        "880.00",
     )
+    acct = client.get(f"/patients/{rid}/account").json()
+    assert acct["unpaid"] == [] and [o["order_no"] for o in acct["unpaid_orders"]] == [
+        po["order_no"]
+    ]
+    over = client.post(f"/patients/{rid}/payments", json={"payments": [cash("900")]})
     assert over.json()["detail"] == {"code": "overpaid", "due": "880.00"}
+    # A later payment on the account issues the invoice for the rest.
     r = client.post(
-        f"/patients/{setup['resident'].id}/payments",
-        json={"payments": [cash("880", "credit_card")]},
+        f"/patients/{rid}/payments", json={"payments": [cash("300", "credit_card")]}
     ).json()
-    assert r["kind"] == "payment" and r["balance_after"] == "0.00" and r["vat"] == "114.78"
-    assert client.get(f"/invoices/{inv['id']}").json()["outstanding"] == "0.00"
-    assert client.get(f"/patients/{setup['resident'].id}/account").json()["unpaid"] == []
+    assert r["balance_after"] == "580.00" and r["allocations"][0]["invoice_no"] != inv["invoice_no"]
+    # ... or paying the bill again from the inbox.
+    got = client.get(f"/payment-orders/{po['id']}").json()
+    last = collect(client, got, [cash("580")]).json()
+    assert last["remaining"] == "0.00" and last["invoice"]["patient_share"] == "580.00"
+    invs = list(db.scalars(select(Invoice).where(Invoice.payment_order_id == po["id"])))
+    assert len(invs) == 3
+    assert sum(i.total for i in invs) == Decimal("1380.00") and sum(i.vat for i in invs) == Decimal(
+        "180.00"
+    )
+    assert client.get(f"/payment-orders/{po['id']}").json()["status"] == "paid"
+    assert client.get(f"/patients/{rid}/account").json()["unpaid_orders"] == []
+    assert bal(db, setup["resident"]) == ("0.00", "0.00")
+
+
+def test_nothing_paid_makes_the_bill_a_debt_without_an_invoice(client, setup, db, make_user):
+    make_user("faisal", ["cashier"])
+    po = send_po(client, setup["resident"], [line(setup["veneer"])])
+    res = collect(client, po, []).json()
+    assert res["invoice"] is None and res["receipt"] is None and res["remaining"] == "1380.00"
+    assert bal(db, setup["resident"]) == ("1380.00", "0.00")
+    got = client.get(f"/payment-orders/{po['id']}").json()
+    # Closing the rest (written off) needs the credit note permission and a reason.
+    assert (
+        client.post(
+            f"/payment-orders/{po['id']}/close", json={"version": got["version"], "reason": "سماح"}
+        ).status_code
+        == 403
+    )
+    login(client, "faisal")
+    closed = client.post(
+        f"/payment-orders/{po['id']}/close",
+        json={"version": got["version"], "reason": "سماح من الإدارة"},
+    ).json()
+    assert closed["written_off"] == "1380.00" and closed["status"] == "closed"
+    assert bal(db, setup["resident"]) == ("0.00", "0.00")
+    assert not list(db.scalars(select(Invoice).where(Invoice.payment_order_id == po["id"])))
 
 
 def test_overpay_rejected_without_using_a_number(client, setup, db):
@@ -156,10 +200,11 @@ def test_issued_documents_are_immutable(client, setup, db):
             db.execute(text(sql), {"i": inv["id"]})
 
 
-def test_credit_note_on_unpaid_invoice_lowers_balance(client, setup, db, make_user):
+def test_credit_note_on_a_part_payment_invoice(client, setup, db, make_user):
     make_user("faisal", ["cashier"])
     po = send_po(client, setup["resident"], [line(setup["veneer"], qty="2")])  # 2760 patient
     inv = collect(client, po, [cash("1000")]).json()["invoice"]
+    assert inv["patient_share"] == "1000.00" and inv["lines"][0]["qty"] == "2.00"
     lid = inv["lines"][0]["id"]
     forbidden = client.post(
         f"/invoices/{inv['id']}/credit-notes",
@@ -167,27 +212,19 @@ def test_credit_note_on_unpaid_invoice_lowers_balance(client, setup, db, make_us
     )
     assert forbidden.status_code == 403  # reception has no invoice.credit_note
     login(client, "faisal")
+    # Half the lines of a paid invoice: what was paid for it goes back (here: kept on account).
     cn = client.post(
         f"/invoices/{inv['id']}/credit-notes",
-        json={"reason": "سن واحد فقط", "lines": [{"invoice_line_id": lid, "qty": "1"}]},
+        json={
+            "reason": "سن واحد فقط",
+            "lines": [{"invoice_line_id": lid, "qty": "1"}],
+            "refund": {"to_deposit": True},
+        },
     ).json()
     assert (
-        cn["credit_note_no"].startswith("CN-")
-        and cn["total"] == "1380.00"
-        and cn["balance_reduced"] == "1380.00"
+        cn["total"] == "500.00" and cn["balance_reduced"] == "0.00" and cn["refunded"] == "500.00"
     )
-    assert (
-        cn["refunded"] == "0.00"
-        and cn["previous_hash"] == inv["hash"]
-        and cn["invoice_no"] == inv["invoice_no"]
-    )
-    assert bal(db, setup["resident"]) == ("380.00", "0.00")
-    full = client.get(f"/invoices/{inv['id']}").json()
-    assert (
-        full["lines"][0]["credited_qty"] == "1.00"
-        and full["outstanding"] == "380.00"
-        and full["credited"] == "1380.00"
-    )
+    assert bal(db, setup["resident"]) == ("1760.00", "500.00")
     too_much = client.post(
         f"/invoices/{inv['id']}/credit-notes",
         json={"reason": "مرة أخرى", "lines": [{"invoice_line_id": lid, "qty": "2"}]},
@@ -320,9 +357,56 @@ def test_cash_box_shift_totals_and_close(client, setup, db, make_user):
 
 def test_invoice_list_and_search(client, setup, db):
     po = send_po(client, setup["resident"], [line(setup["xray"])])
-    inv = collect(client, po, []).json()["invoice"]
+    inv = collect(client, po, [cash(po["patient_share"])]).json()["invoice"]
     login(client, "amal")
     found = client.get("/invoices", params={"q": inv["invoice_no"][-6:]}).json()
     assert [i["id"] for i in found] == [inv["id"]]
-    assert [i["id"] for i in client.get("/invoices", params={"unpaid": True}).json()] == [inv["id"]]
+    assert client.get("/invoices", params={"unpaid": True}).json() == []  # paid when issued
     assert db.scalar(select(Invoice.buyer_nationality).where(Invoice.id == inv["id"])) == "GB"
+
+
+def test_manager_corrects_an_issued_invoice(client, setup, db, make_user):
+    """Owner, 2026-11-18: fix a mistake on an issued invoice. The invoice itself stays (ZATCA): a
+    credit note cancels it and a corrected invoice is paid from what was paid on the old one."""
+    make_user("boss", ["manager"])
+    rid = setup["resident"].id
+    po = send_po(client, setup["resident"], [line(setup["veneer"])])  # 1380
+    inv = collect(client, po, [cash("1380")]).json()["invoice"]
+    login(client, "amal")  # reception may not correct
+    body = {"reason": "السعر خطأ", "lines": [line(setup["veneer"], price="1000")]}
+    assert client.post(f"/invoices/{inv['id']}/correct", json=body).status_code == 403
+    login(client, "boss")
+    # Cheaper: corrected invoice 1150, the 230 difference stays on the patient's account.
+    res = client.post(f"/invoices/{inv['id']}/correct", json=body).json()
+    assert res["credit_note"]["total"] == "1380.00" and res["credit_note"]["refunded"] == "1380.00"
+    new = res["invoice"]
+    assert new["patient_share"] == "1150.00" and new["corrects_invoice_no"] == inv["invoice_no"]
+    assert res["remaining"] == "0.00" and bal(db, setup["resident"]) == ("0.00", "230.00")
+    old = client.get(f"/invoices/{inv['id']}").json()
+    assert old["credited"] == "1380.00" and [c["invoice_no"] for c in old["corrected_by"]] == [
+        new["invoice_no"]
+    ]
+    assert client.post(f"/invoices/{inv['id']}/correct", json=body).json()["detail"]["code"] == (
+        "already_corrected"
+    )
+    # Dearer (outside the service's price range: allowed for whoever corrects): the rest is owed.
+    dearer = {"reason": "نسي السن الثاني", "lines": [line(setup["veneer"], qty="2", price="1600")]}
+    res2 = client.post(f"/invoices/{new['id']}/correct", json=dearer).json()
+    # Only what was paid on the corrected invoice moves over (1150); other credit stays put.
+    assert res2["invoice"]["patient_share"] == "1150.00"
+    assert res2["remaining"] == "2530.00"  # 3680 - 1150
+    assert bal(db, setup["resident"]) == ("2530.00", "230.00")
+    acct = client.get(f"/patients/{rid}/account").json()
+    assert [o["remaining"] for o in acct["unpaid_orders"]] == ["2530.00"]
+
+
+def test_part_payment_invoice_cannot_be_corrected_alone(client, setup, make_user):
+    make_user("boss", ["manager"])
+    po = send_po(client, setup["resident"], [line(setup["veneer"])])
+    inv = collect(client, po, [cash("500")]).json()["invoice"]
+    login(client, "boss")
+    r = client.post(
+        f"/invoices/{inv['id']}/correct",
+        json={"reason": "خطأ", "lines": [line(setup["veneer"], price="1000")]},
+    )
+    assert r.json()["detail"]["code"] == "part_payment_invoice"

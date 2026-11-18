@@ -55,7 +55,10 @@ class Invoice(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     invoice_no: Mapped[str] = mapped_column(String(30), unique=True)
     uuid: Mapped[uuid_mod.UUID] = mapped_column(Uuid, unique=True, default=uuid_mod.uuid4)
-    payment_order_id: Mapped[int] = mapped_column(ForeignKey("payment_orders.id"), unique=True)
+    payment_order_id: Mapped[int] = mapped_column(ForeignKey("payment_orders.id"), index=True)
+    # Share of the payment order this invoice covers (1 = all of it; less for a part payment).
+    portion: Mapped[Decimal] = mapped_column(Numeric(9, 6), default=Decimal(1), server_default="1")
+    corrects_invoice_id: Mapped[int | None] = mapped_column(ForeignKey("invoices.id"))
     patient_id: Mapped[int] = mapped_column(ForeignKey("patients.id"))
     doctor_id: Mapped[int | None] = mapped_column(ForeignKey("doctors.id"))
     clinic_id: Mapped[int | None] = mapped_column(ForeignKey("clinics.id"))

@@ -180,7 +180,11 @@ class PaymentOrder(_DocumentMixin, Base):
 
     __tablename__ = "payment_orders"
     __table_args__ = (
-        CheckConstraint("status IN ('draft','sent','paid','cancelled')", name="ck_po_status"),
+        CheckConstraint(
+            "status IN ('draft','sent','part_paid','paid','closed','cancelled')",
+            name="ck_po_status",
+        ),
+        CheckConstraint("paid_amount >= 0", name="ck_po_paid"),
         Index("ix_po_status_sent", "status", "sent_at"),
     )
 
@@ -192,6 +196,20 @@ class PaymentOrder(_DocumentMixin, Base):
     reception_note: Mapped[str] = mapped_column(Text, default="", server_default="")
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     sent_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    # Each payment issues an invoice for what was paid (owner, 2026-11-18); the rest is the
+    # patient's debt until paid, or until the bill is closed (written off) with a reason.
+    paid_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), default=Decimal(0), server_default="0"
+    )
+    closed_reason: Mapped[str] = mapped_column(Text, default="", server_default="")
+    # When the bill became the patient's debt (first payment or "pay later"), and when the rest
+    # was written off. NULL billed_at: paid in full under the earlier rules (invoice = debt).
+    billed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Set on the bill a manager's invoice correction creates.
+    corrects_invoice_id: Mapped[int | None] = mapped_column(
+        ForeignKey("invoices.id", use_alter=True, name="fk_po_corrects_invoice")
+    )
 
 
 class DraftLine(Base):

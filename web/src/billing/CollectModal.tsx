@@ -45,23 +45,26 @@ function CollectForm({ order: initial, onClose }: { order: BillingDoc; onClose: 
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [order, setOrder] = useState(initial);
-  const [rows, setRows] = useState(() => [paymentRow('cash', initial.patient_share)]);
+  // A part-paid bill: only what is left is due now.
+  const dueOf = (o: BillingDoc) => (o.status === 'part_paid' && o.remaining ? o.remaining : o.patient_share);
+  const [rows, setRows] = useState(() => [paymentRow('cash', dueOf(initial))]);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [changed, setChanged] = useState(false);
-  const [done, setDone] = useState<{ invoice: Invoice; receipt: Receipt | null } | null>(null);
+  const [done, setDone] = useState<{ invoice: Invoice | null; receipt: Receipt | null; remaining: string } | null>(null);
   const account = useQuery({ queryKey: ['account', order.patient_id], queryFn: () => api<Account>(`/patients/${order.patient_id}/account`) });
   const fm = (v: string) => formatMoney(v, lang, digits);
   const paid = rowsTotal(rows);
-  const remaining = subMoney(order.patient_share, paid);
+  const due = dueOf(order);
+  const remaining = subMoney(due, paid);
   const over = toCents(remaining) < 0;
 
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
-      const res = await api<{ invoice: Invoice; receipt: Receipt | null }>(`/payment-orders/${order.id}/collect`, {
+      const res = await api<{ invoice: Invoice | null; receipt: Receipt | null; remaining: string }>(`/payment-orders/${order.id}/collect`, {
         method: 'POST',
         body: { version: order.version, expected_patient_share: order.patient_share, payments: toPayments(rows), note },
       });
@@ -75,7 +78,7 @@ function CollectForm({ order: initial, onClose }: { order: BillingDoc; onClose: 
       if (e instanceof ApiError && e.code === 'totals_changed') {
         const fresh = await api<BillingDoc>(`/payment-orders/${order.id}`);
         setOrder(fresh);
-        setRows([paymentRow('cash', fresh.patient_share)]);
+        setRows([paymentRow('cash', dueOf(fresh))]);
         setChanged(true);
         void qc.invalidateQueries({ queryKey: ['billing'] });
       } else setError(errorMessage(t, e, lang));
@@ -84,7 +87,22 @@ function CollectForm({ order: initial, onClose }: { order: BillingDoc; onClose: 
     }
   };
 
-  if (done)
+  if (done && !done.invoice)
+    return (
+      <Stack data-testid="collect-done">
+        <Alert color="orange" icon={<IconCheck />} title={t('ledger.billOwed')}>
+          <Text size="sm" data-testid="bill-owed">
+            {t('ledger.billOwedHint', { amount: fm(done.remaining) })}
+          </Text>
+        </Alert>
+        <Group justify="flex-end">
+          <Button variant="default" onClick={onClose}>
+            {t('common.close')}
+          </Button>
+        </Group>
+      </Stack>
+    );
+  if (done && done.invoice)
     return (
       <Stack data-testid="collect-done">
         <Alert color="green" icon={<IconCheck />} title={t('ledger.invoiceIssued')}>
@@ -98,10 +116,14 @@ function CollectForm({ order: initial, onClose }: { order: BillingDoc; onClose: 
             )}
           </Text>
           {done.receipt?.balance_after && toCents(done.receipt.balance_after) > 0 && <Text size="sm">{t('ledger.balanceNow', { amount: fm(done.receipt.balance_after) })}</Text>}
-          {!done.receipt && toCents(done.invoice.outstanding) > 0 && <Text size="sm">{t('ledger.allToBalance', { amount: fm(done.invoice.outstanding) })}</Text>}
+          {toCents(done.remaining) > 0 && (
+            <Text size="sm" data-testid="bill-remaining">
+              {t('ledger.billRemaining', { amount: fm(done.remaining) })}
+            </Text>
+          )}
         </Alert>
         <Group>
-          <Button leftSection={<IconPrinter size={16} />} onClick={() => openPrint(`/print/invoice/${done.invoice.id}`)} data-testid="print-invoice">
+          <Button leftSection={<IconPrinter size={16} />} onClick={() => openPrint(`/print/invoice/${done.invoice!.id}`)} data-testid="print-invoice">
             {t('ledger.printInvoice')}
           </Button>
           {done.receipt && (
@@ -109,7 +131,7 @@ function CollectForm({ order: initial, onClose }: { order: BillingDoc; onClose: 
               {t('ledger.printReceipt')}
             </Button>
           )}
-          <Button variant="default" leftSection={<IconFileInvoice size={16} />} onClick={() => navigate(`/billing/invoice/${done.invoice.id}`)}>
+          <Button variant="default" leftSection={<IconFileInvoice size={16} />} onClick={() => navigate(`/billing/invoice/${done.invoice!.id}`)}>
             {t('ledger.openInvoice')}
           </Button>
           <Button variant="subtle" onClick={onClose} ms="auto">
@@ -134,13 +156,14 @@ function CollectForm({ order: initial, onClose }: { order: BillingDoc; onClose: 
           {t('ledger.totalsChanged')}
         </Alert>
       )}
-      <SimpleGrid cols={3}>
+      <SimpleGrid cols={order.status === 'part_paid' ? 4 : 3}>
         <Stat label={t('billing.total')} value={fm(order.total)} />
         <Stat label={t('billing.insuranceShare')} value={fm(order.insurance_share)} />
-        <Stat label={t('billing.patientDue')} value={fm(order.patient_share)} strong testid="collect-due" />
+        {order.status === 'part_paid' && <Stat label={t('ledger.paidSoFar')} value={fm(order.paid_amount ?? '0')} />}
+        <Stat label={order.status === 'part_paid' ? t('ledger.leftToPay') : t('billing.patientDue')} value={fm(due)} strong testid="collect-due" />
       </SimpleGrid>
       <Divider />
-      <PaymentRows rows={rows} onChange={setRows} depositAvailable={account.data?.deposit_balance} due={order.patient_share} />
+      <PaymentRows rows={rows} onChange={setRows} depositAvailable={account.data?.deposit_balance} due={due} />
       <Group justify="space-between">
         <Text size="sm">
           {t('ledger.paidNow')}: <b>{fm(paid)}</b>
@@ -152,7 +175,7 @@ function CollectForm({ order: initial, onClose }: { order: BillingDoc; onClose: 
         ) : (
           toCents(remaining) > 0 && (
             <Text size="sm" c="orange" data-testid="to-balance">
-              {t('ledger.remainderToBalance', { amount: fm(remaining) })}
+              {toCents(paid) === 0 ? t('ledger.payLaterHint', { amount: fm(remaining) }) : t('ledger.partInvoiceHint', { paid: fm(paid), amount: fm(remaining) })}
             </Text>
           )
         )}
@@ -164,7 +187,7 @@ function CollectForm({ order: initial, onClose }: { order: BillingDoc; onClose: 
           {t('common.cancel')}
         </Button>
         <Button leftSection={<IconCheck size={16} />} onClick={() => void submit()} loading={busy} disabled={over} data-testid="confirm-collect">
-          {t('ledger.issueInvoice')}
+          {toCents(paid) === 0 && toCents(due) > 0 ? t('ledger.recordOwed') : t('ledger.issueInvoice')}
         </Button>
       </Group>
     </Stack>

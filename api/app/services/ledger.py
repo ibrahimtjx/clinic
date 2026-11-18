@@ -4,7 +4,8 @@ Everything here runs inside the caller's transaction and commits together with i
 order issues the invoice (gapless number), the receipt and the balance change at once, or nothing.
 
 Patient money:
-  - `patients.balance` is what the patient still owes on final invoices.
+  - `patients.balance` is what the patient still owes: the unpaid part of their bills (payment
+    orders) and, for invoices issued in full before 2026-11-18, what is unpaid on them.
   - `patients.deposit_balance` is money held on account (deposits, credit moved to deposit).
   Outstanding on one invoice = patient share - payments allocated to it - credit notes that lowered it.
 """
@@ -199,30 +200,130 @@ def _check_payments(payments: list[PaymentIn], allow_deposit: bool = True) -> De
     return sum((x.amount for x in payments), ZERO)
 
 
-# ---------------------------------------------------------------- invoice from a payment order
+# ---------------------------------------------------------------- invoices from payments
+# Each payment issues an invoice for the part paid (owner, 2026-11-18). The payment order is the
+# bill; what is not paid stays on it as the patient's debt (patients.balance) until paid or closed.
+_HEAD = (
+    "gross",
+    "discount",
+    "net",
+    "vat",
+    "total",
+    "insurance_share",
+    "insurance_vat",
+    "patient_share",
+    "patient_vat",
+)
+_LINE_COPY = (
+    "seq",
+    "service_id",
+    "description_ar",
+    "description_en",
+    "price",
+    "qty",
+    "discount_amount",
+    "discount_pct",
+    "vat_rate",
+    "teeth",
+    "price_overridden",
+)
+_LINE_SUM = (
+    "gross",
+    "discount",
+    "net",
+    "vat_amount",
+    "line_total",
+    "patient_share",
+    "insurance_share",
+    "insurance_vat",
+)
+
+
 @dataclass
 class Collected:
-    invoice: Invoice
+    invoice: Invoice | None
     receipt: Receipt | None
 
 
-def collect(
-    db: Session, po: PaymentOrder, payments: list[PaymentIn], note: str, p: Principal
-) -> Collected:
-    """Pay a payment order: issue the final invoice and the receipt in one transaction (SPEC 10.5)."""
-    patient = db.get(Patient, po.patient_id)
-    at = lock_cashbox(db, p.user.id)
-    paid = _check_payments(payments)
-    if paid > po.patient_share:
-        raise err("overpaid", due=f"{po.patient_share:.2f}")
-    lines = documents.lines_of(db, "payment_order", po.id)
-    clinic = get_clinic_info(db)
-    previous = _lock_chain(db)
-    snap = po.insurance or {}
+def order_remaining(po: PaymentOrder) -> Decimal:
+    return po.patient_share - po.paid_amount
+
+
+def _portion_amounts(db: Session, po: PaymentOrder, lines: list, amount: Decimal):
+    """Header and line amounts of the invoice for `amount` of the patient's share. The last part
+    takes exactly what is left of every column, so the invoices of one order add up to it."""
     ins_vat = sum((ln.insurance_vat for ln in lines), ZERO)
+    full = {
+        "gross": po.gross,
+        "discount": po.discount,
+        "net": po.net,
+        "vat": po.vat,
+        "total": po.total,
+        "insurance_share": po.insurance_share,
+        "insurance_vat": ins_vat,
+        "patient_share": po.patient_share,
+        "patient_vat": po.vat - ins_vat,
+    }
+    if amount >= order_remaining(po):  # the last part (or a bill the patient pays nothing of)
+        prev = db.execute(
+            select(*[func.coalesce(func.sum(getattr(Invoice, k)), 0) for k in _HEAD]).where(
+                Invoice.payment_order_id == po.id
+            )
+        ).one()
+        head = {k: full[k] - prev[n] for n, k in enumerate(_HEAD)}
+        done: dict[int, dict[str, Decimal]] = {}
+        for row in db.execute(
+            select(InvoiceLine.seq, *[func.sum(getattr(InvoiceLine, k)) for k in _LINE_SUM])
+            .join(Invoice, Invoice.id == InvoiceLine.invoice_id)
+            .where(Invoice.payment_order_id == po.id)
+            .group_by(InvoiceLine.seq)
+        ):
+            done[row[0]] = dict(zip(_LINE_SUM, row[1:], strict=True))
+        out = [
+            {k: getattr(ln, k) - done.get(ln.seq, {}).get(k, ZERO) for k in _LINE_SUM}
+            for ln in lines
+        ]
+        return head, out, amount / po.patient_share if po.patient_share > 0 else Decimal(1)
+    f = amount / po.patient_share
+    head = {"patient_share": amount, "insurance_share": money(full["insurance_share"] * f)}
+    head["total"] = head["patient_share"] + head["insurance_share"]
+    head["vat"] = money(full["vat"] * f)
+    head["net"] = head["total"] - head["vat"]
+    head["discount"] = money(full["discount"] * f)
+    head["gross"] = head["net"] + head["discount"]
+    head["insurance_vat"] = money(full["insurance_vat"] * f)
+    head["patient_vat"] = head["vat"] - head["insurance_vat"]
+    split = {
+        "net": _allocate(head["net"], [ln.net for ln in lines]),
+        "vat_amount": _allocate(head["vat"], [ln.vat_amount for ln in lines]),
+        "discount": _allocate(head["discount"], [ln.discount for ln in lines]),
+        "insurance_share": _allocate(head["insurance_share"], [ln.insurance_share for ln in lines]),
+        "insurance_vat": _allocate(head["insurance_vat"], [ln.insurance_vat for ln in lines]),
+    }
+    out = []
+    for n in range(len(lines)):
+        row = {k: v[n] for k, v in split.items()}
+        row["gross"] = row["net"] + row["discount"]
+        row["line_total"] = row["net"] + row["vat_amount"]
+        row["patient_share"] = row["line_total"] - row["insurance_share"]
+        out.append(row)
+    return head, out, f
+
+
+def _issue_invoice(
+    db: Session, po: PaymentOrder, amount: Decimal, at: datetime, p: Principal, previous: str
+) -> Invoice:
+    """The invoice for `amount` of this order's patient share (all of it on the last part)."""
+    patient = db.get(Patient, po.patient_id)
+    lines = documents.lines_of(db, "payment_order", po.id)
+    head, line_amounts, portion = _portion_amounts(db, po, lines, amount)
+    clinic = get_clinic_info(db)
+    snap = po.insurance or {}
     inv = Invoice(
         invoice_no=numbering.allocate(db, "invoice"),
         payment_order_id=po.id,
+        portion=min(Decimal(1), portion).quantize(Decimal("0.000001")),
+        corrects_invoice_id=po.corrects_invoice_id,
         patient_id=po.patient_id,
         doctor_id=po.doctor_id,
         clinic_id=po.clinic_id,
@@ -244,18 +345,10 @@ def collect(
         seller_vat_no=clinic.vat_number,
         seller_cr_no=clinic.cr_number,
         seller_address_ar=clinic.address_ar,
-        gross=po.gross,
-        discount=po.discount,
-        net=po.net,
-        vat=po.vat,
-        total=po.total,
-        insurance_share=po.insurance_share,
-        insurance_vat=ins_vat,
-        patient_share=po.patient_share,
-        patient_vat=po.vat - ins_vat,
         previous_hash=previous,
         hash="",
         qr_payload="",
+        **head,
     )
     inv.hash = _hash(
         {
@@ -265,44 +358,45 @@ def collect(
             "buyer": [inv.buyer_name_ar, inv.buyer_national_id],
             "total": f"{inv.total:.2f}",
             "vat": f"{inv.vat:.2f}",
-            "lines": [[ln.seq, f"{ln.net:.2f}", f"{ln.vat_amount:.2f}"] for ln in lines],
+            "portion": f"{inv.portion}",
+            "lines": [
+                [ln.seq, f"{a['net']:.2f}", f"{a['vat_amount']:.2f}"]
+                for ln, a in zip(lines, line_amounts, strict=True)
+            ],
         },
         previous,
     )
     inv.qr_payload = zatca_qr(clinic.name_ar, clinic.vat_number, at, inv.total, inv.vat)
     db.add(inv)
     db.flush()
-    for ln in lines:
-        db.add(
-            InvoiceLine(
-                invoice_id=inv.id,
-                **{
-                    k: getattr(ln, k)
-                    for k in (
-                        "seq",
-                        "service_id",
-                        "description_ar",
-                        "description_en",
-                        "price",
-                        "qty",
-                        "discount_amount",
-                        "discount_pct",
-                        "gross",
-                        "discount",
-                        "net",
-                        "vat_rate",
-                        "vat_amount",
-                        "line_total",
-                        "patient_share",
-                        "insurance_share",
-                        "insurance_vat",
-                        "teeth",
-                        "price_overridden",
-                    )
-                },
-            )
-        )
-    receipt = None
+    for ln, a in zip(lines, line_amounts, strict=True):
+        db.add(InvoiceLine(invoice_id=inv.id, **{k: getattr(ln, k) for k in _LINE_COPY}, **a))
+    po.paid_amount += amount
+    po.status = "paid" if po.paid_amount >= po.patient_share else "part_paid"
+    if po.installment_id:
+        inst = db.get(PlanInstallment, po.installment_id)
+        inst.paid_amount = min(inst.amount, inst.paid_amount + inv.net)
+    return inv
+
+
+def collect(
+    db: Session, po: PaymentOrder, payments: list[PaymentIn], note: str, p: Principal
+) -> Collected:
+    """Take a payment on a payment order. The first time, the whole bill becomes the patient's
+    debt; each payment then issues an invoice and a receipt for what was paid (SPEC 10.5)."""
+    at = lock_cashbox(db, p.user.id)
+    paid = _check_payments(payments)
+    remaining = order_remaining(po)
+    if paid > remaining:
+        raise err("overpaid", due=f"{remaining:.2f}")
+    if po.status == "sent":
+        po.billed_at = at
+        adjust_patient(db, po.patient_id, balance=po.patient_share)
+        if paid == 0 and remaining > 0:
+            po.status = "part_paid"  # nothing paid now: all of it is owed
+    inv = receipt = None
+    if paid > 0 or remaining == 0:
+        inv = _issue_invoice(db, po, paid, at, p, _lock_chain(db))
     if paid > 0:
         receipt = _receipt(
             db,
@@ -311,23 +405,50 @@ def collect(
             "installment" if po.installment_id else "payment",
             po.patient_id,
             payments,
-            _vat_part(paid, inv.patient_vat, inv.patient_share),
+            inv.patient_vat,
             invoice_id=inv.id,
             plan_id=po.plan_id,
             note=note,
         )
         db.add(ReceiptAllocation(receipt_id=receipt.id, invoice_id=inv.id, amount=paid))
     used = sum((x.amount for x in payments if x.method == "deposit"), ZERO)
-    adjust_patient(db, po.patient_id, balance=inv.patient_share - paid, deposit=-used)
-    if po.installment_id:
-        inst = db.get(PlanInstallment, po.installment_id)
-        inst.paid_amount = min(inst.amount, inst.paid_amount + sum((ln.net for ln in lines), ZERO))
-    po.status = "paid"
+    adjust_patient(db, po.patient_id, balance=-paid, deposit=-used)
     po.updated_by = p.user.id
     return Collected(inv, receipt)
 
 
-# ---------------------------------------------------------------- later payments, deposits
+def close_order(db: Session, po: PaymentOrder, reason: str, p: Principal) -> Decimal:
+    """Write off what is left on a part-paid bill (no invoice for it). Returns the amount."""
+    if po.status != "part_paid":
+        raise err("document_closed", status.HTTP_409_CONFLICT, status=po.status)
+    at = lock_cashbox(db, p.user.id)
+    left = order_remaining(po)
+    adjust_patient(db, po.patient_id, balance=-left)
+    po.status = "closed"
+    po.closed_at = at
+    po.closed_reason = reason.strip()
+    po.updated_by = p.user.id
+    return left
+
+
+def owed_items(db: Session, patient_id: int) -> list[tuple[datetime, str, object, Decimal]]:
+    """What the patient owes, oldest first: part-paid bills, and invoices from before 2026-11-18
+    that were issued in full and are not fully paid."""
+    items: list[tuple[datetime, str, object, Decimal]] = []
+    inv_ids = list(db.scalars(select(Invoice.id).where(Invoice.patient_id == patient_id)))
+    owed = {i: o for i, o in outstanding(db, inv_ids).items() if o > 0}
+    for inv in db.scalars(select(Invoice).where(Invoice.id.in_(owed))):
+        items.append((inv.issued_at, "invoice", inv, owed[inv.id]))
+    for po in db.scalars(
+        select(PaymentOrder).where(
+            PaymentOrder.patient_id == patient_id, PaymentOrder.status == "part_paid"
+        )
+    ):
+        items.append((po.sent_at or po.created_at, "order", po, order_remaining(po)))
+    items.sort(key=lambda x: (x[0], x[2].id))
+    return items
+
+
 def pay_balance(
     db: Session,
     patient: Patient,
@@ -335,34 +456,40 @@ def pay_balance(
     invoice_ids: list[int] | None,
     note: str,
     p: Principal,
+    order_ids: list[int] | None = None,
 ) -> Receipt:
-    """Pay what the patient owes, oldest invoice first (or only the chosen invoices)."""
+    """Pay what the patient owes, oldest first (or only the chosen bills / old invoices). Paying a
+    bill issues its invoice for the part paid."""
     at = lock_cashbox(db, p.user.id)
     amount = _check_payments(payments)
-    q = (
-        select(Invoice.id)
-        .where(Invoice.patient_id == patient.id)
-        .order_by(Invoice.issued_at, Invoice.id)
-    )
-    if invoice_ids:
-        q = q.where(Invoice.id.in_(invoice_ids))
-    ids = list(db.scalars(q))
-    if invoice_ids and len(ids) != len(set(invoice_ids)):
-        raise err("unknown_invoice")
-    owed = {i: o for i, o in outstanding(db, ids).items() if o > 0}
-    total_owed = sum(owed.values(), ZERO)
+    items = owed_items(db, patient.id)
+    if invoice_ids or order_ids:
+        chosen = [
+            it
+            for it in items
+            if (it[1] == "invoice" and it[2].id in (invoice_ids or []))
+            or (it[1] == "order" and it[2].id in (order_ids or []))
+        ]
+        if len(chosen) != len(set(invoice_ids or [])) + len(set(order_ids or [])):
+            raise err("unknown_invoice")
+        items = chosen
+    total_owed = sum((it[3] for it in items), ZERO)
     if amount > total_owed:
         raise err("overpaid", due=f"{total_owed:.2f}")
-    left, allocs = amount, []
-    for i in ids:
-        if i in owed and left > 0:
-            part = min(left, owed[i])
-            allocs.append((i, part))
-            left -= part
-    invs = {
-        i.id: i for i in db.scalars(select(Invoice).where(Invoice.id.in_([a[0] for a in allocs])))
-    }
-    vat = sum((_vat_part(a, invs[i].patient_vat, invs[i].patient_share) for i, a in allocs), ZERO)
+    left, allocs, previous = amount, [], None
+    for _, kind, doc, owed in items:
+        if left <= 0:
+            break
+        part = min(left, owed)
+        left -= part
+        if kind == "invoice":
+            allocs.append((doc.id, part, _vat_part(part, doc.patient_vat, doc.patient_share)))
+        else:
+            previous = previous or _lock_chain(db)
+            inv = _issue_invoice(db, doc, part, at, p, previous)
+            previous = inv.hash
+            doc.updated_by = p.user.id
+            allocs.append((inv.id, part, inv.patient_vat))
     r = _receipt(
         db,
         p,
@@ -370,11 +497,11 @@ def pay_balance(
         "payment",
         patient.id,
         payments,
-        vat,
+        sum((a[2] for a in allocs), ZERO),
         invoice_id=allocs[0][0] if len(allocs) == 1 else None,
         note=note,
     )
-    for i, a in allocs:
+    for i, a, _ in allocs:
         db.add(ReceiptAllocation(receipt_id=r.id, invoice_id=i, amount=a))
     used = sum((x.amount for x in payments if x.method == "deposit"), ZERO)
     adjust_patient(db, patient.id, balance=-amount, deposit=-used)

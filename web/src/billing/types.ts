@@ -84,6 +84,11 @@ export interface BillingDoc extends Totals {
   sent_by_name?: string | null;
   invoice_id?: number | null;
   invoice_no?: string | null;
+  paid_amount?: string;
+  remaining?: string;
+  closed_reason?: string;
+  corrects_invoice_id?: number | null;
+  invoices?: { id: number; invoice_no: string; patient_share: string; issued_at: string }[];
 }
 
 export interface EditLine {

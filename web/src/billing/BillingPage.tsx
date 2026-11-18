@@ -18,7 +18,7 @@ import { CashBoxTab } from './CashBoxTab';
 import { CollectModal } from './CollectModal';
 import type { BillingDoc, DocKind } from './types';
 
-export const STATUS_COLOR: Record<string, string> = { draft: 'neutral', sent: 'blue', accepted: 'green', converted: 'teal', paid: 'green', expired: 'orange', cancelled: 'red' };
+export const STATUS_COLOR: Record<string, string> = { draft: 'neutral', sent: 'blue', accepted: 'green', converted: 'teal', paid: 'green', part_paid: 'yellow', closed: 'grape', expired: 'orange', cancelled: 'red' };
 
 /** Billing (SPEC 10.5): payment orders waiting at reception, quotations, payment orders. */
 export function BillingPage() {
@@ -92,13 +92,13 @@ export function DocList({ kind, query, inbox, patientId }: { kind: DocKind; quer
   const doctors = useDoctors({ includeInactive: true });
   const { can } = useAuth();
   const [collecting, setCollecting] = useState<BillingDoc | null>(null);
-  const canCollect = inbox && can('payment.collect');
   const path = kind === 'quotation' ? '/quotations' : '/payment-orders';
   const q = useQuery({
     queryKey: ['billing', 'list', kind, query, patientId],
     queryFn: () => api<BillingDoc[]>(path, { query: { ...query, patient_id: patientId } }),
     refetchInterval: inbox ? 15_000 : false,
   });
+  const canCollect = can('payment.collect') && (inbox || !!q.data?.some((d) => d.status === 'part_paid'));
   if (q.isPending) return <Skeleton height={200} />;
   if (q.isError) return <Alert color="red">{errorMessage(t, q.error, lang)}</Alert>;
   if (!q.data.length)
@@ -157,6 +157,7 @@ export function DocList({ kind, query, inbox, patientId }: { kind: DocKind; quer
                 <Table.Td>{inbox ? <Text size="sm">{d.reception_note || '—'}</Text> : <Badge color={STATUS_COLOR[d.status]}>{t(`billing.status.${d.status}`)}</Badge>}</Table.Td>
                 {canCollect && (
                   <Table.Td ta="end">
+                    {(inbox || d.status === 'part_paid') && (
                     <Button
                       size="xs"
                       leftSection={<IconCash size={14} />}
@@ -168,6 +169,7 @@ export function DocList({ kind, query, inbox, patientId }: { kind: DocKind; quer
                     >
                       {t('ledger.collect')}
                     </Button>
+                    )}
                   </Table.Td>
                 )}
               </Table.Tr>
