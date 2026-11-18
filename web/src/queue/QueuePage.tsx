@@ -82,10 +82,10 @@ export function QueuePage() {
           />
           <Select
             placeholder={t('appointments.allDoctors')}
-            data={(doctors.data ?? []).map((d) => ({ value: String(d.id), label: nameOf(d, lang) }))}
+            data={(doctors.data ?? []).filter((d) => can('appointment.view_all') || d.user_id === me?.id).map((d) => ({ value: String(d.id), label: nameOf(d, lang) }))}
             value={effectiveDoctor}
             onChange={setDoctorFilter}
-            clearable
+            clearable={can('appointment.view_all')}
             w={220}
             data-testid="queue-doctor"
           />

@@ -36,13 +36,12 @@ export const NAV_ITEMS: NavItem[] = [
     key: 'reports',
     path: '/reports',
     icon: IconChartBar,
-    anyOf: ['report.revenue', 'report.financial', 'report.clinical', 'report.operational'],
+    anyOf: ['report.revenue', 'report.financial', 'report.clinical', 'report.operational', 'report.own'],
   },
   {
     key: 'settings',
     path: '/settings',
-    icon: IconSettings,
-    anyOf: ['user.manage', 'role.manage', 'settings.manage', 'audit.view'],
+    icon: IconSettings, // everyone: Appearance is per user; the other sections follow permissions
   },
 ];
 

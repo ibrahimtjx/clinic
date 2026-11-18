@@ -4,6 +4,16 @@ import '@fontsource/ibm-plex-sans-arabic/600.css';
 import '@fontsource/ibm-plex-sans/400.css';
 import '@fontsource/ibm-plex-sans/500.css';
 import '@fontsource/ibm-plex-sans/600.css';
+// Other fonts for Settings → Appearance; the browser downloads one only when it is chosen.
+import '@fontsource/tajawal/400.css';
+import '@fontsource/tajawal/500.css';
+import '@fontsource/tajawal/700.css';
+import '@fontsource/cairo/400.css';
+import '@fontsource/cairo/500.css';
+import '@fontsource/cairo/600.css';
+import '@fontsource/noto-naskh-arabic/400.css';
+import '@fontsource/noto-naskh-arabic/500.css';
+import '@fontsource/noto-naskh-arabic/600.css';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/spotlight/styles.css';
@@ -13,12 +23,12 @@ import { DirectionProvider, MantineProvider, localStorageColorSchemeManager } fr
 import { useLocalStorage } from '@mantine/hooks';
 import { Notifications } from '@mantine/notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 
 import i18n, { dirOf, type Lang } from '../i18n';
 import { PreferencesProvider } from './preferences';
-import { buildTheme, cssVariablesResolver } from './theme';
+import { buildTheme, cssVariablesResolver, type FontKey } from './theme';
 
 const colorSchemeManager = localStorageColorSchemeManager({ key: 'clinic.color-scheme' });
 
@@ -30,7 +40,13 @@ export function makeQueryClient() {
 
 export function Providers({ children, queryClient }: { children: ReactNode; queryClient?: QueryClient }) {
   const [lang, setLang] = useLocalStorage<Lang>({ key: 'clinic.lang', defaultValue: 'ar', getInitialValueInEffect: false });
-  const theme = useMemo(() => buildTheme(lang), [lang]);
+  const [font, setFont] = useLocalStorage<FontKey>({ key: 'clinic.font', defaultValue: 'plex', getInitialValueInEffect: false });
+  const [fontScale, setFontScale] = useLocalStorage<number>({ key: 'clinic.font-scale', defaultValue: 100, getInitialValueInEffect: false });
+  const theme = useMemo(() => buildTheme(lang, font), [lang, font]);
+  // Every size in the app is in rem, so the root size scales all text and spacing together.
+  useEffect(() => {
+    document.documentElement.style.fontSize = fontScale === 100 ? '' : `${fontScale}%`;
+  }, [fontScale]);
   const client = useMemo(() => queryClient ?? makeQueryClient(), [queryClient]);
   const dir = dirOf(lang);
   // In-memory resources make this synchronous, so the first paint is already in the right language.
@@ -47,7 +63,7 @@ export function Providers({ children, queryClient }: { children: ReactNode; quer
             defaultColorScheme="light"
           >
             <Notifications position={dir === 'rtl' ? 'top-left' : 'top-right'} />
-            <PreferencesProvider lang={lang} setLang={setLang}>
+            <PreferencesProvider lang={lang} setLang={setLang} font={font} setFont={setFont} fontScale={fontScale} setFontScale={setFontScale}>
               {children}
             </PreferencesProvider>
           </MantineProvider>

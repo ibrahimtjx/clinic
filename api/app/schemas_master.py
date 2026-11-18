@@ -158,6 +158,25 @@ class VisitTypeOut(_Out):
     color: str
 
 
+# ---- referral sources ----
+class ReferralSourceIn(_Base):
+    name_ar: Name
+    name_en: Name
+    is_active: bool = True
+
+
+class ReferralSourcePatch(_Base):
+    version: int
+    name_ar: Name | None = None
+    name_en: Name | None = None
+    is_active: bool | None = None
+
+
+class ReferralSourceOut(_Out):
+    name_ar: str
+    name_en: str
+
+
 # ---- saved phrases ----
 class PhraseIn(_Base):
     field_key: PhraseField

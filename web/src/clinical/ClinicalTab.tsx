@@ -19,9 +19,11 @@ import {
   Textarea,
   TextInput,
 } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
 import { IconFlask, IconPencil, IconPill, IconPlus, IconPrinter, IconReportMedical, IconTrash, IconX } from '@tabler/icons-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -36,7 +38,7 @@ import { nameOf, useDoctors } from '../master/queries';
 import type { Patient } from '../patients/types';
 import type { LabRequest, LabTest, MedicalReport, Medication, Prescription, RxItem } from './types';
 
-type Section = 'prescriptions' | 'lab' | 'reports';
+type Section = 'prescriptions' | 'lab' | 'reports' | 'sickLeave';
 const STATUS_COLOR = { active: 'blue', resulted: 'green', cancelled: 'red' } as const;
 
 /** Prescriptions, lab requests and results, medical reports (SPEC 8.6). */
@@ -52,6 +54,7 @@ export function ClinicalTab({ patient }: { patient: Patient }) {
           { value: 'prescriptions', label: t('clinical.prescriptions') },
           { value: 'lab', label: t('clinical.lab') },
           { value: 'reports', label: t('clinical.reports') },
+          { value: 'sickLeave', label: t('clinical.sickLeave') },
         ]}
         w="fit-content"
       />
@@ -63,6 +66,7 @@ export function ClinicalTab({ patient }: { patient: Patient }) {
       {section === 'prescriptions' && <Prescriptions patient={patient} />}
       {section === 'lab' && <LabRequests patient={patient} />}
       {section === 'reports' && <Reports patient={patient} />}
+      {section === 'sickLeave' && <Reports patient={patient} sickLeave />}
     </Stack>
   );
 }
@@ -488,6 +492,10 @@ function template(kind: MedicalReport['kind'], language: 'ar' | 'en', patient: P
   const today = formatDate(new Date(), language, digits);
   const name = language === 'ar' ? patient.name_ar : patient.name_en || patient.name_ar;
   void lang;
+  if (kind === 'sick_leave')
+    return language === 'ar'
+      ? `بعد الكشف على المريض/ة ${name} (رقم الملف ${patient.file_no})، يحتاج/تحتاج إلى راحة وعدم مزاولة العمل أو الدراسة خلال مدة الإجازة.\n\nالتشخيص: `
+      : `After examining ${name} (file no. ${patient.file_no}), the patient needs rest and should not work or study during the leave.\n\nDiagnosis: `;
   if (language === 'ar') {
     if (kind === 'attendance') return `نفيد بأن المريض/ة ${name} (رقم الملف ${patient.file_no}) راجع/ت العيادة بتاريخ ${today}.\n\nأعطي هذا الإشعار بناءً على طلبه/ا دون أدنى مسؤولية على العيادة.`;
     if (kind === 'referral') return `نحيل إليكم المريض/ة ${name} (رقم الملف ${patient.file_no}) للتكرم بالفحص والعلاج اللازم.\n\nالتشخيص المبدئي: \nالعلاج المقدم: \n\nمع وافر الشكر والتقدير.`;
@@ -498,9 +506,9 @@ function template(kind: MedicalReport['kind'], language: 'ar' | 'en', patient: P
   return `Medical report for ${name} (file no. ${patient.file_no}).\n\nComplaint: \nExamination: \nDiagnosis: \nTreatment: \nRecommendations: `;
 }
 
-function Reports({ patient }: { patient: Patient }) {
+function Reports({ patient, sickLeave = false }: { patient: Patient; sickLeave?: boolean }) {
   const { t } = useTranslation();
-  const { lang } = usePrefs();
+  const { lang, digits } = usePrefs();
   const { can } = useAuth();
   const key = ['clinical', 'reports', patient.id];
   const q = useQuery({ queryKey: key, queryFn: () => api<MedicalReport[]>(`/patients/${patient.id}/medical-reports`), gcTime: 0 });
@@ -508,49 +516,60 @@ function Reports({ patient }: { patient: Patient }) {
   const [cancelling, setCancelling] = useState<MedicalReport | null>(null);
   if (q.isPending) return <Skeleton height={160} />;
   if (q.isError) return <Alert color="red">{errorMessage(t, q.error, lang)}</Alert>;
+  const rows = q.data.filter((r) => (r.kind === 'sick_leave') === sickLeave);
   return (
     <Stack>
       {can('dental.edit') && (
         <Group>
-          <Button leftSection={<IconReportMedical size={16} />} onClick={() => setEditing('new')} data-testid="new-report">
-            {t('clinical.newReport')}
+          <Button leftSection={<IconReportMedical size={16} />} onClick={() => setEditing('new')} data-testid={sickLeave ? 'new-sick-leave' : 'new-report'}>
+            {sickLeave ? t('clinical.newSickLeave') : t('clinical.newReport')}
           </Button>
         </Group>
       )}
-      {q.data.length === 0 && (
+      {rows.length === 0 && (
         <Card>
-          <EmptyState icon={IconReportMedical} title={t('clinical.noReports')} hint="" />
+          <EmptyState icon={IconReportMedical} title={sickLeave ? t('clinical.noSickLeave') : t('clinical.noReports')} hint="" />
         </Card>
       )}
-      {q.data.map((r) => (
+      {rows.map((r) => (
         <Card key={r.id} withBorder opacity={r.status === 'cancelled' ? 0.6 : 1} data-testid={`report-${r.id}`}>
           <DocHeader doc={r} onPrint={() => void printDoc(`/print/medical-report/${r.id}`)} onEdit={() => setEditing(r)} onCancel={can('dental.edit') ? () => setCancelling(r) : undefined} extra={<Badge variant="outline">{t(`clinical.reportKinds.${r.kind}`)}</Badge>} />
           <Text size="sm" fw={500} mt={4}>
             {r.title}
             {r.recipient ? ` · ${r.recipient}` : ''}
           </Text>
+          {r.kind === 'sick_leave' && r.leave_from && r.leave_to && (
+            <Text size="sm" fw={600} data-testid={`leave-${r.id}`}>
+              {t('clinical.leaveRange', { from: formatDate(r.leave_from, lang, digits), to: formatDate(r.leave_to, lang, digits), count: r.leave_days ?? 0 })}
+            </Text>
+          )}
           <Text size="sm" c="dimmed" lineClamp={2} dir={r.language === 'ar' ? 'rtl' : 'ltr'} style={{ whiteSpace: 'pre-wrap' }}>
             {r.body}
           </Text>
         </Card>
       ))}
-      {editing && <ReportDrawer patient={patient} report={editing === 'new' ? null : editing} onClose={() => setEditing(null)} invalidate={key} />}
+      {editing && <ReportDrawer patient={patient} report={editing === 'new' ? null : editing} onClose={() => setEditing(null)} invalidate={key} sickLeave={sickLeave} />}
       <CancelModal path={cancelling ? `/medical-reports/${cancelling.id}` : null} version={cancelling?.version ?? 0} onClose={() => setCancelling(null)} invalidate={key} />
     </Stack>
   );
 }
 
-function ReportDrawer({ patient, report, onClose, invalidate }: { patient: Patient; report: MedicalReport | null; onClose: () => void; invalidate: unknown[] }) {
+function ReportDrawer({ patient, report, onClose, invalidate, sickLeave = false }: { patient: Patient; report: MedicalReport | null; onClose: () => void; invalidate: unknown[]; sickLeave?: boolean }) {
   const { t } = useTranslation();
   const { lang, digits } = usePrefs();
   const qc = useQueryClient();
   const { defaultId } = useMyDoctor(patient);
   const [doctorId, setDoctorId] = useState<number | null>(report?.doctor_id ?? defaultId);
-  const [kind, setKind] = useState<MedicalReport['kind']>(report?.kind ?? 'report');
+  const [kind, setKind] = useState<MedicalReport['kind']>(report?.kind ?? (sickLeave ? 'sick_leave' : 'report'));
+  const [leave, setLeave] = useState<[Date | null, Date | null]>([
+    report?.leave_from ? dayjs(report.leave_from).toDate() : new Date(),
+    report?.leave_to ? dayjs(report.leave_to).toDate() : new Date(),
+  ]);
+  const leaveDays = leave[0] && leave[1] ? dayjs(leave[1]).startOf('day').diff(dayjs(leave[0]).startOf('day'), 'day') + 1 : 0;
   const [language, setLanguage] = useState<'ar' | 'en'>(report?.language ?? 'ar');
   const [recipient, setRecipient] = useState(report?.recipient ?? (lang === 'ar' ? 'إلى من يهمه الأمر' : 'To whom it may concern'));
   const [title, setTitle] = useState(report?.title ?? '');
-  const [body, setBody] = useState(report?.body ?? template('report', 'ar', patient, lang, digits));
+  const [body, setBody] = useState(report?.body ?? template(sickLeave ? 'sick_leave' : 'report', 'ar', patient, lang, digits));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const retemplate = (k: MedicalReport['kind'], l: 'ar' | 'en') => {
@@ -562,7 +581,8 @@ function ReportDrawer({ patient, report, onClose, invalidate }: { patient: Patie
   const save = async () => {
     setBusy(true);
     setError(null);
-    const data = { kind, language, recipient, title: title || t(`clinical.reportKinds.${kind}`), body };
+    const leaveDates = kind === 'sick_leave' ? { leave_from: leave[0] ? dayjs(leave[0]).format('YYYY-MM-DD') : null, leave_to: leave[1] ? dayjs(leave[1]).format('YYYY-MM-DD') : null } : {};
+    const data = { kind, language, recipient, title: title || t(`clinical.reportKinds.${kind}`), body, ...leaveDates };
     try {
       if (report) await api(`/medical-reports/${report.id}`, { method: 'PATCH', body: { version: report.version, ...data } });
       else await api(`/patients/${patient.id}/medical-reports`, { method: 'POST', body: { ...data, doctor_id: doctorId } });
@@ -575,10 +595,29 @@ function ReportDrawer({ patient, report, onClose, invalidate }: { patient: Patie
     }
   };
   return (
-    <Drawer opened onClose={onClose} position="right" size="xl" title={report ? t('clinical.editReport') : t('clinical.newReport')}>
+    <Drawer opened onClose={onClose} position="right" size="xl" title={sickLeave ? t('clinical.newSickLeave') : report ? t('clinical.editReport') : t('clinical.newReport')}>
       <Stack data-testid="report-form">
         {!report && <DoctorSelect value={doctorId} onChange={setDoctorId} />}
+        {kind === 'sick_leave' && (
+          <Group align="flex-end">
+            <DatePickerInput
+              type="range"
+              label={t('clinical.leaveDates')}
+              value={leave}
+              onChange={setLeave}
+              valueFormat="DD/MM/YYYY"
+              allowSingleDateInRange
+              required
+              data-testid="leave-dates"
+              style={{ flex: 1 }}
+            />
+            <Badge size="lg" variant="light" data-testid="leave-days">
+              {t('clinical.leaveDays', { count: leaveDays })}
+            </Badge>
+          </Group>
+        )}
         <Group grow>
+          {kind !== 'sick_leave' && (
           <Select
             label={t('clinical.reportKind')}
             data={(['report', 'referral', 'attendance'] as const).map((k) => ({ value: k, label: t(`clinical.reportKinds.${k}`) }))}
@@ -590,6 +629,7 @@ function ReportDrawer({ patient, report, onClose, invalidate }: { patient: Patie
             }}
             allowDeselect={false}
           />
+          )}
           <Select
             label={t('clinical.language')}
             data={[
@@ -613,7 +653,7 @@ function ReportDrawer({ patient, report, onClose, invalidate }: { patient: Patie
           <Button variant="default" onClick={onClose}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={() => void save()} loading={busy} disabled={!doctorId || !body.trim()} data-testid="save-report">
+          <Button onClick={() => void save()} loading={busy} disabled={!doctorId || !body.trim() || (kind === 'sick_leave' && leaveDays < 1)} data-testid="save-report">
             {t('common.save')}
           </Button>
         </Group>

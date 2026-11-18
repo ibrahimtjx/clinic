@@ -36,7 +36,7 @@ const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
-  const { lang, setLang, digits, setDigits } = usePrefs();
+  const { lang, setLang, digits, setDigits, font, setFont, fontScale, setFontScale } = usePrefs();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [me, setMe] = useState<Me | null>(null);
@@ -51,8 +51,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (p.lang) setLang(p.lang);
       if (p.theme) setColorScheme(p.theme);
       if (p.digits) setDigits(p.digits);
+      if (p.font) setFont(p.font);
+      if (p.font_scale) setFontScale(p.font_scale);
     },
-    [setLang, setColorScheme, setDigits],
+    [setLang, setColorScheme, setDigits, setFont, setFontScale],
   );
 
   const refresh = useCallback((initial = false): Promise<string | null> => {
@@ -125,14 +127,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (status !== 'signedIn' || !me) return;
     const p = me.preferences;
     const theme = colorScheme === 'dark' ? 'dark' : 'light';
-    if (p.lang === lang && p.theme === theme && p.digits === digits) return;
+    if (p.lang === lang && p.theme === theme && p.digits === digits && (p.font ?? 'plex') === font && (p.font_scale ?? 100) === fontScale) return;
     const id = setTimeout(() => {
-      api<Me>('/auth/me/preferences', { method: 'PATCH', body: { lang, theme, digits } })
+      api<Me>('/auth/me/preferences', { method: 'PATCH', body: { lang, theme, digits, font, font_scale: fontScale } })
         .then(setMe)
         .catch(() => {});
     }, 400);
     return () => clearTimeout(id);
-  }, [status, me, lang, colorScheme, digits]);
+  }, [status, me, lang, colorScheme, digits, font, fontScale]);
 
   const login = useCallback(async (username: string, password: string) => {
     const t = await api<TokenOut>('/auth/login', { method: 'POST', body: { username, password }, auth: false });

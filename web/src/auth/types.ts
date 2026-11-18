@@ -9,7 +9,11 @@ export interface Preferences {
   lang: 'ar' | 'en' | null;
   theme: 'light' | 'dark' | null;
   digits: 'latn' | 'arab' | null;
+  font?: FontKey | null;
+  font_scale?: FontScale | null;
 }
+export type FontKey = 'plex' | 'tajawal' | 'cairo' | 'naskh';
+export type FontScale = 90 | 100 | 110 | 120 | 135;
 
 export interface SecuritySettings {
   auto_lock_minutes: number;

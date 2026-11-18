@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { InsuranceClass } from '../billing/types';
 import { api } from '../lib/api';
 import { NATIONAL_ID, SAUDI_MOBILE } from '../lib/format';
-import { nameOf, useDoctors } from '../master/queries';
+import { nameOf, useDoctors, useReferralSources } from '../master/queries';
 import { useInsuranceCompanies } from './queries';
 import type { Duplicate, Patient } from './types';
 
@@ -34,7 +34,7 @@ export interface PatientFormValues {
   sms_opt_out: boolean;
   chronic_diseases: string;
   allergies: string;
-  referral_source: string;
+  referral_source_id: string;
   notes: string;
   ins_company_id: string;
   ins_policy_no: string;
@@ -61,7 +61,7 @@ export const EMPTY_PATIENT: PatientFormValues = {
   sms_opt_out: false,
   chronic_diseases: '',
   allergies: '',
-  referral_source: '',
+  referral_source_id: '',
   notes: '',
   ins_company_id: '',
   ins_policy_no: '',
@@ -90,7 +90,7 @@ export function toForm(p: Patient): PatientFormValues {
     sms_opt_out: p.sms_opt_out,
     chronic_diseases: p.chronic_diseases,
     allergies: p.allergies,
-    referral_source: s(p.referral_source),
+    referral_source_id: s(p.referral_source_id),
     notes: p.notes,
     ins_company_id: s(p.insurance?.company_id),
     ins_policy_no: s(p.insurance?.policy_no),
@@ -125,7 +125,7 @@ export function toBody(v: PatientFormValues) {
     sms_opt_out: v.sms_opt_out,
     chronic_diseases: v.chronic_diseases.trim(),
     allergies: v.allergies.trim(),
-    referral_source: n(v.referral_source),
+    referral_source_id: v.referral_source_id ? Number(v.referral_source_id) : null,
     notes: v.notes.trim(),
     insurance: v.ins_company_id
       ? {
@@ -213,6 +213,7 @@ export function PatientFields({
   const { t } = useTranslation();
   const { lang } = usePrefs();
   const doctors = useDoctors();
+  const sources = useReferralSources();
   const companies = useInsuranceCompanies();
   const classes = useQuery({ queryKey: ['master', 'insurance-classes'], queryFn: () => api<InsuranceClass[]>('/insurance-classes') });
   const set = <K extends keyof PatientFormValues>(k: K, v: PatientFormValues[K]) => onChange({ ...value, [k]: v });
@@ -332,7 +333,16 @@ export function PatientFields({
             <Switch label={t('patients.fields.is_external')} description={t('patients.externalHint')} checked={value.is_external} onChange={(e) => set('is_external', e.currentTarget.checked)} />
             <Switch label={t('patients.fields.sms_opt_out')} checked={value.sms_opt_out} onChange={(e) => set('sms_opt_out', e.currentTarget.checked)} />
           </Group>
-          {text('referral_source')}
+          <Select
+            label={t('patients.fields.referral_source')}
+            description={t('patients.referralHint')}
+            data={(sources.data ?? []).map((r) => ({ value: String(r.id), label: nameOf(r, lang) }))}
+            value={value.referral_source_id || null}
+            onChange={(v) => set('referral_source_id', v ?? '')}
+            clearable
+            searchable
+            data-testid="referral-source"
+          />
           <Textarea label={t('patients.fields.notes')} value={value.notes} onChange={(e) => set('notes', e.currentTarget.value)} autosize minRows={2} />
         </>
       )}

@@ -22,6 +22,7 @@ FilterKey = Literal[
     "method",
     "company",
     "patient_required",
+    "doctor_required",
 ]
 
 

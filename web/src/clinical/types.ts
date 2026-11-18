@@ -89,9 +89,12 @@ export interface LabRequest extends DocBase {
 }
 
 export interface MedicalReport extends DocBase {
-  kind: 'report' | 'referral' | 'attendance';
+  kind: 'report' | 'referral' | 'attendance' | 'sick_leave';
   language: 'ar' | 'en';
   recipient: string;
   title: string;
   body: string;
+  leave_from: string | null;
+  leave_to: string | null;
+  leave_days: number | null;
 }

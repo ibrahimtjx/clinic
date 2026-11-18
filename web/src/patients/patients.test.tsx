@@ -22,7 +22,7 @@ const patient = (over: Partial<Patient> = {}): Patient => ({
   id: 7, file_no: 1007, secondary_file_no: null, name_ar: 'فاطمة علي الشمري', name_en: 'Fatimah Ali Alshammari',
   national_id: '1000000007', nationality: 'SA', gender: 'female', dob: '1990-01-15', mobile: '0551000007', phone: null,
   emergency_name: null, emergency_phone: null, default_doctor_id: null, is_external: false, sms_opt_out: false,
-  chronic_diseases: 'سكري', allergies: 'بنسلين', referral_source: null, notes: '', balance: '350.00', last_visit_at: null,
+  chronic_diseases: 'سكري', allergies: 'بنسلين', referral_source_id: null, notes: '', balance: '350.00', last_visit_at: null,
   created_at: '2026-11-01T10:00:00+03:00', created_by: 1, is_active: true, version: 3, updated_at: '', deleted_at: null,
   insurance: { company_id: 1, policy_no: 'P1', class_name: 'A', membership_no: '', expiry: null, company_name_ar: 'التعاونية', company_name_en: 'Tawuniya' },
   ...over,

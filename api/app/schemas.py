@@ -31,6 +31,9 @@ class Preferences(BaseModel):
     lang: Literal["ar", "en"] | None = None
     theme: Literal["light", "dark"] | None = None
     digits: Literal["latn", "arab"] | None = None
+    # Settings → Appearance: font family and text size (percent), per user.
+    font: Literal["plex", "tajawal", "cairo", "naskh"] | None = None
+    font_scale: Literal[90, 100, 110, 120, 135] | None = None
 
 
 class MeOut(BaseModel):

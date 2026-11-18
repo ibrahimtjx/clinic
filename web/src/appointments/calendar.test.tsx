@@ -38,7 +38,7 @@ describe('calendar day view', () => {
   it('shows a column per doctor with the booked card, and a click on an empty slot opens a prefilled drawer', async () => {
     localStorage.setItem('clinic.calendarView', JSON.stringify('day'));
     fakeApi({
-      me: makeMe({ permissions: ['appointment.view', 'appointment.create', 'appointment.edit', 'patient.view'] }),
+      me: makeMe({ permissions: ['appointment.view', 'appointment.view_all', 'appointment.create', 'appointment.edit', 'patient.view'] }),
       routes: {
         'GET /api/doctors': () => [200, [doctor(1, 'د. ريم'), doctor(2, 'د. عمر')]],
         'GET /api/appointment-statuses': () => [200, [{ id: 1, key: 'unconfirmed', name_ar: 'غير مؤكد', name_en: 'Unconfirmed', color: 'neutral', blocks_slot: true, is_system: true, is_active: true, sort_order: 10, version: 1, updated_at: '', deleted_at: null }]],

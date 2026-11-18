@@ -54,11 +54,17 @@ export type StatusKey = keyof typeof statusColors;
 /** Queue wait-time tokens (SPEC 7.1). */
 export const waitColors = { ok: 'green', warn: 'yellow', late: 'red' } as const;
 
-const FONT_AR = "'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif";
-const FONT_EN = "'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif";
+/** Fonts bundled with the app (no internet needed), chosen in Settings → Appearance. */
+export const FONTS = {
+  plex: { ar: "'IBM Plex Sans Arabic', 'IBM Plex Sans'", en: "'IBM Plex Sans', 'IBM Plex Sans Arabic'" },
+  tajawal: { ar: "'Tajawal', 'IBM Plex Sans'", en: "'IBM Plex Sans', 'Tajawal'" },
+  cairo: { ar: "'Cairo'", en: "'Cairo'" },
+  naskh: { ar: "'Noto Naskh Arabic', 'IBM Plex Sans'", en: "'IBM Plex Sans', 'Noto Naskh Arabic'" },
+} as const;
+export type FontKey = keyof typeof FONTS;
 
-export function buildTheme(lang: 'ar' | 'en'): MantineThemeOverride {
-  const fontFamily = lang === 'ar' ? FONT_AR : FONT_EN;
+export function buildTheme(lang: 'ar' | 'en', font: FontKey = 'plex'): MantineThemeOverride {
+  const fontFamily = `${(FONTS[font] ?? FONTS.plex)[lang]}, system-ui, sans-serif`;
   return createTheme({
     colors: { accent, neutral },
     primaryColor: 'accent',

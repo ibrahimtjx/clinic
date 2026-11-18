@@ -8,12 +8,21 @@ importers:
 
   .:
     dependencies:
+      '@fontsource/cairo':
+        specifier: 5.2.6
+        version: 5.2.6
       '@fontsource/ibm-plex-sans':
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource/ibm-plex-sans-arabic':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/noto-naskh-arabic':
+        specifier: 5.2.6
+        version: 5.2.6
+      '@fontsource/tajawal':
+        specifier: 5.2.6
+        version: 5.2.6
       '@hookform/resolvers':
         specifier: ^7.0.6
         version: 7.0.6(@standard-schema/spec@1.1.0)(react-hook-form@7.92.0(@types/react@18.3.31)(react@18.3.1))(zod@4.6.7)
@@ -393,11 +402,20 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
+  '@fontsource/cairo@5.2.6':
+    resolution: {integrity: sha512-hD9nzwA4NpqPdkyhGHoZ00Jh4VPaLMVJ6G/zUhBRrjAoxJ6ILt2WgQKS74jBT9JcyTyOaihkIMqW2R0M+Dmeig==}
+
   '@fontsource/ibm-plex-sans-arabic@5.3.0':
     resolution: {integrity: sha512-ZZ4g+JDgQY0NqSh4o0MNWU1sHQmtcee1g++aKAwyJvZxnT5y51JXsN1cIXnaQaMd40dcbK6QFYa+Z1LbaiNuqA==}
 
   '@fontsource/ibm-plex-sans@5.3.0':
     resolution: {integrity: sha512-CbE4CbbEEZJX860XyUiRpsksXIQR8Rp2XDva2VO53NJox9tVNtusrysd2x5YkUEY3ErQ66W1IiiQL8/wihhw5w==}
+
+  '@fontsource/noto-naskh-arabic@5.2.6':
+    resolution: {integrity: sha512-bNaSGnougmVDEi0ssMLKMQEAlvdxjP6Y5PLeP3rypGIuPgpHjPOyhiVrkDZrmXkTEcSTf7Ht3ihqeZ7hInwZAw==}
+
+  '@fontsource/tajawal@5.2.6':
+    resolution: {integrity: sha512-Wxml4z3f7wr7xNVMXwGIc2aJpyUOwJxkxX9lTJHh3eDPZVaLa/MkOz+HMUt3VWMah/xq0Xmn5pVhSbdYTb9R2A==}
 
   '@hookform/resolvers@7.0.6':
     resolution: {integrity: sha512-LSTMwW4tmRWtM7pS5HkSqahi71USbhrmjc9pNHNa7UyYTbKIK/e0G1EAw6xsEnp9GahTjXhunxRJp0Bd8E6NZA==}
@@ -1821,9 +1839,15 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
+  '@fontsource/cairo@5.2.6': {}
+
   '@fontsource/ibm-plex-sans-arabic@5.3.0': {}
 
   '@fontsource/ibm-plex-sans@5.3.0': {}
+
+  '@fontsource/noto-naskh-arabic@5.2.6': {}
+
+  '@fontsource/tajawal@5.2.6': {}
 
   '@hookform/resolvers@7.0.6(@standard-schema/spec@1.1.0)(react-hook-form@7.92.0(@types/react@18.3.31)(react@18.3.1))(zod@4.6.7)':
     dependencies:

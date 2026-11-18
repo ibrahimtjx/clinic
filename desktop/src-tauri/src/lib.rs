@@ -23,6 +23,7 @@ const SERVER_COMMANDS: &[&str] = &[
     "allow-print-ready",
     "allow-save-pdf",
     "allow-check-update",
+    "allow-open-whatsapp",
 ];
 
 #[derive(Serialize)]
@@ -152,6 +153,27 @@ async fn print_url(app: AppHandle, url: String, kind: String) -> Result<(), Stri
     printing::run(&app, &url, printing::Mode::Print { printer }).await
 }
 
+/// Open a WhatsApp chat (wa.me link with the reminder text) in WhatsApp or the default browser.
+/// Only wa.me links: the clinic page cannot use this to start other programs.
+#[tauri::command]
+fn open_whatsapp(url: String) -> Result<(), String> {
+    // The page sends wa.me/<number>?text=<percent-encoded text>: nothing else gets through.
+    let ok = url.starts_with("https://wa.me/")
+        && url
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "%/:._?=-+".contains(c));
+    if !ok {
+        return Err("not a wa.me link".into());
+    }
+    #[cfg(windows)]
+    let mut cmd = std::process::Command::new("explorer");
+    #[cfg(target_os = "macos")]
+    let mut cmd = std::process::Command::new("open");
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut cmd = std::process::Command::new("xdg-open");
+    cmd.arg(&url).spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn print_ready(window: WebviewWindow, job: String) -> Result<(), String> {
     printing::ready(&window, &job)
@@ -230,7 +252,8 @@ pub fn run() {
             print_url,
             print_ready,
             save_pdf,
-            check_update
+            check_update,
+            open_whatsapp
         ])
         .setup(|app| {
             let handle = app.handle().clone();

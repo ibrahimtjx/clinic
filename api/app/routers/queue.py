@@ -19,6 +19,7 @@ from app.models import (
     QueueEntry,
     User,
 )
+from app.routers.appointments import visible_doctor_ids
 from app.services.scheduling import local
 from app.services.settings import QUEUE_KEY, QueueSettings, get_queue_settings, save_setting
 
@@ -201,11 +202,14 @@ def _get(db: Session, entry_id: int) -> QueueEntry:
 
 @router.get("", response_model=list[QueueOut])
 def board(
-    db: DbSession, _: Principal = Viewer, day: date | None = None, doctor_id: int | None = None
+    db: DbSession, p: Principal = Viewer, day: date | None = None, doctor_id: int | None = None
 ) -> list[QueueOut]:
     now = _now(db)
     d = day or local(now).date()
     q = select(QueueEntry).where(QueueEntry.day == d)
+    own = visible_doctor_ids(db, p)
+    if own is not None:
+        q = q.where(QueueEntry.doctor_id.in_(own))
     if doctor_id:
         q = q.where(QueueEntry.doctor_id == doctor_id)
     # Postponed patients go to the back of the waiting line.
@@ -216,7 +220,7 @@ def board(
 @router.get("/report", response_model=QueueReport)
 def report(
     db: DbSession,
-    _: Principal = Viewer,
+    p: Principal = Viewer,
     from_day: date = Query(alias="from"),
     to_day: date = Query(alias="to"),
     doctor_id: int | None = None,
@@ -227,6 +231,9 @@ def report(
     if (to_day - from_day).days > 366:
         raise _err("range_too_long", status.HTTP_422_UNPROCESSABLE_CONTENT)
     q = select(QueueEntry).where(QueueEntry.day >= from_day, QueueEntry.day <= to_day)
+    own = visible_doctor_ids(db, p)
+    if own is not None:
+        q = q.where(QueueEntry.doctor_id.in_(own))
     if doctor_id:
         q = q.where(QueueEntry.doctor_id == doctor_id)
     if clinic_id:

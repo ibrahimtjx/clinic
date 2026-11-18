@@ -6,7 +6,16 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Appointment, AppointmentStatus, Doctor, Patient, QueueEntry, User, VisitType
+from app.models import (
+    Appointment,
+    AppointmentStatus,
+    Doctor,
+    Patient,
+    QueueEntry,
+    ReferralSource,
+    User,
+    VisitType,
+)
 from app.reports.engine import Col, Filters, Item, Report, Section, report, within
 
 OPS = ("report.operational", "report.clinical")
@@ -148,6 +157,7 @@ def no_shows(db: Session, f: Filters) -> Report:
 )
 def new_patients(db: Session, f: Filters) -> Report:
     users = dict(db.execute(select(User.id, User.full_name_ar)).all())
+    sources = dict(db.execute(select(ReferralSource.id, ReferralSource.name_ar)).all())
     pts = list(
         db.scalars(
             select(Patient)
@@ -163,13 +173,13 @@ def new_patients(db: Session, f: Filters) -> Report:
             "gender": {"male": "ذكر", "female": "أنثى"}.get(p.gender or "", ""),
             "nationality": p.nationality or "",
             "mobile": p.mobile or "",
-            "referral": p.referral_source or "",
+            "referral": sources.get(p.referral_source_id, ""),
             "at": p.created_at,
             "by": users.get(p.created_by, ""),
         }
         for p in pts
     ]
-    refs = Counter(p.referral_source or "—" for p in pts)
+    refs = Counter(sources.get(p.referral_source_id, "—") for p in pts)
     ref_rows = [{"source": k, "count": v} for k, v in refs.most_common()]
     return Report(
         [

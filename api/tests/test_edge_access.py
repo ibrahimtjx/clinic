@@ -19,6 +19,7 @@ OPEN_TO_ANY_USER = {
     ("POST", "/auth/refresh"),
     ("GET", "/users/directory"),
     ("GET", "/settings/clinic"),
+    ("GET", "/settings/whatsapp"),  # the reminder text, used by any screen with appointments
     ("GET", "/assignments/mine"),
     ("GET", "/reports"),
     ("GET", "/payment-orders/waiting-count"),
@@ -86,6 +87,8 @@ def test_user_without_permissions_is_refused(client, make_user, db):
             "/insurance-companies",
             "/doctors",
             "/medications",
+            "/referral-sources",
+            "/referral-sources/1",
             "/lab-tests",
             "/insurance-classes",
             "/permissions",

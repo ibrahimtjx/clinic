@@ -232,7 +232,13 @@ def test_preferences_are_merged(client, make_user):
     login(client, "amal")
     client.patch("/auth/me/preferences", json={"lang": "en"})
     res = client.patch("/auth/me/preferences", json={"theme": "dark"})
-    assert res.json()["preferences"] == {"lang": "en", "theme": "dark", "digits": None}
+    assert res.json()["preferences"] == {
+        "lang": "en",
+        "theme": "dark",
+        "digits": None,
+        "font": None,
+        "font_scale": None,
+    }
     assert client.patch("/auth/me/preferences", json={"lang": "fr"}).status_code == 422
 
 

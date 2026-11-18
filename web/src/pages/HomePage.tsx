@@ -3,17 +3,24 @@ import { useTranslation } from 'react-i18next';
 
 import { useConnection } from '../app/connection';
 import { usePrefs } from '../app/preferences';
+import { displayName, useAuth } from '../auth/AuthProvider';
 import { formatDateTime } from '../lib/format';
 
 export function HomePage() {
   const { t } = useTranslation();
   const { health } = useConnection();
   const { lang, digits } = usePrefs();
+  const { me } = useAuth();
 
   return (
     <Stack gap="lg" maw={1100}>
       <div>
-        <Title order={1}>{t('home.welcome')}</Title>
+        <Text c="dimmed" size="lg">
+          {t('home.welcome')}
+        </Text>
+        <Title order={1} fz={{ base: '2rem', sm: '2.75rem' }} lh={1.2} data-testid="welcome-name">
+          {me ? displayName(me, lang) : ''}
+        </Title>
         <Text c="dimmed" mt={4}>
           {t('home.hint')}
         </Text>

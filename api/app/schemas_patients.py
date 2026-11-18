@@ -54,7 +54,7 @@ class _PatientFields(BaseModel):
     sms_opt_out: bool | None = None
     chronic_diseases: str | None = Field(None, max_length=2000)
     allergies: str | None = Field(None, max_length=2000)
-    referral_source: str | None = Field(None, max_length=100)
+    referral_source_id: int | None = None
     notes: str | None = Field(None, max_length=4000)
     insurance: InsuranceIn | None = None
 
@@ -179,7 +179,7 @@ class PatientOut(BaseModel):
     sms_opt_out: bool
     chronic_diseases: str
     allergies: str
-    referral_source: str | None
+    referral_source_id: int | None
     notes: str
     balance: MoneyOut
     deposit_balance: MoneyOut

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams } from 'react-router';
 
+import { useAuth } from '../auth/AuthProvider';
 import { usePrefs } from '../app/preferences';
 import { api, apiDownload } from '../lib/api';
 import { errorMessage } from '../lib/errors';
@@ -160,10 +161,13 @@ function ReportView({ reportKey }: { reportKey: string }) {
 const METHODS = ['cash', 'mada', 'credit_card', 'bank_transfer', 'deposit'];
 
 function FilterPanel({ info, value, onChange, patientLabel, setPatientLabel, onApply }: { info: ReportInfo; value: FilterState; onChange: (v: FilterState) => void; patientLabel: string; setPatientLabel: (s: string) => void; onApply: () => void }) {
+  const { can } = useAuth();
   const { t } = useTranslation();
   const { lang } = usePrefs();
   const opts = useQuery({ queryKey: ['reports', 'options'], queryFn: () => api<ReportOptions>('/reports/options') });
   const has = (k: string) => info.filters.includes(k as never);
+  // Doctors who see only their own figures do not choose a doctor (the server uses theirs).
+  const seesAllDoctors = can('report.financial') || can('appointment.view_all');
   const set = (patch: FilterState) => onChange({ ...value, ...patch });
   const pick = (list: { id: number; name_ar: string; name_en: string }[] | undefined) => (list ?? []).map((x) => ({ value: String(x.id), label: nameOf(x, lang) }));
   const d = (s?: string) => (s ? dayjs(s).toDate() : null);
@@ -183,12 +187,12 @@ function FilterPanel({ info, value, onChange, patientLabel, setPatientLabel, onA
         )}
         {has('day') && <DatePickerInput label={t('reports.day')} valueFormat="DD/MM/YYYY" value={d(value.date_from)} onChange={(a) => set({ date_from: a ? dayjs(a).format('YYYY-MM-DD') : undefined, date_to: undefined })} w={160} />}
         {(has('patient') || has('patient_required')) && <PatientFilter value={value.patient_id} label={patientLabel} onChange={(id, label) => { set({ patient_id: id ?? undefined }); setPatientLabel(label); }} required={has('patient_required')} />}
-        {has('doctor') && <Select label={t('appointments.doctor')} data={pick(opts.data?.doctors)} value={value.doctor_id ?? null} onChange={(v) => set({ doctor_id: v ?? undefined })} clearable searchable w={190} placeholder={t('reports.all')} />}
+        {(has('doctor') || has('doctor_required')) && seesAllDoctors && <Select label={t('appointments.doctor')} data={pick(opts.data?.doctors)} value={value.doctor_id ?? null} onChange={(v) => set({ doctor_id: v ?? undefined })} clearable={!has('doctor_required')} searchable w={190} placeholder={has('doctor_required') ? t('reports.chooseDoctor') : t('reports.all')} data-testid="filter-doctor" />}
         {has('clinic') && <Select label={t('reports.clinic')} data={pick(opts.data?.clinics)} value={value.clinic_id ?? null} onChange={(v) => set({ clinic_id: v ?? undefined })} clearable w={170} placeholder={t('reports.all')} />}
         {has('user') && <Select label={t('ledger.receivedBy')} data={pick(opts.data?.users)} value={value.user_id ?? null} onChange={(v) => set({ user_id: v ?? undefined })} clearable w={170} placeholder={t('reports.all')} />}
         {has('method') && <Select label={t('ledger.method')} data={METHODS.map((m) => ({ value: m, label: t(`ledger.methods.${m}`) }))} value={value.method ?? null} onChange={(v) => set({ method: v ?? undefined })} clearable w={170} placeholder={t('reports.all')} />}
         {has('company') && <Select label={t('patients.insurance')} data={pick(opts.data?.companies)} value={value.company_id ?? null} onChange={(v) => set({ company_id: v ?? undefined })} clearable w={180} placeholder={t('reports.all')} />}
-        <Button leftSection={<IconPlayerPlay size={16} />} onClick={onApply} disabled={has('patient_required') && !value.patient_id} data-testid="report-run">
+        <Button leftSection={<IconPlayerPlay size={16} />} onClick={onApply} disabled={(has('patient_required') && !value.patient_id) || (has('doctor_required') && seesAllDoctors && !value.doctor_id)} data-testid="report-run">
           {t('reports.show')}
         </Button>
       </Group>

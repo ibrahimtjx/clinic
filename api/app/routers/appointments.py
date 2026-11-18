@@ -60,6 +60,18 @@ def _status(db: Session, status_id: int | None = None, key: str | None = None) -
     return s
 
 
+def visible_doctor_ids(db: Session, p: Principal) -> list[int] | None:
+    """None: the whole clinic. Otherwise the doctors whose appointments this user may see: a doctor
+    without appointment.view_all sees their own only (owner, 2026-11-17)."""
+    if p.can("appointment.view_all"):
+        return None
+    return list(
+        db.scalars(
+            select(Doctor.id).where(Doctor.user_id == p.user.id, Doctor.deleted_at.is_(None))
+        )
+    )
+
+
 def _get(db: Session, appt_id: int) -> Appointment:
     a = db.get(Appointment, appt_id)
     if a is None or a.deleted_at is not None:
@@ -251,7 +263,7 @@ def _warnings(
 @router.get("", response_model=list[AppointmentOut])
 def list_appointments(
     db: DbSession,
-    _: Principal = Viewer,
+    p: Principal = Viewer,
     start: datetime | None = None,
     end: datetime | None = None,
     doctor_ids: str | None = Query(None, description="comma separated"),
@@ -261,6 +273,9 @@ def list_appointments(
     limit: int = Query(2000, le=5000),
 ) -> list[AppointmentOut]:
     q = select(Appointment).where(Appointment.deleted_at.is_(None))
+    own = visible_doctor_ids(db, p)
+    if own is not None:
+        q = q.where(Appointment.doctor_id.in_(own))
     if start:
         q = q.where(Appointment.ends_at > start)
     if end:
@@ -323,8 +338,12 @@ def find_free_slots(
 
 
 @router.get("/{appt_id}", response_model=AppointmentOut)
-def get_appointment(appt_id: int, db: DbSession, _: Principal = Viewer) -> AppointmentOut:
-    return _out(db, _get(db, appt_id))
+def get_appointment(appt_id: int, db: DbSession, p: Principal = Viewer) -> AppointmentOut:
+    a = _get(db, appt_id)
+    own = visible_doctor_ids(db, p)
+    if own is not None and a.doctor_id not in own:
+        raise not_found()
+    return _out(db, a)
 
 
 @router.post("", response_model=AppointmentOut, status_code=201)

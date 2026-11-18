@@ -10,6 +10,7 @@ from app.models import (
     Clinic,
     Department,
     InsuranceCompany,
+    ReferralSource,
     SavedPhrase,
     Service,
     VisitType,
@@ -24,6 +25,9 @@ from app.schemas_master import (
     PhraseIn,
     PhraseOut,
     PhrasePatch,
+    ReferralSourceIn,
+    ReferralSourceOut,
+    ReferralSourcePatch,
     ServiceIn,
     ServiceOut,
     ServicePatch,
@@ -106,6 +110,16 @@ router.include_router(
         create=VisitTypeIn,
         update=VisitTypePatch,
         tag="visit-types",
+    )
+)
+router.include_router(
+    master_router(
+        ReferralSource,
+        "/referral-sources",
+        out=ReferralSourceOut,
+        create=ReferralSourceIn,
+        update=ReferralSourcePatch,
+        tag="referral-sources",
     )
 )
 router.include_router(

@@ -1,5 +1,5 @@
 import { Badge, ColorSwatch, Group, SegmentedControl, Select, Text } from '@mantine/core';
-import { IconBuildingHospital, IconCalendarStats, IconCategory, IconFlask, IconPill, IconQuote, IconShieldCheck, IconTag } from '@tabler/icons-react';
+import { IconBuildingHospital, IconCalendarStats, IconCategory, IconFlask, IconPill, IconQuote, IconShieldCheck, IconSpeakerphone, IconTag } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,7 +9,7 @@ import { MasterListTab } from '../master/MasterListTab';
 import { DepartmentDrawer } from './DepartmentDrawer';
 import { nameOf, useClinics } from '../master/queries';
 import type { InsuranceCompany } from '../patients/types';
-import { PHRASE_FIELDS, type AppointmentStatus, type Clinic, type Department, type PhraseField, type SavedPhrase, type VisitType } from '../master/types';
+import { PHRASE_FIELDS, type AppointmentStatus, type Clinic, type Department, type PhraseField, type ReferralSource, type SavedPhrase, type VisitType } from '../master/types';
 
 function useNameFields() {
   const { t } = useTranslation();
@@ -134,6 +134,24 @@ export function VisitTypesTab() {
       columns={[{ label: t('master.name'), render: (v) => <Swatch color={v.color} label={nameOf(v, lang)} /> }]}
       defaults={{ name_ar: '', name_en: '', color: 'neutral' }}
       testId="visit-types-tab"
+    />
+  );
+}
+
+export function ReferralSourcesTab() {
+  const { t } = useTranslation();
+  const { lang } = usePrefs();
+  const names = useNameFields();
+  return (
+    <MasterListTab<ReferralSource>
+      resource="referral-sources"
+      title={t('settings.tabs.referralSources')}
+      hint={t('master.referralSourcesHint')}
+      icon={IconSpeakerphone}
+      fields={names}
+      columns={[{ label: t('master.name'), render: (v) => nameOf(v, lang) }]}
+      defaults={{ name_ar: '', name_en: '' }}
+      testId="referral-sources-tab"
     />
   );
 }

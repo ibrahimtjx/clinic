@@ -26,6 +26,7 @@ import { DatePickerInput, TimeInput } from '@mantine/dates';
 import { useHotkeys, useLocalStorage } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import {
+  IconBrandWhatsapp,
   IconCalendarSearch,
   IconCheck,
   IconChevronLeft,
@@ -60,6 +61,7 @@ import type { Doctor } from '../master/types';
 import { SendToDoctorModal, type SendTarget } from '../queue/SendToDoctorModal';
 import { AppointmentDrawer } from './AppointmentDrawer';
 import { CalendarGrid, type Column, type MoveTarget } from './CalendarGrid';
+import { RemindersModal } from './WhatsAppReminder';
 import { useAppointmentsRange, useWaitingList } from './queries';
 import { addDays, isoAt, local, localDate, minutesOf, todayStr, weekStart } from './time';
 import type { Appointment, DraftAppointment, FreeSlot, WaitingEntry } from './types';
@@ -71,7 +73,7 @@ type View = 'day' | 'week' | 'list';
 export function CalendarPage() {
   const { t } = useTranslation();
   const { lang, digits } = usePrefs();
-  const { can } = useAuth();
+  const { can, me } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -90,6 +92,7 @@ export function CalendarPage() {
   const [cancelling, setCancelling] = useState<Appointment | null>(null);
   const [finder, setFinder] = useState(false);
   const [waitingOpen, setWaitingOpen] = useState(false);
+  const [remindersOpen, setRemindersOpen] = useState(false);
   const [freed, setFreed] = useState<Appointment | null>(null);
   const [typeFor, setTypeFor] = useState<Appointment | null>(null);
   const [sendTarget, setSendTarget] = useState<SendTarget | null>(null);
@@ -107,7 +110,8 @@ export function CalendarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
-  const allDoctors = doctorsQ.data ?? [];
+  // A doctor without appointment.view_all sees only their own column (the server enforces it too).
+  const allDoctors = (doctorsQ.data ?? []).filter((d) => can('appointment.view_all') || d.user_id === me?.id);
   const selected: Doctor[] = doctorFilter.length ? allDoctors.filter((d) => doctorFilter.includes(String(d.id))) : allDoctors;
   const weekDoctor = selected[0];
   const range = view === 'day' ? [date, date] : [weekStart(date), addDays(weekStart(date), 6)];
@@ -324,6 +328,13 @@ export function CalendarPage() {
             </ActionIcon>
           </Tooltip>
           <WaitingButton onClick={() => setWaitingOpen(true)} />
+          {can('appointment.view_all') && (
+            <Tooltip label={t('whatsapp.reminders')}>
+              <ActionIcon variant="default" size="lg" color="green" onClick={() => setRemindersOpen(true)} aria-label={t('whatsapp.reminders')} data-testid="open-reminders">
+                <IconBrandWhatsapp size={18} />
+              </ActionIcon>
+            </Tooltip>
+          )}
           <Tooltip label={t('appointments.printDay')}>
             <ActionIcon
               variant="default"
@@ -402,6 +413,7 @@ export function CalendarPage() {
           setDrawer({ draft: { doctor_id: s.doctor_id, date: localDate(s.starts_at), start: minutesOf(s.starts_at), duration: minutesOf(s.ends_at) - minutesOf(s.starts_at) } });
         }}
       />
+      <RemindersModal opened={remindersOpen} onClose={() => setRemindersOpen(false)} doctors={allDoctors} statuses={statuses} />
       <WaitingPanel
         opened={waitingOpen || freed !== null}
         freed={freed}

@@ -5,7 +5,7 @@ by its own doctor within the edit window (Settings: dental.edit_hours); after th
 cancelled with a reason. Lab results can be entered at any time while the request is active.
 """
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -532,7 +532,8 @@ def cancel_lab_request(lid: int, body: CancelIn, db: DbSession, p: Principal = E
 
 
 # ---------------------------------------------------------------- medical reports
-ReportKind = Literal["report", "referral", "attendance"]
+ReportKind = Literal["report", "referral", "attendance", "sick_leave"]
+MAX_LEAVE_DAYS = 90
 
 
 class ReportIn(BaseModel):
@@ -550,6 +551,8 @@ class ReportIn(BaseModel):
         return _not_blank(v)
 
     notes: str = Field("", max_length=2000)
+    leave_from: date | None = None
+    leave_to: date | None = None
 
 
 class ReportPatch(BaseModel):
@@ -560,6 +563,8 @@ class ReportPatch(BaseModel):
     title: str | None = Field(None, max_length=200)
     body: str | None = Field(None, min_length=1, max_length=20000)
     notes: str | None = Field(None, max_length=2000)
+    leave_from: date | None = None
+    leave_to: date | None = None
 
     @field_validator("body")
     @classmethod
@@ -573,10 +578,27 @@ class ReportOut(_DocOut):
     recipient: str
     title: str
     body: str
+    leave_from: date | None
+    leave_to: date | None
+    leave_days: int | None = None
+
+
+def _check_leave(kind: str, start: date | None, end: date | None) -> None:
+    if kind != "sick_leave":
+        return
+    if start is None or end is None:
+        raise _err("leave_dates_required")
+    if end < start:
+        raise _err("leave_dates_order")
+    if (end - start).days + 1 > MAX_LEAVE_DAYS:
+        raise _err("leave_too_long", max_days=MAX_LEAVE_DAYS)
 
 
 def _report_out(db, r: MedicalReport, p, now=None) -> ReportOut:
-    return _decorate(db, ReportOut.model_validate(r), r, p, now or _now(db))
+    o = ReportOut.model_validate(r)
+    if r.leave_from and r.leave_to:
+        o.leave_days = (r.leave_to - r.leave_from).days + 1
+    return _decorate(db, o, r, p, now or _now(db))
 
 
 def _get_report(db: Session, rid: int) -> MedicalReport:
@@ -612,6 +634,9 @@ def get_report(rid: int, db: DbSession, p: Principal = Viewer) -> ReportOut:
 def create_report(pid: int, body: ReportIn, db: DbSession, p: Principal = Editor) -> ReportOut:
     _patient(db, pid)
     _refs(db, pid, body.doctor_id, body.visit_id, p)
+    _check_leave(body.kind, body.leave_from, body.leave_to)
+    if body.kind != "sick_leave":
+        body.leave_from = body.leave_to = None
     r = MedicalReport(
         patient_id=pid,
         issued_at=_now(db),
@@ -632,6 +657,9 @@ def update_report(rid: int, body: ReportPatch, db: DbSession, p: Principal = Edi
     _check_edit(db, r, p)
     for k, v in body.model_dump(exclude={"version"}, exclude_none=True).items():
         setattr(r, k, v.strip() if isinstance(v, str) else v)
+    _check_leave(r.kind, r.leave_from, r.leave_to)
+    if r.kind != "sick_leave":
+        r.leave_from = r.leave_to = None
     r.updated_by = p.user.id
     db.commit()
     db.refresh(r)

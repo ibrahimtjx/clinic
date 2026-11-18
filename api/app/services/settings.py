@@ -61,6 +61,30 @@ def save_setting(db: Session, key: str, value: BaseModel, user_id: int) -> None:
         row.updated_by = user_id
 
 
+class WhatsAppSettings(BaseModel):
+    """Appointment reminder sent from the reception PC through WhatsApp (click to send).
+    Placeholders: {patient}, {date}, {day}, {time}, {doctor}, {room}, {clinic}, {phone}."""
+
+    template_ar: str = Field(
+        "مرحبًا {patient}،\nنذكّرك بموعدك في {clinic} يوم {day} {date} الساعة {time} مع {doctor}.\n"
+        "للتعديل أو الإلغاء يرجى الاتصال على {phone}.",
+        max_length=1000,
+    )
+    template_en: str = Field(
+        "Hello {patient},\nThis is a reminder of your appointment at {clinic} on {day} {date} at {time} "
+        "with {doctor}.\nTo change or cancel, please call {phone}.",
+        max_length=1000,
+    )
+
+
+WHATSAPP_KEY = "whatsapp"
+
+
+def get_whatsapp_settings(db: Session) -> WhatsAppSettings:
+    row = db.get(Setting, WHATSAPP_KEY)
+    return WhatsAppSettings(**(row.value_json if row else {}))
+
+
 class QueueSettings(BaseModel):
     """Wait-time colors on the queue board (SPEC 7.1)."""
 

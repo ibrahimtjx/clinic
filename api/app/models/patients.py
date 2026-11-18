@@ -99,7 +99,7 @@ class Patient(TimestampMixin, VersionMixin, SoftDeleteMixin, Base):
     # Medical file: read only through the logged /health endpoint (SPEC 3.4).
     medications: Mapped[str] = mapped_column(Text, default="", server_default="")
     medical_history: Mapped[str] = mapped_column(Text, default="", server_default="")
-    referral_source: Mapped[str | None] = mapped_column(String(100))
+    referral_source_id: Mapped[int | None] = mapped_column(ForeignKey("referral_sources.id"))
     notes: Mapped[str] = mapped_column(Text, default="", server_default="")
     # Maintained by billing (M8) and visits (M4–M6); read-only here.
     # What the patient owes on final invoices, and money held on account (deposits). Maintained by
