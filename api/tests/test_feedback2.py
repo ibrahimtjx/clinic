@@ -75,7 +75,9 @@ def test_doctor_statement_own_only(client, setup, db, make_user):
     assert r.status_code == 200, r.text
     rep = r.json()
     rows = rep["sections"][0]["rows"]
-    assert len(rows) == 1 and rows[0]["outstanding"] == "880.00", rows  # forced to her own doctor
+    assert len(rows) == 1 and rows[0]["patient_share"] == "500.00", rows  # forced to her own doctor
+    unpaid = rep["sections"][1]["rows"]
+    assert [(u["paid"], u["remaining"]) for u in unpaid] == [("500.00", "880.00")]
     summary = {s["en"]: s["value"] for s in rep["summary"]}
     assert summary["Invoices"] == 1 and summary["Commission"] != "0.00", summary
     # Other financial reports stay closed to doctors.

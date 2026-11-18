@@ -53,6 +53,7 @@ _CATALOG: list[tuple[str, list[str]]] = [
             "invoice.view",
             "invoice.price_override",
             "invoice.credit_note",
+            "invoice.correct",
             "payment.collect",
             "cashbox.close",
         ],

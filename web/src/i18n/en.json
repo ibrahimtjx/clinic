@@ -363,7 +363,8 @@
     "file_upload": "Upload images and documents",
     "file_delete": "Remove images and documents",
     "appointment_view_all": "See every doctor's appointments",
-    "report_own": "Own doctor statement"
+    "report_own": "Own doctor statement",
+    "invoice_correct": "Correct issued invoices"
   },
   "security": {
     "auto_lock_minutes": "Auto-lock (minutes)",
@@ -561,7 +562,9 @@
     "unknown_referral_source": "Referral source not found.",
     "leave_dates_required": "Choose the leave dates.",
     "leave_dates_order": "The leave ends before it starts.",
-    "leave_too_long": "A sick leave can be at most {{max_days}} days."
+    "leave_too_long": "A sick leave can be at most {{max_days}} days.",
+    "already_corrected": "This invoice has already been corrected.",
+    "part_payment_invoice": "This invoice is one part payment of a bill and cannot be corrected on its own. Use a credit note, and close or pay the rest of the bill."
   },
   "weekdays": [
     "Sunday",
@@ -1008,7 +1011,9 @@
       "converted": "Converted",
       "paid": "Paid",
       "expired": "Expired",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "part_paid": "Part paid",
+      "closed": "Closed"
     },
     "done": {
       "send": "Sent to reception",
@@ -1240,7 +1245,32 @@
       "net": "Net"
     },
     "noMovements": "No money in or out in this shift yet.",
-    "toAccount": "Kept on the patient's account"
+    "toAccount": "Kept on the patient's account",
+    "billOwed": "Recorded as owed",
+    "billOwedHint": "Nothing was paid now: {{amount}} is owed on the patient's account. The invoice is issued when they pay.",
+    "billRemaining": "Still owed on this bill: {{amount}} (its invoice is issued when paid).",
+    "paidSoFar": "Paid so far",
+    "leftToPay": "Left to pay",
+    "payLaterHint": "Nothing paid now: {{amount}} will be owed. No invoice until the patient pays.",
+    "partInvoiceHint": "The invoice will be for {{paid}} (what is paid now); {{amount}} stays owed on the patient's account.",
+    "recordOwed": "Record as owed",
+    "unpaidBills": "Bills not fully paid",
+    "pay": "Pay",
+    "closeRest": "Close the rest",
+    "closeRestTitle": "Close what is left on {{no}}",
+    "closeRestHint": "{{amount}} will no longer be owed (written off). No invoice is issued for it. This is recorded with your name and the reason.",
+    "paid": "Paid",
+    "remaining": "Left",
+    "partOf": "Part payment of bill {{no}} ({{pct}}%)",
+    "corrects": "Corrects invoice {{no}}",
+    "correctedBy": "Corrected by",
+    "correct": "Correct invoice",
+    "correctTitle": "Correct invoice {{no}}",
+    "correctHint": "Issued invoices are not changed (ZATCA). Saving cancels this invoice with a credit note, moves what was paid on it to the patient's account, and issues a corrected invoice paid from that money. If the corrected invoice costs more, the rest is owed; if less, the difference stays on the patient's account.",
+    "correctDone": "Corrected",
+    "correctDoneHint": "Credit note {{cn}} cancels the old invoice. Corrected invoice: {{inv}}.",
+    "addLine": "Add line",
+    "service": "Service"
   },
   "reports": {
     "groups": {
