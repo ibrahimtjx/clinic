@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, PlainSerializer
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.audit import log_event
 from app.crud import not_found, updater_name
 from app.deps import DbSession, Principal, check_version, require
 from app.models import (
@@ -116,6 +117,10 @@ class InvoiceOut(BaseModel):
     previous_hash: str
     hash: str
     qr_payload: str
+    portion: Decimal = Decimal(1)
+    corrects_invoice_id: int | None = None
+    corrects_invoice_no: str | None = None
+    corrected_by: list[dict] = []  # invoices that correct this one: id, invoice_no
     outstanding: Money = Decimal(0)
     credited: Money = Decimal(0)
     issued_by_name: str | None = None
@@ -235,6 +240,18 @@ def _invoice_out(db: Session, inv: Invoice, full: bool = True) -> InvoiceOut:
     )
     if inv.doctor_id:
         o.doctor_name_ar = db.scalar(select(Doctor.name_ar).where(Doctor.id == inv.doctor_id))
+    if inv.corrects_invoice_id:
+        o.corrects_invoice_no = db.scalar(
+            select(Invoice.invoice_no).where(Invoice.id == inv.corrects_invoice_id)
+        )
+    o.corrected_by = [
+        {"id": i, "invoice_no": n}
+        for i, n in db.execute(
+            select(Invoice.id, Invoice.invoice_no)
+            .where(Invoice.corrects_invoice_id == inv.id)
+            .order_by(Invoice.id)
+        )
+    ]
     cns = list(
         db.scalars(
             select(CreditNote).where(CreditNote.invoice_id == inv.id).order_by(CreditNote.id)
@@ -358,8 +375,10 @@ class CollectIn(BaseModel):
 
 
 class CollectOut(BaseModel):
-    invoice: InvoiceOut
+    # None when nothing was paid now: the whole bill is then owed (no invoice yet).
+    invoice: InvoiceOut | None
     receipt: ReceiptOut | None
+    remaining: Money = Decimal(0)
 
 
 @router.post("/payment-orders/{pid}/collect", response_model=CollectOut, status_code=201)
@@ -369,13 +388,13 @@ def collect_payment(pid: int, body: CollectIn, db: DbSession, p: Principal = Col
     if po is None or po.deleted_at is not None:
         raise not_found()
     check_version(po.version, body.version, updater_name(db, po), po.updated_at)
-    if po.status != "sent":
+    if po.status not in ("sent", "part_paid"):
         raise err("document_closed", status.HTTP_409_CONFLICT, status=po.status)
     patient = db.get(Patient, po.patient_id)
     today = local(db.scalar(select(func.now()))).date()
-    if documents.recalculate(db, po, "payment_order", patient, today) or (
-        body.expected_patient_share != po.patient_share
-    ):
+    # Amounts are fixed once part of the bill is paid; before that they may still change.
+    changed = po.status == "sent" and documents.recalculate(db, po, "payment_order", patient, today)
+    if changed or body.expected_patient_share != po.patient_share:
         # Amounts changed since it was written (daily insurance limit used, VAT rate, nationality):
         # save the new amounts and let reception confirm them before taking money.
         po.updated_by = p.user.id
@@ -391,7 +410,31 @@ def collect_payment(pid: int, body: CollectIn, db: DbSession, p: Principal = Col
     receipt = (
         _with_balances(db, _receipt_out(db, res.receipt), po.patient_id) if res.receipt else None
     )
-    return CollectOut(invoice=_invoice_out(db, res.invoice), receipt=receipt)
+    return CollectOut(
+        invoice=_invoice_out(db, res.invoice) if res.invoice else None,
+        receipt=receipt,
+        remaining=ledger.order_remaining(po),
+    )
+
+
+class CloseIn(BaseModel):
+    version: int
+    reason: str = Field(min_length=3, max_length=1000)
+
+
+@router.post("/payment-orders/{pid}/close", status_code=200)
+def close_payment_order(
+    pid: int, body: CloseIn, db: DbSession, p: Principal = Depends(require("invoice.credit_note"))
+) -> dict:
+    """Write off what is left on a part-paid bill (the patient will not pay it), with a reason."""
+    po = db.get(PaymentOrder, pid, with_for_update=True)
+    if po is None or po.deleted_at is not None:
+        raise not_found()
+    check_version(po.version, body.version, updater_name(db, po), po.updated_at)
+    left = ledger.close_order(db, po, body.reason, p)
+    log_event(db, "close_bill", "payment_orders", po.id, new={"written_off": f"{left:.2f}"})
+    db.commit()
+    return {"id": po.id, "status": po.status, "written_off": f"{left:.2f}"}
 
 
 # ---------------------------------------------------------------- invoices
@@ -455,6 +498,84 @@ def create_credit_note(
     return _credit_out(db, cn)
 
 
+class CorrectIn(BaseModel):
+    reason: str = Field(min_length=3, max_length=1000)
+    lines: list[documents.LineIn] = Field(min_length=1, max_length=100)
+    doctor_id: int | None = None  # the original invoice's doctor when left out
+    notes: str | None = Field(None, max_length=4000)
+
+
+class CorrectOut(BaseModel):
+    credit_note: CreditNoteOut
+    invoice: InvoiceOut | None  # the corrected invoice (None if nothing could be paid from credit)
+    payment_order_id: int
+    remaining: Money  # still owed on the corrected bill (it cost more than was paid)
+
+
+@router.post("/invoices/{iid}/correct", response_model=CorrectOut, status_code=201)
+def correct_invoice(
+    iid: int, body: CorrectIn, db: DbSession, p: Principal = Depends(require("invoice.correct"))
+) -> CorrectOut:
+    """A manager fixes a mistake on an issued invoice (owner, 2026-11-18). Issued invoices stay as
+    they are (ZATCA): the old one is credited in full, what was paid on it goes to the patient's
+    account, and a corrected bill is issued and paid from that money. If the corrected bill costs
+    more, the rest is owed; if less, the difference stays on the patient's account."""
+    from app.routers.billing import _AllowFreeLine, _new_po
+
+    inv = db.get(Invoice, iid, with_for_update=True)
+    if inv is None:
+        raise not_found()
+    if db.scalar(select(Invoice.id).where(Invoice.corrects_invoice_id == inv.id).limit(1)):
+        raise err("already_corrected", status.HTTP_409_CONFLICT)
+    if inv.portion < 1:
+        # One part payment of a bill: correcting it alone would bill the services twice.
+        raise err("part_payment_invoice", status.HTTP_409_CONFLICT)
+    reason = body.reason.strip()
+    cn = ledger.issue_credit_note(
+        db, inv, f"تصحيح الفاتورة: {reason}", None, ledger.RefundIn(to_deposit=True), p
+    )
+    snap = inv.insurance or {}
+    choice = documents.InsuranceChoice(
+        use_insurance=bool(snap),
+        class_id=snap.get("class_id"),
+        policy_no=snap.get("policy_no"),
+        membership_no=snap.get("membership_no"),
+    )
+    # Whoever may correct invoices sets the corrected prices (no price range check).
+    po = _new_po(
+        db,
+        inv.patient_id,
+        body.doctor_id if body.doctor_id is not None else inv.doctor_id,
+        inv.plan_id,
+        body.notes if body.notes is not None else inv.notes,
+        body.lines,
+        choice,
+        _AllowFreeLine(p),
+    )
+    at = db.scalar(select(func.now()))
+    po.status, po.sent_at, po.sent_by = "sent", at, p.user.id
+    po.reception_note = f"تصحيح الفاتورة {inv.invoice_no}: {reason}"
+    po.corrects_invoice_id = inv.id
+    db.flush()
+    amount = min(po.patient_share, cn.refunded)
+    pays = [ledger.PaymentIn(method="deposit", amount=amount)] if amount > 0 else []
+    res = ledger.collect(db, po, pays, f"تصحيح الفاتورة {inv.invoice_no}", p)
+    log_event(
+        db,
+        "correct_invoice",
+        "invoices",
+        inv.id,
+        new={"reason": reason, "credit_note": cn.credit_note_no, "payment_order": po.order_no},
+    )
+    db.commit()
+    return CorrectOut(
+        credit_note=_credit_out(db, cn),
+        invoice=_invoice_out(db, res.invoice) if res.invoice else None,
+        payment_order_id=po.id,
+        remaining=ledger.order_remaining(po),
+    )
+
+
 @router.get("/credit-notes", response_model=list[CreditNoteBrief])
 def list_credit_notes(
     db: DbSession,
@@ -514,11 +635,23 @@ def get_receipt(rid: int, db: DbSession, p: Principal = Depends(require())) -> R
 
 
 # ---------------------------------------------------------------- patient account
+class UnpaidOrder(BaseModel):
+    id: int
+    order_no: str
+    sent_at: datetime | None
+    doctor_name_ar: str | None
+    patient_share: Money
+    paid_amount: Money
+    remaining: Money
+    version: int
+
+
 class AccountOut(BaseModel):
     patient_id: int
     balance: Money
     deposit_balance: Money
-    unpaid: list[InvoiceOut]
+    unpaid: list[InvoiceOut]  # invoices issued in full before 2026-11-18, not fully paid
+    unpaid_orders: list[UnpaidOrder] = []
     receipts: list[ReceiptOut]
 
 
@@ -539,11 +672,30 @@ def patient_account(pid: int, db: DbSession, p: Principal = Depends(require())) 
             select(Receipt).where(Receipt.patient_id == pid).order_by(Receipt.id.desc()).limit(30)
         )
     ]
+    doctors = dict(db.execute(select(Doctor.id, Doctor.name_ar)).all())
+    unpaid_orders = [
+        UnpaidOrder(
+            id=po.id,
+            order_no=po.order_no,
+            sent_at=po.sent_at,
+            doctor_name_ar=doctors.get(po.doctor_id),
+            patient_share=po.patient_share,
+            paid_amount=po.paid_amount,
+            remaining=ledger.order_remaining(po),
+            version=po.version,
+        )
+        for po in db.scalars(
+            select(PaymentOrder)
+            .where(PaymentOrder.patient_id == pid, PaymentOrder.status == "part_paid")
+            .order_by(PaymentOrder.sent_at, PaymentOrder.id)
+        )
+    ]
     return AccountOut(
         patient_id=pid,
         balance=pt.balance,
         deposit_balance=pt.deposit_balance,
         unpaid=unpaid,
+        unpaid_orders=unpaid_orders,
         receipts=receipts,
     )
 
@@ -551,13 +703,14 @@ def patient_account(pid: int, db: DbSession, p: Principal = Depends(require())) 
 class PayBalanceIn(BaseModel):
     payments: list[PaymentIn] = Field(min_length=1, max_length=10)
     invoice_ids: list[int] | None = None
+    order_ids: list[int] | None = None
     note: str = Field("", max_length=1000)
 
 
 @router.post("/patients/{pid}/payments", response_model=ReceiptOut, status_code=201)
 def pay_balance(pid: int, body: PayBalanceIn, db: DbSession, p: Principal = Collect) -> ReceiptOut:
     pt = _patient(db, pid)
-    r = ledger.pay_balance(db, pt, body.payments, body.invoice_ids, body.note, p)
+    r = ledger.pay_balance(db, pt, body.payments, body.invoice_ids, body.note, p, body.order_ids)
     db.commit()
     return _with_balances(db, _receipt_out(db, r), pid)
 

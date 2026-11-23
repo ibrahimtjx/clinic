@@ -14,8 +14,9 @@ import { errorMessage } from '../lib/errors';
 import { formatDate, formatDateTime, formatMoney } from '../lib/format';
 import { subMoney, toCents } from '../lib/money';
 import { nameOf } from '../master/queries';
-import { openPrint, Stat } from './CollectModal';
-import type { Account, Invoice, Receipt } from './ledgerTypes';
+import { CollectModal, openPrint, Stat } from './CollectModal';
+import type { Account, Invoice, Receipt, UnpaidOrder } from './ledgerTypes';
+import type { BillingDoc } from './types';
 import { paymentRow, PaymentRows, rowsTotal, toPayments } from './PaymentRows';
 
 /** Balance, money on account, unpaid invoices and recent receipts for one patient (SPEC 10.5). */
@@ -54,6 +55,7 @@ export function AccountPanel({ patientId }: { patientId: number }) {
           )}
         </Group>
       </Card>
+      {(a.unpaid_orders ?? []).length > 0 && <UnpaidBills account={a} />}
       {a.unpaid.length > 0 && (
         <Card padding={0}>
           <Text fw={600} p="sm">
@@ -301,5 +303,106 @@ export function InvoiceList({ patientId }: { patientId?: number }) {
       )}
       <Card padding={0}>{q.isPending ? <Skeleton height={160} /> : q.isError ? <Alert color="red">{errorMessage(t, q.error, lang)}</Alert> : <InvoiceTable invoices={q.data} showPatient={!patientId} />}</Card>
     </Stack>
+  );
+}
+
+/** Bills paid in part (or "pay later"): pay the rest, or close it with a reason (owner, 2026-11-18). */
+function UnpaidBills({ account }: { account: Account }) {
+  const { t } = useTranslation();
+  const { lang, digits } = usePrefs();
+  const { can } = useAuth();
+  const qc = useQueryClient();
+  const [paying, setPaying] = useState<BillingDoc | null>(null);
+  const [closing, setClosing] = useState<UnpaidOrder | null>(null);
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState<unknown>(null);
+  const [busy, setBusy] = useState(false);
+  const fm = (v: string) => formatMoney(v, lang, digits);
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ['account', account.patient_id] });
+    void qc.invalidateQueries({ queryKey: ['billing'] });
+  };
+  return (
+    <Card padding={0} data-testid="unpaid-bills">
+      <Text fw={600} p="sm">
+        {t('ledger.unpaidBills')}
+      </Text>
+      <Table>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>{t('billing.number')}</Table.Th>
+            <Table.Th>{t('sample.date')}</Table.Th>
+            <Table.Th>{t('appointments.doctor')}</Table.Th>
+            <Table.Th ta="end">{t('billing.patientDue')}</Table.Th>
+            <Table.Th ta="end">{t('ledger.paid')}</Table.Th>
+            <Table.Th ta="end">{t('ledger.remaining')}</Table.Th>
+            <Table.Th />
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {account.unpaid_orders.map((o) => (
+            <Table.Tr key={o.id} data-testid={`bill-${o.order_no}`}>
+              <Table.Td dir="ltr">{o.order_no}</Table.Td>
+              <Table.Td>{o.sent_at ? formatDate(o.sent_at, lang, digits) : '—'}</Table.Td>
+              <Table.Td>{o.doctor_name_ar ?? '—'}</Table.Td>
+              <Table.Td ta="end">{fm(o.patient_share)}</Table.Td>
+              <Table.Td ta="end">{fm(o.paid_amount)}</Table.Td>
+              <Table.Td ta="end" fw={600} c="orange">
+                {fm(o.remaining)}
+              </Table.Td>
+              <Table.Td ta="end">
+                <Group gap={4} justify="flex-end" wrap="nowrap">
+                  {can('payment.collect') && (
+                    <Button size="xs" leftSection={<IconCash size={14} />} onClick={async () => setPaying(await api<BillingDoc>(`/payment-orders/${o.id}`))} data-testid={`pay-bill-${o.id}`}>
+                      {t('ledger.pay')}
+                    </Button>
+                  )}
+                  {can('invoice.credit_note') && (
+                    <Button size="xs" variant="subtle" color="red" onClick={() => { setClosing(o); setReason(''); setError(null); }} data-testid={`close-bill-${o.id}`}>
+                      {t('ledger.closeRest')}
+                    </Button>
+                  )}
+                </Group>
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+      <CollectModal order={paying} onClose={() => { setPaying(null); refresh(); }} />
+      <Modal opened={!!closing} onClose={() => setClosing(null)} title={closing ? t('ledger.closeRestTitle', { no: closing.order_no }) : ''}>
+        {closing && (
+          <Stack>
+            <Text size="sm">{t('ledger.closeRestHint', { amount: fm(closing.remaining) })}</Text>
+            <Textarea label={t('ledger.reason')} value={reason} onChange={(e) => setReason(e.currentTarget.value)} required minLength={3} maxLength={1000} data-testid="close-reason" />
+            {error !== null && <Alert color="red">{errorMessage(t, error, lang)}</Alert>}
+            <Group justify="flex-end">
+              <Button variant="default" onClick={() => setClosing(null)}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                color="red"
+                loading={busy}
+                disabled={reason.trim().length < 3}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await api(`/payment-orders/${closing.id}/close`, { method: 'POST', body: { version: closing.version, reason } });
+                    setClosing(null);
+                    refresh();
+                  } catch (e) {
+                    setError(e);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                data-testid="confirm-close"
+              >
+                {t('ledger.closeRest')}
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
+    </Card>
   );
 }

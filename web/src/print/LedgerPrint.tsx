@@ -59,6 +59,16 @@ export function InvoicePrint() {
                 رقم الفاتورة / Invoice No: <b dir="ltr">{inv.invoice_no}</b>
               </Text>
               <Text size="sm">التاريخ / Date: {formatDateTime(inv.issued_at, lang, digits)}</Text>
+              {Number(inv.portion) < 1 && (
+                <Text size="sm" data-testid="print-part-payment">
+                  دفعة جزئية من الفاتورة المبدئية / Part payment of bill <span dir="ltr">{inv.order_no}</span> ({(Number(inv.portion) * 100).toFixed(1)}%)
+                </Text>
+              )}
+              {inv.corrects_invoice_no && (
+                <Text size="sm">
+                  تصحيح للفاتورة / Corrects invoice <span dir="ltr">{inv.corrects_invoice_no}</span>
+                </Text>
+              )}
               <Text size="xs" dir="ltr">
                 UUID {inv.uuid}
               </Text>

@@ -33,13 +33,14 @@ def section(rep, key):
 
 
 def _activity(client, setup, make_user):
-    """Resident: veneer 1380 paid 1000 cash + 380 Mada. Saudi: x-ray (patient 30) on balance.
+    """Resident: veneer 1380 paid 1000 cash + 380 Mada. Saudi: x-ray (patient 30) pays 10 now: an
+    invoice for that part (with its share of the insurer's 120), 20 owed.
     Deposit 100 for the Saudi patient. Cashier credits the resident's invoice fully, refund 1380 cash."""
     make_user("faisal", ["cashier"])
     po = send_po(client, setup["resident"], [line(setup["veneer"])])
     inv1 = collect(client, po, [cash("1000"), cash("380", "mada", "A1")]).json()["invoice"]
     po2 = send_po(client, setup["saudi"], [line(setup["xray"])])
-    inv2 = collect(client, po2, []).json()["invoice"]
+    inv2 = collect(client, po2, [cash("10")]).json()["invoice"]
     client.post(f"/patients/{setup['saudi'].id}/deposits", json={"payments": [cash("100")]})
     login(client, "faisal")
     client.post(
@@ -82,6 +83,7 @@ def test_revenue_detail_methods_and_summary(client, setup, make_user):
     kinds = [(r["receipt_no"][:3], r["kind_en"], r["amount"]) for r in detail["rows"]]
     assert kinds == [
         ("RC-", "Payment", "1380.00"),
+        ("RC-", "Payment", "10.00"),
         ("RC-", "Deposit", "100.00"),
         ("RC-", "Refund", "-1380.00"),
     ]
@@ -90,13 +92,14 @@ def test_revenue_detail_methods_and_summary(client, setup, make_user):
         and "cash" in detail["rows"][0]["method_en"].lower()
     )
     assert detail["rows"][0]["vat_rate"] == "15%" and detail["rows"][0]["vat"] == "180.00"
-    assert detail["totals"]["amount"] == "100.00"
+    assert detail["totals"]["amount"] == "110.00"
     methods = {r["method_en"]: (r["in"], r["out"]) for r in section(rep, "methods")["rows"]}
-    assert methods == {"Cash": ("1100.00", "1380.00"), "Mada": ("380.00", "0.00")}
+    assert methods == {"Cash": ("1110.00", "1380.00"), "Mada": ("380.00", "0.00")}
     s = summary(rep)
-    assert s["Invoice count"] == 2 and s["Invoices total"] == "1530.00" and s["VAT"] == "180.00"
+    # Saudi x-ray: an invoice for the 10 paid (with a third of the insurer's 120), no VAT.
+    assert s["Invoice count"] == 2 and s["Invoices total"] == "1430.00" and s["VAT"] == "180.00"
     assert (
-        s["Total collected"] == "1480.00"
+        s["Total collected"] == "1490.00"
         and s["Refunds paid out"] == "1380.00"
         and s["Deposits received"] == "100.00"
     )
@@ -120,8 +123,9 @@ def test_account_statement_matches_balances(client, setup, make_user, db):
         "rows"
     ]
     assert [(r["debit"], r["owed"], r["acct"]) for r in rows] == [
-        ("30.00", "30.00", "0.00"),
-        (None, "30.00", "100.00"),
+        ("30.00", "30.00", "0.00"),  # the bill becomes owed
+        (None, "20.00", "0.00"),  # 10 paid (its invoice is a payment, not new debt)
+        (None, "20.00", "100.00"),
     ]
     later = run(
         client,
@@ -132,7 +136,7 @@ def test_account_statement_matches_balances(client, setup, make_user, db):
     )
     assert (
         section(later, "statement")["rows"] == []
-        and summary(later)["Opening balance owed"] == "30.00"
+        and summary(later)["Opening balance owed"] == "20.00"
     )
     assert (
         client.get("/reports/account_statement", params=RANGE).json()["detail"]["code"]
@@ -168,18 +172,19 @@ def test_outstanding_insurance_and_services(client, setup, make_user):
     login(client, "faisal")
     out = run(client, "outstanding")
     bal = section(out, "balances")["rows"]
-    assert [(r["patient"], r["balance"], r["invoices"]) for r in bal] == [("سارة", "30.00", 1)]
+    assert [(r["patient"], r["balance"], r["invoices"]) for r in bal] == [("سارة", "20.00", 1)]
     ins = run(client, "insurance")
     co = section(ins, "companies")["rows"][0]
-    # Resident veneer is excluded (insurer 0); Saudi x-ray insurer 120.
-    assert (co["count"], co["insurance"], co["claim"]) == (2, "120.00", "120.00")
+    # Resident veneer is excluded (insurer 0); Saudi x-ray: the insurer's part of what is invoiced
+    # so far (10 of the patient's 30 paid: 40 of 120).
+    assert (co["count"], co["insurance"], co["claim"]) == (2, "40.00", "40.00")
     svc = {r["code"]: r for r in section(run(client, "services_sold"), "services")["rows"]}
     assert (
         svc["T-VEN"]["qty"] == "1.0"
         and svc["T-VEN"]["cr_qty"] == "1.0"
         and svc["T-VEN"]["net_after"] == "0.00"
     )
-    assert svc["T-PANO"]["net_after"] == "150.00"
+    assert svc["T-PANO"]["net_after"] == "50.00"
 
 
 def test_operational_reports_run(client, setup, make_user):

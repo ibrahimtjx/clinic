@@ -73,7 +73,7 @@ const toApi = (l: EditLine) => ({
     .filter((n) => n > 0),
 });
 
-const STATUS_COLOR: Record<string, string> = { draft: 'neutral', sent: 'blue', accepted: 'green', converted: 'teal', paid: 'green', expired: 'orange', cancelled: 'red' };
+const STATUS_COLOR: Record<string, string> = { draft: 'neutral', sent: 'blue', accepted: 'green', converted: 'teal', paid: 'green', part_paid: 'yellow', closed: 'grape', expired: 'orange', cancelled: 'red' };
 
 /** Quotation and payment order screen (SPEC 10.3). Totals always come from the server. */
 export function DocumentEditor() {
