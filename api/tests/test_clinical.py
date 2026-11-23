@@ -12,8 +12,10 @@ def setup(db, make_user):
     make_user("amal", ["reception"])
     d1 = Doctor(name_ar="د. ريم", user_id=reem.id)
     d2 = Doctor(name_ar="د. عمر", user_id=omar.id)
-    pt = Patient(name_ar="سارة", allergies="بنسلين")
-    db.add_all([d1, d2, pt])
+    db.add_all([d1, d2])
+    db.flush()
+    pt = Patient(name_ar="سارة", allergies="بنسلين", default_doctor_id=d1.id)  # reem's patient
+    db.add(pt)
     db.commit()
     return pt, d1, d2
 
@@ -48,12 +50,13 @@ def test_prescription_lifecycle_and_edit_window(client, db, make_user):
         f"/prescriptions/{rx['id']}", json={"version": rx["version"], "items": [RX]}
     ).json()
     assert len(upd["items"]) == 1
-    # Another doctor cannot change it.
+    # Another doctor cannot change it, nor even see it: not their patient (owner, 2026-11-23).
     login(client, "omar")
     other = client.patch(
         f"/prescriptions/{rx['id']}", json={"version": upd["version"], "notes": "x"}
     )
-    assert other.json()["detail"]["code"] == "not_own_document"
+    assert other.status_code == 404
+    assert client.get(f"/patients/{pt.id}").status_code == 404
     # After the edit window only cancelling is possible.
     login(client, "reem")
     db.execute(
@@ -98,7 +101,13 @@ def test_lab_request_and_results(client, db, make_user):
         },
     ).json()
     assert req["status"] == "active" and req["items"][0]["reference_range"] == "4.0-5.6"
-    login(client, "omar")  # any doctor may enter results
+    login(client, "omar")  # another doctor: not his patient or request
+    refused = client.post(
+        f"/lab-requests/{req['id']}/results",
+        json={"version": req["version"], "results": [{"seq": 1, "result": "7.2"}]},
+    )
+    assert refused.status_code == 404
+    login(client, "reem")
     res = client.post(
         f"/lab-requests/{req['id']}/results",
         json={

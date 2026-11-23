@@ -211,7 +211,7 @@ function PlanDrawer({ patient, plan, onClose, onSaved }: { patient: Patient; pla
         )}
         <SimpleGrid cols={{ base: 1, sm: 3 }}>
           <TextInput label={t('plans.title')} value={form.title} onChange={(e) => setForm({ ...form, title: e.currentTarget.value })} required disabled={!editable} data-testid="plan-title" />
-          <Select label={t('appointments.doctor')} data={(doctors.data ?? []).map((d) => ({ value: String(d.id), label: nameOf(d, lang) }))} value={form.doctor_id ? String(form.doctor_id) : null} onChange={(v) => setForm({ ...form, doctor_id: v ? Number(v) : null })} disabled={!editable} required />
+          <Select label={t('appointments.doctor')} data={(doctors.data ?? []).map((d) => ({ value: String(d.id), label: nameOf(d, lang) }))} value={form.doctor_id ? String(form.doctor_id) : null} onChange={(v) => setForm({ ...form, doctor_id: v ? Number(v) : null })} disabled={!editable || (!!myDoctor && !can('appointment.view_all'))} required />
           <Select label={t('services.department')} data={(departments.data ?? []).map((d) => ({ value: String(d.id), label: nameOf(d, lang) }))} value={form.department_id ? String(form.department_id) : null} onChange={(v) => setForm({ ...form, department_id: v ? Number(v) : null })} disabled={!editable} clearable />
         </SimpleGrid>
 

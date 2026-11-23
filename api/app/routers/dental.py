@@ -21,6 +21,7 @@ from app.models import (
     ToothFinding,
     User,
 )
+from app.scope import check_patient
 from app.services.settings import DENTAL_KEY, DentalSettings, get_dental_settings, save_setting
 
 router = APIRouter(tags=["dental"])
@@ -178,7 +179,9 @@ def _err(code: str, http: int = status.HTTP_422_UNPROCESSABLE_CONTENT, **extra) 
     return HTTPException(http, detail={"code": code, **extra})
 
 
-def _patient(db: Session, pid: int) -> Patient:
+def _patient(db: Session, pid: int, p: Principal | None = None) -> Patient:
+    if p is not None:
+        check_patient(db, p, pid)  # a doctor works with their own patients only
     p = db.get(Patient, pid)
     if p is None or p.deleted_at is not None:
         raise not_found()
@@ -258,7 +261,7 @@ def dental_record(
     q: str | None = Query(None, max_length=100),
 ) -> DentalRecord:
     """Visit history newest first plus chart findings. Opening the dental record is a logged read."""
-    _patient(db, patient_id)
+    _patient(db, patient_id, p)
     query = select(DentalVisit).where(
         DentalVisit.patient_id == patient_id, DentalVisit.deleted_at.is_(None)
     )
@@ -291,7 +294,7 @@ def dental_record(
 
 @router.post("/patients/{patient_id}/dental/visits", response_model=VisitOut, status_code=201)
 def create_visit(patient_id: int, body: VisitIn, db: DbSession, p: Principal = Editor) -> VisitOut:
-    _patient(db, patient_id)
+    _patient(db, patient_id, p)
     _check_refs(db, patient_id, body.doctor_id, body.department_id, body.appointment_id)
     from app.routers.clinical import own_doctor_only
 
@@ -315,17 +318,19 @@ def create_visit(patient_id: int, body: VisitIn, db: DbSession, p: Principal = E
     return _visits_out(db, [v], p, now, get_dental_settings(db).edit_hours)[0]
 
 
-def _visit(db: Session, visit_id: int) -> DentalVisit:
+def _visit(db: Session, visit_id: int, p: Principal | None = None) -> DentalVisit:
     v = db.get(DentalVisit, visit_id)
     if v is None or v.deleted_at is not None:
         raise not_found()
+    if p is not None:
+        check_patient(db, p, v.patient_id)
     return v
 
 
 @router.patch("/dental-visits/{visit_id}", response_model=VisitOut)
 def update_visit(visit_id: int, body: VisitPatch, db: DbSession, p: Principal = Editor) -> VisitOut:
     """Only the visit's doctor, and only within the edit window (default 24 hours)."""
-    v = _visit(db, visit_id)
+    v = _visit(db, visit_id, p)
     now = db.scalar(select(func.now()))
     hours = get_dental_settings(db).edit_hours
     if not _is_visit_doctor(db, v, p):
@@ -345,7 +350,7 @@ def update_visit(visit_id: int, body: VisitPatch, db: DbSession, p: Principal = 
 
 @router.post("/dental-visits/{visit_id}/addenda", response_model=VisitOut, status_code=201)
 def add_addendum(visit_id: int, body: AddendumIn, db: DbSession, p: Principal = Editor) -> VisitOut:
-    v = _visit(db, visit_id)
+    v = _visit(db, visit_id, p)
     db.add(DentalVisitAddendum(visit_id=v.id, text=body.text.strip(), created_by=p.user.id))
     db.commit()
     return _visits_out(
@@ -357,7 +362,7 @@ def add_addendum(visit_id: int, body: AddendumIn, db: DbSession, p: Principal = 
 def add_finding(
     patient_id: int, body: FindingIn, db: DbSession, p: Principal = Editor
 ) -> ToothFinding:
-    _patient(db, patient_id)
+    _patient(db, patient_id, p)
     if body.visit_id is not None:
         v = db.get(DentalVisit, body.visit_id)
         if v is None or v.patient_id != patient_id:

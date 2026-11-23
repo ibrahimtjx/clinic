@@ -40,6 +40,7 @@ from app.schemas_patients import (
     PatientQuick,
     PatientUpdate,
 )
+from app.scope import check_patient, patient_scope, scoped_doctor
 from app.services.patient_search import apply_search, base_query
 
 router = APIRouter(prefix="/patients", tags=["patients"])
@@ -64,7 +65,11 @@ def _err(code: str, http: int = status.HTTP_422_UNPROCESSABLE_CONTENT, **extra) 
     return HTTPException(http, detail={"code": code, **extra})
 
 
-def _get(db: Session, patient_id: int, *, deleted_ok: bool = False) -> Patient:
+def _get(
+    db: Session, patient_id: int, *, deleted_ok: bool = False, p: Principal | None = None
+) -> Patient:
+    if p is not None:
+        check_patient(db, p, patient_id)  # a doctor sees their own patients only
     p = db.get(Patient, patient_id)
     if p is None or (p.deleted_at is not None and not deleted_ok):
         raise not_found()
@@ -159,7 +164,7 @@ def _list_items(db: Session, q: Select) -> list[PatientListItem]:
 @router.get("", response_model=PatientPage)
 def list_patients(
     db: DbSession,
-    _: Principal = Viewer,
+    p: Principal = Viewer,
     q: str | None = Query(None, max_length=100),
     doctor_id: int | None = None,
     insurance_company_id: int | None = None,
@@ -181,6 +186,8 @@ def list_patients(
         created_to=created_to,
         include_inactive=include_inactive,
     )
+    if (scope := patient_scope(db, p)) is not None:
+        query = query.where(scope)
     total = db.scalar(select(func.count()).select_from(query.order_by(None).subquery()))
     order = _sort(sort) or rank or [Patient.file_no.desc()]
     items = _list_items(
@@ -192,23 +199,27 @@ def list_patients(
 @router.get("/search", response_model=list[PatientQuick])
 def quick_search(
     db: DbSession,
-    _: Principal = Viewer,
+    p: Principal = Viewer,
     q: str = Query(min_length=1, max_length=100),
     limit: int = Query(8, ge=1, le=20),
 ) -> list[Patient]:
     """As-you-type search for the top bar and the Ctrl+K palette."""
     query, rank = apply_search(base_query(), q)
+    if (scope := patient_scope(db, p)) is not None:
+        query = query.where(scope)
     return list(db.scalars(query.order_by(*rank, Patient.id).limit(limit)))
 
 
 @router.get("/duplicates", response_model=list[DuplicateOut])
 def find_duplicates(
     db: DbSession,
-    _: Principal = Viewer,
+    p: Principal = Viewer,
     national_id: str | None = None,
     mobile: str | None = None,
     exclude_id: int | None = None,
 ) -> list[DuplicateOut]:
+    if scoped_doctor(db, p) is not None:
+        return []  # doctors do not register patients; names of others' patients stay private
     return _duplicates(db, national_id, mobile, exclude_id)
 
 
@@ -300,7 +311,10 @@ def create_patient(
 
 @router.get("/{patient_id}", response_model=PatientOut)
 def get_patient(patient_id: int, db: DbSession, principal: Principal = Viewer) -> PatientOut:
-    return _out(db, _get(db, patient_id, deleted_ok=principal.can("record.view_deleted")))
+    return _out(
+        db,
+        _get(db, patient_id, deleted_ok=principal.can("record.view_deleted"), p=principal),
+    )
 
 
 @router.patch("/{patient_id}", response_model=PatientOut)
@@ -310,7 +324,7 @@ def update_patient(
     db: DbSession,
     p: Principal = Depends(require("patient.edit")),
 ) -> PatientOut:
-    patient = _get(db, patient_id)
+    patient = _get(db, patient_id, p=p)
     check_version(patient.version, body.version, updater_name(db, patient), patient.updated_at)
     fields = body.model_dump(
         exclude_unset=True, exclude={"version", "insurance", "clear_insurance"}
@@ -354,7 +368,7 @@ def read_health(
     patient_id: int, db: DbSession, p: Principal = Depends(require("patient.medical_view"))
 ) -> Patient:
     """Opening the medical file is logged for privacy reviews (SPEC 3.4)."""
-    patient = _get(db, patient_id)
+    patient = _get(db, patient_id, p=p)
     log_event(db, "read", "patients", patient.id, new={"section": "health"})
     db.commit()
     return patient
@@ -371,7 +385,7 @@ def write_health(
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, detail={"code": "forbidden", "missing": ["patient.edit"]}
         )
-    patient = _get(db, patient_id)
+    patient = _get(db, patient_id, p=p)
     check_version(patient.version, body.version, updater_name(db, patient), patient.updated_at)
     for k, v in body.model_dump(exclude={"version"}).items():
         setattr(patient, k, v.strip())
@@ -382,7 +396,7 @@ def write_health(
 
 
 def _set_active(db: Session, patient_id: int, active: bool, p: Principal) -> PatientOut:
-    patient = _get(db, patient_id)
+    patient = _get(db, patient_id, p=p)
     patient.is_active = active
     patient.updated_by = p.user.id
     db.commit()
@@ -408,7 +422,7 @@ def activate(
 def delete_patient(
     patient_id: int, db: DbSession, p: Principal = Depends(require("patient.delete"))
 ) -> None:
-    patient = _get(db, patient_id)
+    patient = _get(db, patient_id, p=p)
     patient.deleted_at = db.scalar(select(func.now()))
     patient.deleted_by = p.user.id
     patient.updated_by = p.user.id
@@ -419,7 +433,7 @@ def delete_patient(
 def restore_patient(
     patient_id: int, db: DbSession, p: Principal = Depends(require("patient.delete"))
 ) -> PatientOut:
-    patient = _get(db, patient_id, deleted_ok=True)
+    patient = _get(db, patient_id, deleted_ok=True, p=p)
     patient.deleted_at = None
     patient.deleted_by = None
     patient.updated_by = p.user.id
@@ -430,10 +444,10 @@ def restore_patient(
 
 @router.get("/{patient_id}/activity", response_model=list[AuditOut])
 def patient_activity(
-    patient_id: int, db: DbSession, _: Principal = Depends(require("audit.view"))
+    patient_id: int, db: DbSession, p: Principal = Depends(require("audit.view"))
 ) -> list[AuditOut]:
     """Audit trail for this patient (SPEC 5.2 tab 10): record changes, insurance, assignments, reads."""
-    _get(db, patient_id, deleted_ok=True)
+    _get(db, patient_id, deleted_ok=True, p=p)
     ins_ids = select(cast(PatientInsurance.id, String)).where(
         PatientInsurance.patient_id == patient_id
     )
@@ -564,9 +578,9 @@ def _assignment_out(db: Session, a: PatientAssignment) -> AssignmentOut:
 
 @router.get("/{patient_id}/assignments", response_model=list[AssignmentOut])
 def list_patient_assignments(
-    patient_id: int, db: DbSession, _: Principal = Viewer
+    patient_id: int, db: DbSession, p: Principal = Viewer
 ) -> list[AssignmentOut]:
-    _get(db, patient_id)
+    _get(db, patient_id, p=p)
     rows = db.scalars(
         select(PatientAssignment)
         .where(PatientAssignment.patient_id == patient_id)
@@ -582,7 +596,7 @@ def assign_patient(
     db: DbSession,
     p: Principal = Depends(require("patient.assign")),
 ) -> AssignmentOut:
-    _get(db, patient_id)
+    _get(db, patient_id, p=p)
     to = db.get(User, body.assigned_to)
     if to is None or not to.is_active or to.deleted_at is not None:
         raise _err("unknown_user")
