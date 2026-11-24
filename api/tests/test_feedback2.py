@@ -61,6 +61,7 @@ def test_doctor_statement_own_only(client, setup, db, make_user):
     doc = db.scalar(select(Doctor).where(Doctor.name_ar == "د. ريم"))
     reem = db.scalar(select(User).where(User.username == "reem"))
     doc.user_id = reem.id
+    db.get(Patient, setup["resident"].id).default_doctor_id = doc.id  # her patient
     doc.commission_rules = [DoctorCommissionRule(percent=30)]
     other = Doctor(name_ar="د. آخر")
     db.add(other)

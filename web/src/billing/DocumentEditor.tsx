@@ -79,7 +79,7 @@ const STATUS_COLOR: Record<string, string> = { draft: 'neutral', sent: 'blue', a
 export function DocumentEditor() {
   const { t } = useTranslation();
   const { lang, digits } = usePrefs();
-  const { can } = useAuth();
+  const { can, me } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { kind: kindParam, id } = useParams();
@@ -91,6 +91,8 @@ export function DocumentEditor() {
   const patientId = isNew ? Number(params.get('patient')) : doc.data?.patient_id;
   const patient = usePatient(patientId ?? 0);
   const doctors = useDoctors();
+  // A doctor writes bills and quotations in their own name only (owner, 2026-11-23).
+  const myDoctor = can('appointment.view_all') ? undefined : doctors.data?.find((x) => x.user_id === me?.id);
   const services = useServices();
   const classes = useQuery({ queryKey: ['master', 'insurance-classes'], queryFn: () => api<InsuranceClass[]>('/insurance-classes') });
 
@@ -105,9 +107,13 @@ export function DocumentEditor() {
   const [collecting, setCollecting] = useState(false);
 
   useEffect(() => {
+    if (isNew && myDoctor) setDoctorId(myDoctor.id); // the doctors list may arrive after the page
+  }, [isNew, myDoctor]);
+
+  useEffect(() => {
     if (isNew) {
       const plan = Number(params.get('plan')) || null;
-      setDoctorId(Number(params.get('doctor')) || patient.data?.default_doctor_id || null);
+      setDoctorId(myDoctor?.id ?? (Number(params.get('doctor')) || patient.data?.default_doctor_id || null));
       setLines([blankLine()]);
       setBase(JSON.stringify({ l: [], plan }));
     } else if (doc.data) {
@@ -231,8 +237,8 @@ export function DocumentEditor() {
               data={(doctors.data ?? []).map((x) => ({ value: String(x.id), label: nameOf(x, lang) }))}
               value={doctorId ? String(doctorId) : null}
               onChange={(v) => setDoctorId(v ? Number(v) : null)}
-              disabled={!editable}
-              clearable
+              disabled={!editable || !!myDoctor}
+              clearable={!myDoctor}
             />
             {d && (
               <Text size="xs" c="dimmed">

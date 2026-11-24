@@ -382,7 +382,8 @@ def test_soft_delete_and_permissions(client, setup, make_user, db):
     assert book(client, setup, patient="p2").status_code == 201  # slot free again
     make_user("faisal", ["cashier"])
     login(client, "faisal")
-    assert client.get("/appointments", params={"patient_id": setup["p1"].id}).status_code == 403
+    # The accountant sees every calendar (owner, 2026-11-23).
+    assert client.get("/appointments", params={"patient_id": setup["p1"].id}).status_code == 200
     actions = db.scalars(
         select(AuditLog.action)
         .where(AuditLog.table_name == "appointments", AuditLog.record_id == str(a["id"]))

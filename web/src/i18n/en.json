@@ -362,7 +362,7 @@
     "file_view": "View images and documents",
     "file_upload": "Upload images and documents",
     "file_delete": "Remove images and documents",
-    "appointment_view_all": "See every doctor's appointments",
+    "appointment_view_all": "See every doctor's appointments and patients",
     "report_own": "Own doctor statement",
     "invoice_correct": "Correct issued invoices"
   },
@@ -522,7 +522,7 @@
     "price_out_of_range": "The price is outside the allowed range.",
     "discount_too_large": "The discount is larger than the line.",
     "invalid_filters": "Check the dates: the end must be after the start, and the range at most two years.",
-    "other_doctor": "Doctors write in their own name. Choose yourself as the doctor.",
+    "other_doctor": "This belongs to another doctor. Doctors write and change only their own documents.",
     "duplicate_lab_item": "The same test appears twice in the results.",
     "unknown_lab_item": "That test is not on this request.",
     "date_in_future": "The date cannot be in the future.",

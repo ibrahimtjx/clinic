@@ -43,6 +43,8 @@ from app.services.settings import save_setting
 Money = Annotated[Decimal, PlainSerializer(lambda v: f"{v:.2f}", return_type=str)]
 MoneyIn = Annotated[Decimal, Field(ge=0, max_digits=12, decimal_places=2)]
 
+from app.scope import check_doctor, check_patient, own_doctor_id, scoped_doctor
+
 router = APIRouter(tags=["billing"])
 QView = Depends(require("quotation.view"))
 QEdit = Depends(require("quotation.edit"))
@@ -58,7 +60,9 @@ def _today(db: Session) -> date:
     return local(db.scalar(select(func.now()))).date()
 
 
-def _patient(db: Session, pid: int) -> Patient:
+def _patient(db: Session, pid: int, p: Principal | None = None) -> Patient:
+    if p is not None:
+        check_patient(db, p, pid)  # a doctor works with their own patients only
     p = db.get(Patient, pid)
     if p is None or p.deleted_at is not None:
         raise _err("unknown_patient")
@@ -189,7 +193,7 @@ class PreviewOut(TotalsOut):
 @router.post("/pricing/preview", response_model=PreviewOut)
 def preview(body: PreviewIn, db: DbSession, p: Principal = QView) -> PreviewOut:
     """Live totals while editing; the same calculation runs again on save (nothing from here is trusted)."""
-    patient = _patient(db, body.patient_id)
+    patient = _patient(db, body.patient_id, p)
     rows, totals, snap, saudi = documents.build(
         db, patient, body.lines, body.insurance, p, _today(db)
     )
@@ -313,22 +317,26 @@ def _expire(db: Session, q: Quotation) -> None:
         q.status = "expired"
 
 
-def _get_q(db: Session, qid: int) -> Quotation:
+def _get_q(db: Session, qid: int, p: Principal | None = None, *, write: bool = False) -> Quotation:
     q = db.get(Quotation, qid)
     if q is None or q.deleted_at is not None:
         raise not_found()
+    if p is not None:  # a doctor reads and changes only their own documents
+        check_doctor(db, p, q.doctor_id, hide=not write)
     return q
 
 
 @router.get("/quotations", response_model=list[QuotationOut])
 def list_quotations(
     db: DbSession,
-    _: Principal = QView,
+    p: Principal = QView,
     patient_id: int | None = None,
     status_: str | None = Query(None, alias="status"),
     limit: int = Query(200, le=1000),
 ) -> list[QuotationOut]:
     q = select(Quotation).where(Quotation.deleted_at.is_(None))
+    if (mine := scoped_doctor(db, p)) is not None:
+        q = q.where(Quotation.doctor_id == mine)
     if patient_id:
         q = q.where(Quotation.patient_id == patient_id)
     if status_:
@@ -341,8 +349,8 @@ def list_quotations(
 
 
 @router.get("/quotations/{qid}", response_model=QuotationOut)
-def get_quotation(qid: int, db: DbSession, _: Principal = QView) -> QuotationOut:
-    q = _get_q(db, qid)
+def get_quotation(qid: int, db: DbSession, p: Principal = QView) -> QuotationOut:
+    q = _get_q(db, qid, p)
     _expire(db, q)
     db.commit()
     return _doc_out(db, q, "quotation")
@@ -350,7 +358,8 @@ def get_quotation(qid: int, db: DbSession, _: Principal = QView) -> QuotationOut
 
 @router.post("/quotations", response_model=QuotationOut, status_code=201)
 def create_quotation(body: DocIn, db: DbSession, p: Principal = QEdit) -> QuotationOut:
-    patient = _patient(db, body.patient_id)
+    patient = _patient(db, body.patient_id, p)
+    body.doctor_id = own_doctor_id(db, p, body.doctor_id)
     doctor = _check_doc_refs(db, patient.id, body.doctor_id, body.plan_id)
     today = _today(db)
     rows, totals, snap, saudi = documents.build(db, patient, body.lines, body.insurance, p, today)
@@ -376,7 +385,7 @@ def create_quotation(body: DocIn, db: DbSession, p: Principal = QEdit) -> Quotat
 @router.patch("/quotations/{qid}", response_model=QuotationOut)
 def update_quotation(qid: int, body: DocPatch, db: DbSession, p: Principal = QEdit) -> QuotationOut:
     """Editable until accepted, converted or expired (SPEC 10.2)."""
-    q = _get_q(db, qid)
+    q = _get_q(db, qid, p, write=True)
     _expire(db, q)
     if q.status not in ("draft", "sent"):
         db.commit()
@@ -389,8 +398,9 @@ def update_quotation(qid: int, body: DocPatch, db: DbSession, p: Principal = QEd
 
 
 def _update_doc(db: Session, doc, kind: str, body: DocPatch, p: Principal) -> None:
-    patient = _patient(db, doc.patient_id)
+    patient = _patient(db, doc.patient_id, p)
     if "doctor_id" in body.model_fields_set:
+        body.doctor_id = own_doctor_id(db, p, body.doctor_id)
         doctor = _check_doc_refs(db, patient.id, body.doctor_id, None)
         doc.doctor_id = body.doctor_id
         doc.clinic_id = doctor.clinic_id if doctor else None
@@ -429,7 +439,7 @@ def convert_to_payment_order(
     qid: int, body: QuoteAction, db: DbSession, p: Principal = QEdit
 ) -> PaymentOrderOut:
     """Copy the quotation into a new payment order; prices and shares are recalculated today (SPEC 10.3)."""
-    q = _get_q(db, qid)
+    q = _get_q(db, qid, p, write=True)
     _expire(db, q)
     check_version(q.version, body.version, updater_name(db, q), q.updated_at)
     if q.status not in ("draft", "sent", "accepted"):
@@ -470,7 +480,7 @@ def quotation_action(
     db: DbSession,
     p: Principal = QEdit,
 ) -> QuotationOut:
-    q = _get_q(db, qid)
+    q = _get_q(db, qid, p, write=True)
     _expire(db, q)
     check_version(q.version, body.version, updater_name(db, q), q.updated_at)
     allowed = {
@@ -489,10 +499,14 @@ def quotation_action(
 
 
 # ---------------------------------------------------------------- payment orders (SPEC 10.2, 10.5)
-def _get_po(db: Session, pid: int) -> PaymentOrder:
+def _get_po(
+    db: Session, pid: int, p: Principal | None = None, *, write: bool = False
+) -> PaymentOrder:
     po = db.get(PaymentOrder, pid)
     if po is None or po.deleted_at is not None:
         raise not_found()
+    if p is not None:  # a doctor reads and changes only their own documents
+        check_doctor(db, p, po.doctor_id, hide=not write)
     return po
 
 
@@ -508,7 +522,8 @@ def _new_po(
     quotation_id=None,
     installment_id=None,
 ) -> PaymentOrder:
-    patient = _patient(db, patient_id)
+    patient = _patient(db, patient_id, p)
+    doctor_id = own_doctor_id(db, p, doctor_id)
     doctor = _check_doc_refs(db, patient.id, doctor_id, plan_id)
     rows, totals, snap, saudi = documents.build(db, patient, lines, choice, p, _today(db))
     po = PaymentOrder(
@@ -543,6 +558,8 @@ def list_payment_orders(
             status.HTTP_403_FORBIDDEN, detail={"code": "forbidden", "missing": ["quotation.view"]}
         )
     q = select(PaymentOrder).where(PaymentOrder.deleted_at.is_(None))
+    if (mine := scoped_doctor(db, p)) is not None:
+        q = q.where(PaymentOrder.doctor_id == mine)
     if patient_id:
         q = q.where(PaymentOrder.patient_id == patient_id)
     if status_:
@@ -562,7 +579,15 @@ def waiting_count(db: DbSession, p: CurrentUser) -> dict:
     n = db.scalar(
         select(func.count())
         .select_from(PaymentOrder)
-        .where(PaymentOrder.status == "sent", PaymentOrder.deleted_at.is_(None))
+        .where(
+            PaymentOrder.status == "sent",
+            PaymentOrder.deleted_at.is_(None),
+            *(
+                [PaymentOrder.doctor_id == mine]
+                if (mine := scoped_doctor(db, p)) is not None
+                else []
+            ),
+        )
     )
     return {"count": n}
 
@@ -573,7 +598,7 @@ def get_payment_order(pid: int, db: DbSession, p: CurrentUser) -> PaymentOrderOu
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, detail={"code": "forbidden", "missing": ["quotation.view"]}
         )
-    return _doc_out(db, _get_po(db, pid), "payment_order")
+    return _doc_out(db, _get_po(db, pid, p), "payment_order")
 
 
 @router.post("/payment-orders", response_model=PaymentOrderOut, status_code=201)
@@ -591,7 +616,7 @@ def update_payment_order(
     pid: int, body: DocPatch, db: DbSession, p: Principal = QEdit
 ) -> PaymentOrderOut:
     """Editable until paid (SPEC 10.2)."""
-    po = _get_po(db, pid)
+    po = _get_po(db, pid, p, write=True)
     if po.status not in ("draft", "sent"):
         raise _err("document_closed", status.HTTP_409_CONFLICT, status=po.status)
     check_version(po.version, body.version, updater_name(db, po), po.updated_at)
@@ -611,7 +636,7 @@ def send_to_reception(
     pid: int, body: SendIn, db: DbSession, p: Principal = QEdit
 ) -> PaymentOrderOut:
     """Doctor sends the order to reception for payment (SPEC 10.3 primary action)."""
-    po = _get_po(db, pid)
+    po = _get_po(db, pid, p, write=True)
     check_version(po.version, body.version, updater_name(db, po), po.updated_at)
     if po.status != "draft":
         raise _err("document_closed", status.HTTP_409_CONFLICT, status=po.status)
@@ -629,7 +654,7 @@ def send_to_reception(
 def cancel_payment_order(
     pid: int, body: QuoteAction, db: DbSession, p: Principal = QEdit
 ) -> PaymentOrderOut:
-    po = _get_po(db, pid)
+    po = _get_po(db, pid, p, write=True)
     check_version(po.version, body.version, updater_name(db, po), po.updated_at)
     if po.status not in ("draft", "sent"):
         raise _err("document_closed", status.HTTP_409_CONFLICT, status=po.status)
@@ -758,10 +783,14 @@ def _plan_out(db: Session, plan: TreatmentPlan) -> PlanOut:
     return o
 
 
-def _get_plan(db: Session, pid: int) -> TreatmentPlan:
+def _get_plan(
+    db: Session, pid: int, p: Principal | None = None, *, write: bool = False
+) -> TreatmentPlan:
     plan = db.get(TreatmentPlan, pid)
     if plan is None or plan.deleted_at is not None:
         raise not_found()
+    if p is not None:  # a doctor reads and changes only their own documents
+        check_doctor(db, p, plan.doctor_id, hide=not write)
     return plan
 
 
@@ -788,14 +817,16 @@ def _replace_children(plan: TreatmentPlan, options, sessions, installments) -> N
 
 @router.get("/treatment-plans", response_model=list[PlanOut])
 def list_plans(
-    db: DbSession, _: Principal = PView, patient_id: int | None = None, open_only: bool = False
+    db: DbSession, p: Principal = PView, patient_id: int | None = None, open_only: bool = False
 ) -> list[PlanOut]:
     q = select(TreatmentPlan).where(TreatmentPlan.deleted_at.is_(None))
+    if (mine := scoped_doctor(db, p)) is not None:
+        q = q.where(TreatmentPlan.doctor_id == mine)
     if patient_id:
         q = q.where(TreatmentPlan.patient_id == patient_id)
     if open_only:
         q = q.where(TreatmentPlan.status.in_(OPEN))
-    return [_plan_out(db, p) for p in db.scalars(q.order_by(TreatmentPlan.id.desc()))]
+    return [_plan_out(db, pl) for pl in db.scalars(q.order_by(TreatmentPlan.id.desc()))]
 
 
 class OverdueOut(BaseModel):
@@ -828,6 +859,11 @@ def overdue_installments(db: DbSession, p: CurrentUser) -> list[OverdueOut]:
             PlanInstallment.paid_amount < PlanInstallment.amount,
             TreatmentPlan.status.in_(("accepted", "in_progress")),
             TreatmentPlan.deleted_at.is_(None),
+            *(
+                [TreatmentPlan.doctor_id == mine]
+                if (mine := scoped_doctor(db, p)) is not None
+                else []
+            ),
         )
         .order_by(PlanInstallment.due_date)
     ).all()
@@ -849,13 +885,14 @@ def overdue_installments(db: DbSession, p: CurrentUser) -> list[OverdueOut]:
 
 
 @router.get("/treatment-plans/{pid}", response_model=PlanOut)
-def get_plan(pid: int, db: DbSession, _: Principal = PView) -> PlanOut:
-    return _plan_out(db, _get_plan(db, pid))
+def get_plan(pid: int, db: DbSession, p: Principal = PView) -> PlanOut:
+    return _plan_out(db, _get_plan(db, pid, p))
 
 
 @router.post("/treatment-plans", response_model=PlanOut, status_code=201)
 def create_plan(body: PlanIn, db: DbSession, p: Principal = PEdit) -> PlanOut:
-    _patient(db, body.patient_id)
+    _patient(db, body.patient_id, p)
+    body.doctor_id = own_doctor_id(db, p, body.doctor_id)
     _check_plan_refs(db, body.doctor_id, body.department_id, body.sessions)
     if body.discount > body.total_price:
         raise _err("discount_exceeds_price")
@@ -873,10 +910,12 @@ def create_plan(body: PlanIn, db: DbSession, p: Principal = PEdit) -> PlanOut:
 
 @router.patch("/treatment-plans/{pid}", response_model=PlanOut)
 def update_plan(pid: int, body: PlanPatch, db: DbSession, p: Principal = PEdit) -> PlanOut:
-    plan = _get_plan(db, pid)
+    plan = _get_plan(db, pid, p, write=True)
     check_version(plan.version, body.version, updater_name(db, plan), plan.updated_at)
     if plan.status in ("completed", "cancelled"):
         raise _err("plan_closed", status.HTTP_409_CONFLICT)
+    if "doctor_id" in body.model_fields_set and body.doctor_id is not None:
+        body.doctor_id = own_doctor_id(db, p, body.doctor_id)
     _check_plan_refs(db, body.doctor_id, body.department_id, body.sessions)
     accepted = plan.status in ("accepted", "in_progress")
     if accepted and (
@@ -915,7 +954,7 @@ TRANSITIONS = {
 
 @router.post("/treatment-plans/{pid}/status", response_model=PlanOut)
 def set_plan_status(pid: int, body: PlanStatusIn, db: DbSession, p: Principal = PEdit) -> PlanOut:
-    plan = _get_plan(db, pid)
+    plan = _get_plan(db, pid, p, write=True)
     check_version(plan.version, body.version, updater_name(db, plan), plan.updated_at)
     if body.status not in TRANSITIONS.get(plan.status, set()):
         raise _err("invalid_transition", status.HTTP_409_CONFLICT, current=plan.status)
@@ -937,7 +976,7 @@ class AcceptIn(BaseModel):
 @router.post("/treatment-plans/{pid}/accept", response_model=PlanOut)
 def accept_plan(pid: int, body: AcceptIn, db: DbSession, p: Principal = PEdit) -> PlanOut:
     """Patient accepts the plan (or one of its options, which sets the price) (SPEC 9)."""
-    plan = _get_plan(db, pid)
+    plan = _get_plan(db, pid, p, write=True)
     check_version(plan.version, body.version, updater_name(db, plan), plan.updated_at)
     if plan.status not in ("draft", "proposed"):
         raise _err("invalid_transition", status.HTTP_409_CONFLICT, current=plan.status)
@@ -984,7 +1023,7 @@ def generate_installments(
 ) -> PlanOut:
     """Payment schedule: optional down payment today, then equal installments; the halala remainder
     goes on the last one so the schedule adds up exactly to the plan's net price."""
-    plan = _get_plan(db, pid)
+    plan = _get_plan(db, pid, p, write=True)
     check_version(plan.version, body.version, updater_name(db, plan), plan.updated_at)
     if any(i.paid_amount > 0 for i in plan.installments):
         raise _err("installments_have_payments", status.HTTP_409_CONFLICT)
@@ -1024,7 +1063,7 @@ def installment_payment_order(
     pid: int, iid: int, body: InstallmentOrderIn, db: DbSession, p: Principal = QEdit
 ) -> PaymentOrderOut:
     """Send an installment to reception as a payment order (paid in M8; paying it updates the plan)."""
-    plan = _get_plan(db, pid)
+    plan = _get_plan(db, pid, p, write=True)
     inst = next((i for i in plan.installments if i.id == iid), None)
     if inst is None:
         raise not_found()

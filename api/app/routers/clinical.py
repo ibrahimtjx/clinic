@@ -30,6 +30,7 @@ from app.models import (
     User,
 )
 from app.schemas_master import _Out
+from app.scope import check_doctor, check_patient
 from app.services.settings import get_dental_settings
 
 router = APIRouter(tags=["clinical"])
@@ -126,7 +127,9 @@ def _err(code: str, http: int = status.HTTP_422_UNPROCESSABLE_CONTENT, **extra) 
     return HTTPException(http, detail={"code": code, **extra})
 
 
-def _patient(db: Session, pid: int) -> Patient:
+def _patient(db: Session, pid: int, p: Principal | None = None) -> Patient:
+    if p is not None:
+        check_patient(db, p, pid)  # a doctor works with their own patients only
     p = db.get(Patient, pid)
     if p is None or p.deleted_at is not None:
         raise not_found()
@@ -277,16 +280,18 @@ def _rx_out(db, rx: Prescription, p, now=None) -> RxOut:
     return _decorate(db, RxOut.model_validate(rx), rx, p, now or _now(db))
 
 
-def _get_rx(db: Session, rid: int) -> Prescription:
+def _get_rx(db: Session, rid: int, p: Principal | None = None) -> Prescription:
     rx = db.get(Prescription, rid)
     if rx is None or rx.deleted_at is not None:
         raise not_found()
+    if p is not None:
+        check_patient(db, p, rx.patient_id)
     return rx
 
 
 @router.get("/patients/{pid}/prescriptions", response_model=list[RxOut])
 def list_prescriptions(pid: int, db: DbSession, p: Principal = Viewer) -> list[RxOut]:
-    _patient(db, pid)
+    _patient(db, pid, p)
     now = _now(db)
     rows = db.scalars(
         select(Prescription)
@@ -300,12 +305,12 @@ def list_prescriptions(pid: int, db: DbSession, p: Principal = Viewer) -> list[R
 
 @router.get("/prescriptions/{rid}", response_model=RxOut)
 def get_prescription(rid: int, db: DbSession, p: Principal = Viewer) -> RxOut:
-    return _rx_out(db, _get_rx(db, rid), p)
+    return _rx_out(db, _get_rx(db, rid, p), p)
 
 
 @router.post("/patients/{pid}/prescriptions", response_model=RxOut, status_code=201)
 def create_prescription(pid: int, body: RxIn, db: DbSession, p: Principal = Editor) -> RxOut:
-    _patient(db, pid)
+    _patient(db, pid, p)
     _refs(db, pid, body.doctor_id, body.visit_id, p)
     rx = Prescription(
         patient_id=pid,
@@ -326,7 +331,7 @@ def create_prescription(pid: int, body: RxIn, db: DbSession, p: Principal = Edit
 
 @router.patch("/prescriptions/{rid}", response_model=RxOut)
 def update_prescription(rid: int, body: RxPatch, db: DbSession, p: Principal = Editor) -> RxOut:
-    rx = _get_rx(db, rid)
+    rx = _get_rx(db, rid, p)
     check_version(rx.version, body.version, updater_name(db, rx), rx.updated_at)
     _check_edit(db, rx, p)
     if body.diagnosis is not None:
@@ -345,7 +350,7 @@ def update_prescription(rid: int, body: RxPatch, db: DbSession, p: Principal = E
 
 @router.post("/prescriptions/{rid}/cancel", response_model=RxOut)
 def cancel_prescription(rid: int, body: CancelIn, db: DbSession, p: Principal = Editor) -> RxOut:
-    rx = _get_rx(db, rid)
+    rx = _get_rx(db, rid, p)
     _cancel(db, rx, body, p)
     db.commit()
     db.refresh(rx)
@@ -416,10 +421,12 @@ def _lab_out(db, r: LabRequest, p, now=None) -> LabOut:
     return o
 
 
-def _get_lab(db: Session, lid: int) -> LabRequest:
+def _get_lab(db: Session, lid: int, p: Principal | None = None) -> LabRequest:
     r = db.get(LabRequest, lid)
     if r is None or r.deleted_at is not None:
         raise not_found()
+    if p is not None:
+        check_patient(db, p, r.patient_id)
     return r
 
 
@@ -436,7 +443,7 @@ def _lab_items(db: Session, items: list[LabItemIn]) -> list[LabRequestItem]:
 
 @router.get("/patients/{pid}/lab-requests", response_model=list[LabOut])
 def list_lab_requests(pid: int, db: DbSession, p: Principal = Viewer) -> list[LabOut]:
-    _patient(db, pid)
+    _patient(db, pid, p)
     now = _now(db)
     rows = db.scalars(
         select(LabRequest)
@@ -450,12 +457,12 @@ def list_lab_requests(pid: int, db: DbSession, p: Principal = Viewer) -> list[La
 
 @router.get("/lab-requests/{lid}", response_model=LabOut)
 def get_lab_request(lid: int, db: DbSession, p: Principal = Viewer) -> LabOut:
-    return _lab_out(db, _get_lab(db, lid), p)
+    return _lab_out(db, _get_lab(db, lid, p), p)
 
 
 @router.post("/patients/{pid}/lab-requests", response_model=LabOut, status_code=201)
 def create_lab_request(pid: int, body: LabIn, db: DbSession, p: Principal = Editor) -> LabOut:
-    _patient(db, pid)
+    _patient(db, pid, p)
     _refs(db, pid, body.doctor_id, body.visit_id, p)
     r = LabRequest(
         patient_id=pid,
@@ -477,7 +484,7 @@ def create_lab_request(pid: int, body: LabIn, db: DbSession, p: Principal = Edit
 
 @router.patch("/lab-requests/{lid}", response_model=LabOut)
 def update_lab_request(lid: int, body: LabPatch, db: DbSession, p: Principal = Editor) -> LabOut:
-    r = _get_lab(db, lid)
+    r = _get_lab(db, lid, p)
     check_version(r.version, body.version, updater_name(db, r), r.updated_at)
     _check_edit(db, r, p)
     if r.status == "resulted" and body.items is not None:
@@ -496,8 +503,10 @@ def update_lab_request(lid: int, body: LabPatch, db: DbSession, p: Principal = E
 
 @router.post("/lab-requests/{lid}/results", response_model=LabOut)
 def enter_results(lid: int, body: ResultsIn, db: DbSession, p: Principal = Editor) -> LabOut:
-    """Results from the lab, entered by any doctor (any time while the request is not cancelled)."""
-    r = _get_lab(db, lid)
+    """Results from the lab, entered by the requesting doctor (or staff who are not doctors), any
+    time while the request is not cancelled."""
+    r = _get_lab(db, lid, p)
+    check_doctor(db, p, r.doctor_id)  # another doctor's request: refused
     check_version(r.version, body.version, updater_name(db, r), r.updated_at)
     if r.status == "cancelled":
         raise _err("document_closed", status.HTTP_409_CONFLICT)
@@ -524,7 +533,7 @@ def enter_results(lid: int, body: ResultsIn, db: DbSession, p: Principal = Edito
 
 @router.post("/lab-requests/{lid}/cancel", response_model=LabOut)
 def cancel_lab_request(lid: int, body: CancelIn, db: DbSession, p: Principal = Editor) -> LabOut:
-    r = _get_lab(db, lid)
+    r = _get_lab(db, lid, p)
     _cancel(db, r, body, p)
     db.commit()
     db.refresh(r)
@@ -601,10 +610,12 @@ def _report_out(db, r: MedicalReport, p, now=None) -> ReportOut:
     return _decorate(db, o, r, p, now or _now(db))
 
 
-def _get_report(db: Session, rid: int) -> MedicalReport:
+def _get_report(db: Session, rid: int, p: Principal | None = None) -> MedicalReport:
     r = db.get(MedicalReport, rid)
     if r is None or r.deleted_at is not None:
         raise not_found()
+    if p is not None:
+        check_patient(db, p, r.patient_id)
     return r
 
 
@@ -612,7 +623,7 @@ def _get_report(db: Session, rid: int) -> MedicalReport:
 def list_reports(
     pid: int, db: DbSession, p: Principal = Viewer, kind: str | None = Query(None)
 ) -> list[ReportOut]:
-    _patient(db, pid)
+    _patient(db, pid, p)
     now = _now(db)
     q = select(MedicalReport).where(
         MedicalReport.patient_id == pid, MedicalReport.deleted_at.is_(None)
@@ -627,12 +638,12 @@ def list_reports(
 
 @router.get("/medical-reports/{rid}", response_model=ReportOut)
 def get_report(rid: int, db: DbSession, p: Principal = Viewer) -> ReportOut:
-    return _report_out(db, _get_report(db, rid), p)
+    return _report_out(db, _get_report(db, rid, p), p)
 
 
 @router.post("/patients/{pid}/medical-reports", response_model=ReportOut, status_code=201)
 def create_report(pid: int, body: ReportIn, db: DbSession, p: Principal = Editor) -> ReportOut:
-    _patient(db, pid)
+    _patient(db, pid, p)
     _refs(db, pid, body.doctor_id, body.visit_id, p)
     _check_leave(body.kind, body.leave_from, body.leave_to)
     if body.kind != "sick_leave":
@@ -652,7 +663,7 @@ def create_report(pid: int, body: ReportIn, db: DbSession, p: Principal = Editor
 
 @router.patch("/medical-reports/{rid}", response_model=ReportOut)
 def update_report(rid: int, body: ReportPatch, db: DbSession, p: Principal = Editor) -> ReportOut:
-    r = _get_report(db, rid)
+    r = _get_report(db, rid, p)
     check_version(r.version, body.version, updater_name(db, r), r.updated_at)
     _check_edit(db, r, p)
     for k, v in body.model_dump(exclude={"version"}, exclude_none=True).items():
@@ -668,7 +679,7 @@ def update_report(rid: int, body: ReportPatch, db: DbSession, p: Principal = Edi
 
 @router.post("/medical-reports/{rid}/cancel", response_model=ReportOut)
 def cancel_report(rid: int, body: CancelIn, db: DbSession, p: Principal = Editor) -> ReportOut:
-    r = _get_report(db, rid)
+    r = _get_report(db, rid, p)
     _cancel(db, r, body, p)
     db.commit()
     db.refresh(r)
