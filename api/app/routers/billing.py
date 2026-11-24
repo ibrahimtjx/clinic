@@ -256,6 +256,11 @@ class PaymentOrderOut(DocOutBase):
     sent_by_name: str | None = None
     invoice_id: int | None = None
     invoice_no: str | None = None
+    paid_amount: Money = Decimal(0)
+    remaining: Money = Decimal(0)
+    closed_reason: str = ""
+    corrects_invoice_id: int | None = None
+    invoices: list[dict] = []  # each payment's invoice: id, invoice_no, patient_share, issued_at
 
 
 def _doc_out(
@@ -269,10 +274,19 @@ def _doc_out(
     o.created_by_name = names.get(doc.created_by)
     if kind == "payment_order":
         o.sent_by_name = names.get(doc.sent_by)
-        if doc.status == "paid":
-            o.invoice_id, o.invoice_no = db.execute(
-                select(Invoice.id, Invoice.invoice_no).where(Invoice.payment_order_id == doc.id)
-            ).one()
+        invs = db.execute(
+            select(Invoice.id, Invoice.invoice_no, Invoice.patient_share, Invoice.issued_at)
+            .where(Invoice.payment_order_id == doc.id)
+            .order_by(Invoice.id)
+        ).all()
+        o.invoices = [
+            {"id": i, "invoice_no": n, "patient_share": f"{s:.2f}", "issued_at": at.isoformat()}
+            for i, n, s, at in invs
+        ]
+        if invs:
+            o.invoice_id, o.invoice_no = invs[-1][0], invs[-1][1]
+        if doc.status in ("part_paid", "paid"):
+            o.remaining = doc.patient_share - doc.paid_amount
     if with_lines:
         o.lines = [LineOut.model_validate(ln) for ln in documents.lines_of(db, kind, doc.id)]
     return o

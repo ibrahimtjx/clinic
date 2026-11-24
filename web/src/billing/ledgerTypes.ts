@@ -75,6 +75,10 @@ export interface Invoice {
   qr_payload: string;
   outstanding: string;
   credited: string;
+  portion: string;
+  corrects_invoice_id: number | null;
+  corrects_invoice_no: string | null;
+  corrected_by: { id: number; invoice_no: string }[];
   issued_by_name: string | null;
   doctor_name_ar: string | null;
   order_no: string | null;
@@ -131,11 +135,23 @@ export interface CreditNote extends CreditBrief {
   refund_receipt_id: number | null;
 }
 
+export interface UnpaidOrder {
+  id: number;
+  order_no: string;
+  sent_at: string | null;
+  doctor_name_ar: string | null;
+  patient_share: string;
+  paid_amount: string;
+  remaining: string;
+  version: number;
+}
+
 export interface Account {
   patient_id: number;
   balance: string;
   deposit_balance: string;
   unpaid: Invoice[];
+  unpaid_orders: UnpaidOrder[];
   receipts: Receipt[];
 }
 

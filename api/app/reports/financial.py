@@ -16,6 +16,7 @@ from app.models import (
     Invoice,
     InvoiceLine,
     Patient,
+    PaymentOrder,
     PlanInstallment,
     Receipt,
     ReceiptAllocation,
@@ -495,7 +496,6 @@ def doctor_statement(db: Session, f: Filters) -> Report:
         if invs
         else {}
     )
-    owed = ledger.outstanding(db, [i.id for i in invs]) if invs else {}
     rows = []
     for inv in invs:
         pt = patients[inv.patient_id]
@@ -509,7 +509,6 @@ def doctor_statement(db: Session, f: Filters) -> Report:
                 "vat": inv.vat,
                 "total": inv.total,
                 "patient_share": inv.patient_share,
-                "outstanding": owed.get(inv.id, Z),
             }
         )
     sec = Section(
@@ -524,10 +523,42 @@ def doctor_statement(db: Session, f: Filters) -> Report:
             Col("vat", "الضريبة", "VAT", "money"),
             Col("total", "الإجمالي", "Total", "money"),
             Col("patient_share", "حصة المريض", "Patient's share", "money"),
-            Col("outstanding", "المتبقي على المريض", "Still owed", "money"),
         ],
         rows,
-        totals(rows, ["net", "vat", "total", "patient_share", "outstanding"]),
+        totals(rows, ["net", "vat", "total", "patient_share"]),
+    )
+    # Bills of this doctor that patients still owe part of (today, whatever the period).
+    bills = []
+    for po in db.scalars(
+        select(PaymentOrder)
+        .where(PaymentOrder.doctor_id == f.doctor_id, PaymentOrder.status == "part_paid")
+        .order_by(PaymentOrder.billed_at, PaymentOrder.id)
+    ):
+        pt = db.get(Patient, po.patient_id)
+        bills.append(
+            {
+                "order_no": po.order_no,
+                "at": po.billed_at,
+                "patient": f"{pt.name_ar} ({pt.file_no})",
+                "patient_share": po.patient_share,
+                "paid": po.paid_amount,
+                "remaining": po.patient_share - po.paid_amount,
+            }
+        )
+    unpaid = Section(
+        "unpaid",
+        "فواتير لم تُسدد بالكامل",
+        "Bills not fully paid",
+        [
+            Col("order_no", "أمر الدفع", "Bill no."),
+            Col("at", "التاريخ", "Date", "datetime"),
+            Col("patient", "المريض (رقم الملف)", "Patient (file no.)"),
+            Col("patient_share", "حصة المريض", "Patient's share", "money"),
+            Col("paid", "المدفوع", "Paid", "money"),
+            Col("remaining", "المتبقي", "Still owed", "money"),
+        ],
+        bills,
+        totals(bills, ["patient_share", "paid", "remaining"]),
     )
     # Collected, refunded and commission: the same figures as the production report, for this doctor.
     prod_rows = doctor_production(db, f).sections[0].rows
@@ -548,7 +579,7 @@ def doctor_statement(db: Session, f: Filters) -> Report:
         Item("العمولة", "Commission", figures.get("commission", Z)),
     ]
     return Report(
-        [sec],
+        [sec, unpaid],
         summary=summary,
         notes_ar=[
             "المحصّل يشمل ما دُفع في الفترة على فواتير هذا الطبيب، حتى لو صدرت الفاتورة قبلها."
@@ -575,7 +606,51 @@ def account_statement(db: Session, f: Filters) -> Report:
         raise ValueError("patient_required")
     pid = f.patient_id
     events: list[tuple[datetime, int, dict]] = []
+    # A bill becomes owed when first collected; its invoices then record payments, not debt.
+    # Bills paid in full under the earlier rules (no billed_at) were owed through their invoice.
+    for po in db.scalars(
+        select(PaymentOrder).where(
+            PaymentOrder.patient_id == pid, PaymentOrder.billed_at.is_not(None)
+        )
+    ):
+        events.append(
+            (
+                po.billed_at,
+                0,
+                {
+                    "doc": po.order_no,
+                    "ar": "فاتورة مبدئية (أمر دفع)",
+                    "en": "Bill (payment order)",
+                    "owed": po.patient_share,
+                    "acct": Z,
+                },
+            )
+        )
+        if po.status == "closed" and po.closed_at:
+            events.append(
+                (
+                    po.closed_at,
+                    1,
+                    {
+                        "doc": po.order_no,
+                        "ar": f"إقفال المتبقي: {po.closed_reason}",
+                        "en": f"Rest written off: {po.closed_reason}",
+                        "owed": -(po.patient_share - po.paid_amount),
+                        "acct": Z,
+                    },
+                )
+            )
+    billed = {
+        i
+        for i in db.scalars(
+            select(PaymentOrder.id).where(
+                PaymentOrder.patient_id == pid, PaymentOrder.billed_at.is_not(None)
+            )
+        )
+    }
     for inv in db.scalars(select(Invoice).where(Invoice.patient_id == pid)):
+        if inv.payment_order_id in billed:
+            continue
         events.append(
             (
                 inv.issued_at,
@@ -700,25 +775,17 @@ def outstanding(db: Session, f: Filters) -> Report:
         q = q.where(Patient.id == f.patient_id)
     rows = []
     for pt in db.scalars(q):
-        ids = list(
-            db.scalars(
-                select(Invoice.id).where(Invoice.patient_id == pt.id).order_by(Invoice.issued_at)
-            )
-        )
-        owed = ledger.outstanding(db, ids)
-        oldest_id = next((i for i in ids if owed[i] > 0), None)
-        oldest = db.get(Invoice, oldest_id) if oldest_id else None
+        items = ledger.owed_items(db, pt.id)  # unpaid bills (and old unpaid invoices), oldest first
+        oldest = items[0][0] if items else None
         rows.append(
             {
                 "file_no": pt.file_no,
                 "patient": pt.name_ar,
                 "mobile": pt.mobile or "",
                 "balance": pt.balance,
-                "invoices": sum(1 for v in owed.values() if v > 0),
-                "oldest": oldest.issued_at if oldest else None,
-                "days": (today - oldest.issued_at.astimezone(RIYADH).date()).days
-                if oldest
-                else None,
+                "invoices": len(items),
+                "oldest": oldest,
+                "days": (today - oldest.astimezone(RIYADH).date()).days if oldest else None,
             }
         )
     balances = Section(
@@ -729,8 +796,8 @@ def outstanding(db: Session, f: Filters) -> Report:
             Col("file_no", "رقم الملف", "File no.", "int"),
             Col("patient", "المريض", "Patient"),
             Col("mobile", "الجوال", "Mobile"),
-            Col("invoices", "فواتير غير مسددة", "Unpaid invoices", "int"),
-            Col("oldest", "أقدم فاتورة", "Oldest invoice", "date"),
+            Col("invoices", "فواتير غير مسددة", "Unpaid bills", "int"),
+            Col("oldest", "أقدمها", "Oldest", "date"),
             Col("days", "منذ (يوم)", "Days", "int"),
             Col("balance", "المستحق", "Owed", "money"),
         ],

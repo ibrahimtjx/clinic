@@ -471,7 +471,9 @@ class _Demo:
                 self.db,
                 rp,
             )
-        self._backdate("invoices", res.invoice.id, "issued_at", when)
+        self._backdate("payment_orders", po.id, "billed_at", when)
+        if res.invoice:
+            self._backdate("invoices", res.invoice.id, "issued_at", when)
         if res.receipt:
             self._backdate("receipts", res.receipt.id, "received_at", when)
         return res
@@ -622,8 +624,12 @@ class _Demo:
                     if share == "part"
                     else Decimal(0)
                 )
-                invoice_of[a.id] = self._collect(po, self._payments(pay), when).invoice
-                self.add("invoices")
+                inv = self._collect(po, self._payments(pay), when).invoice
+                if inv is not None:
+                    invoice_of[a.id] = inv
+                    self.add("invoices")
+                if pay < due:
+                    self.add("bills owed")
             elif kind == "deposit":
                 r = lg.take_deposit(
                     data[0].id,

@@ -26,16 +26,17 @@ const order = {
   created_by_name: 'د. ريم', reception_note: 'بعد الجلسة', sent_at: '2026-11-15T10:05:00+03:00', sent_by_name: 'د. ريم', quotation_id: null, installment_id: null,
 };
 
-it('reception collects a split payment; the remainder goes to the balance', async () => {
+it('reception collects a split payment; the invoice is for what was paid, the rest is owed', async () => {
   const api = fakeApi({
     me: makeMe({ permissions: ['payment.collect', 'invoice.view', 'quotation.view'] }),
     routes: {
       'GET /api/payment-orders': () => [200, [order]],
       'GET /api/doctors': () => [200, []],
-      'GET /api/patients/7/account': () => [200, { patient_id: 7, balance: '0.00', deposit_balance: '200.00', unpaid: [], receipts: [] }],
+      'GET /api/patients/7/account': () => [200, { patient_id: 7, balance: '0.00', deposit_balance: '200.00', unpaid: [], unpaid_orders: [], receipts: [] }],
       'POST /api/payment-orders/21/collect': () => [201, {
-        invoice: { id: 5, invoice_no: 'INV-2026-000005', outstanding: '380.00', lines: [] },
+        invoice: { id: 5, invoice_no: 'INV-2026-000005', outstanding: '0.00', patient_share: '1000.00', lines: [] },
         receipt: { id: 9, receipt_no: 'RC-2026-000009', total: '1000.00', balance_after: '380.00' },
+        remaining: '380.00',
       }],
     },
   });
@@ -51,7 +52,7 @@ it('reception collects a split payment; the remainder goes to the balance', asyn
   expect(screen.getByTestId('amount-1')).toHaveValue('580.00'); // prefilled with what is left
   await user.clear(screen.getByTestId('amount-1'));
   await user.type(screen.getByTestId('amount-1'), '200');
-  expect(screen.getByTestId('to-balance')).toHaveTextContent('SAR 380.00 goes to the patient');
+  expect(screen.getByTestId('to-balance')).toHaveTextContent('The invoice will be for SAR 1,000.00 (what is paid now); SAR 380.00 stays owed');
   await user.click(screen.getByTestId('confirm-collect'));
   expect(await screen.findByTestId('issued-invoice-no')).toHaveTextContent('INV-2026-000005');
   const call = api.calls.find((c) => c.path === '/api/payment-orders/21/collect');
@@ -64,7 +65,7 @@ it('reception collects a split payment; the remainder goes to the balance', asyn
       { method: 'mada', amount: '200.00', reference: '' },
     ],
   });
-  expect(screen.getByText('Still owed by the patient: SAR 380.00')).toBeInTheDocument();
+  expect(screen.getByTestId('bill-remaining')).toHaveTextContent('Still owed on this bill: SAR 380.00');
 });
 
 it('when amounts changed on the server, shows the new due and does not take money', async () => {
