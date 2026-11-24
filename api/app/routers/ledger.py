@@ -37,6 +37,8 @@ from app.services.scheduling import local
 
 Money = Annotated[Decimal, PlainSerializer(lambda v: f"{v:.2f}", return_type=str)]
 
+from app.scope import check_doctor, check_patient, scoped_doctor
+
 router = APIRouter(tags=["ledger"])
 IView = Depends(require("invoice.view"))
 Collect = Depends(require("payment.collect"))
@@ -50,7 +52,9 @@ def _names(db: Session, ids) -> dict[int, str]:
     return dict(db.execute(select(User.id, User.full_name_ar).where(User.id.in_(ids))).all())
 
 
-def _patient(db: Session, pid: int) -> Patient:
+def _patient(db: Session, pid: int, p: Principal | None = None) -> Patient:
+    if p is not None:
+        check_patient(db, p, pid)  # a doctor works with their own patients only
     pt = db.get(Patient, pid)
     if pt is None or pt.deleted_at is not None:
         raise not_found()
@@ -441,7 +445,7 @@ def close_payment_order(
 @router.get("/invoices", response_model=list[InvoiceOut])
 def list_invoices(
     db: DbSession,
-    _: Principal = IView,
+    p: Principal = IView,
     patient_id: int | None = None,
     q: str | None = Query(None, max_length=40),
     date_from: datetime | None = None,
@@ -450,6 +454,8 @@ def list_invoices(
     limit: int = Query(200, le=1000),
 ) -> list[InvoiceOut]:
     stmt = select(Invoice)
+    if (mine := scoped_doctor(db, p)) is not None:
+        stmt = stmt.where(Invoice.doctor_id == mine)
     if patient_id:
         stmt = stmt.where(Invoice.patient_id == patient_id)
     if q:
@@ -471,10 +477,11 @@ def list_invoices(
 
 
 @router.get("/invoices/{iid}", response_model=InvoiceOut)
-def get_invoice(iid: int, db: DbSession, _: Principal = IView) -> InvoiceOut:
+def get_invoice(iid: int, db: DbSession, p: Principal = IView) -> InvoiceOut:
     inv = db.get(Invoice, iid)
     if inv is None:
         raise not_found()
+    check_doctor(db, p, inv.doctor_id, hide=True)
     return _invoice_out(db, inv)
 
 
@@ -658,7 +665,7 @@ class AccountOut(BaseModel):
 @router.get("/patients/{pid}/account", response_model=AccountOut)
 def patient_account(pid: int, db: DbSession, p: Principal = Depends(require())) -> AccountOut:
     _can_see_money(p)
-    pt = _patient(db, pid)
+    pt = _patient(db, pid, p)
     db.refresh(pt)
     ids = list(db.scalars(select(Invoice.id).where(Invoice.patient_id == pid)))
     owed = {i for i, o in ledger.outstanding(db, ids).items() if o > 0}
@@ -709,7 +716,7 @@ class PayBalanceIn(BaseModel):
 
 @router.post("/patients/{pid}/payments", response_model=ReceiptOut, status_code=201)
 def pay_balance(pid: int, body: PayBalanceIn, db: DbSession, p: Principal = Collect) -> ReceiptOut:
-    pt = _patient(db, pid)
+    pt = _patient(db, pid, p)
     r = ledger.pay_balance(db, pt, body.payments, body.invoice_ids, body.note, p, body.order_ids)
     db.commit()
     return _with_balances(db, _receipt_out(db, r), pid)
@@ -723,7 +730,7 @@ class DepositIn(BaseModel):
 
 @router.post("/patients/{pid}/deposits", response_model=ReceiptOut, status_code=201)
 def take_deposit(pid: int, body: DepositIn, db: DbSession, p: Principal = Collect) -> ReceiptOut:
-    pt = _patient(db, pid)
+    pt = _patient(db, pid, p)
     if body.plan_id is not None:
         plan = db.get(TreatmentPlan, body.plan_id)
         if plan is None or plan.patient_id != pid or plan.deleted_at is not None:
@@ -743,7 +750,7 @@ def refund_deposit(
     pid: int, body: DepositRefundIn, db: DbSession, p: Principal = Credit
 ) -> ReceiptOut:
     """Give money held on account back to the patient (needs the refund permission)."""
-    pt = _patient(db, pid)
+    pt = _patient(db, pid, p)
     r = ledger.refund_deposit(db, pt, body.payments, body.note, p)
     db.commit()
     return _with_balances(db, _receipt_out(db, r), pid)

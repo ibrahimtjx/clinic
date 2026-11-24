@@ -11,8 +11,10 @@ def setup(db, make_user, client):
     omar_user = make_user("omar", ["doctor"])
     reem = Doctor(name_ar="د. ريم", user_id=reem_user.id)
     omar = Doctor(name_ar="د. عمر", user_id=omar_user.id)
-    pt = Patient(name_ar="سارة")
-    db.add_all([reem, omar, pt])
+    db.add_all([reem, omar])
+    db.flush()
+    pt = Patient(name_ar="سارة", default_doctor_id=reem.id)  # reem's patient
+    db.add(pt)
     db.commit()
     login(client, "reem")
     return {"reem": reem, "omar": omar, "pt": pt}
@@ -74,7 +76,7 @@ def test_only_its_doctor_edits_within_window_then_addenda(client, setup, db):
     other = client.patch(
         f"/dental-visits/{v['id']}", json={"version": ok.json()["version"], "procedure": "x"}
     )
-    assert other.status_code == 403 and other.json()["detail"]["code"] == "not_visit_doctor"
+    assert other.status_code == 404  # not omar's patient: hidden (owner, 2026-11-23)
     login(client, "reem")
     # 25 hours later the visit is locked; changes become addenda.
     db.execute(

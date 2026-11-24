@@ -141,6 +141,8 @@ DEFAULT_ROLES: dict[str, dict] = {
         "permissions": sorted(
             [
                 "patient.view",
+                "appointment.view",
+                "appointment.view_all",
                 "quotation.view",
                 "invoice.view",
                 "invoice.credit_note",

@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
 
-import { signIn } from './helpers';
+import { ownPatient, signIn } from './helpers';
 
-test('doctor uploads an X-ray, writes and prints a prescription, requests a lab test and enters the result', async ({ page }) => {
+test('doctor uploads an X-ray, writes and prints a prescription, requests a lab test and enters the result', async ({ page, baseURL }) => {
+  const pt = await ownPatient(baseURL, 'dr.reem', `نورة سريرية ${Date.now() % 100000}`);
   await signIn(page, 'dr.reem');
   await page.goto('/patients');
-  await page.getByTestId('patient-search').fill('نورة');
+  await page.getByTestId('patient-search').fill(pt.name_ar);
   const row = page.getByTestId('patients-table').locator('tbody tr').first();
   await expect(row.locator('mark').first()).toBeVisible();
   await row.click();

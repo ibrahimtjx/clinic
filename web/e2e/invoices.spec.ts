@@ -7,8 +7,11 @@ async function bill(baseURL: string | undefined, price: string) {
   const api: APIRequestContext = await request.newContext({ baseURL, ignoreHTTPSErrors: true });
   const login = async (u: string) => ({ Authorization: `Bearer ${(await (await api.post('/api/auth/login', { data: { username: u, password: 'Clinic-dev-2026' } })).json()).access_token}` });
   const desk = await login('reception');
-  const pt = await (await api.post('/api/patients', { headers: desk, data: { name_ar: `مريض فواتير ${Date.now() % 100000}`, allow_duplicate: true } })).json();
   const dr = await login('dr.reem');
+  // The doctor's own patient (a doctor bills only their patients): registered with her as usual doctor.
+  const me = await (await api.get('/api/auth/me', { headers: dr })).json();
+  const mine = (await (await api.get('/api/doctors', { headers: desk })).json()).find((d: { user_id: number | null }) => d.user_id === me.id);
+  const pt = await (await api.post('/api/patients', { headers: desk, data: { name_ar: `مريض فواتير ${Date.now() % 100000}`, allow_duplicate: true, default_doctor_id: mine.id } })).json();
   const svc = (await (await api.get('/api/services', { headers: dr })).json()).find((s: { sale_price: string }) => Number(s.sale_price) >= 200);
   let po = await (await api.post('/api/payment-orders', { headers: dr, data: { patient_id: pt.id, lines: [{ service_id: svc.id, price }] } })).json();
   po = await (await api.post(`/api/payment-orders/${po.id}/send`, { headers: dr, data: { version: po.version } })).json();

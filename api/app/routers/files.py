@@ -15,6 +15,7 @@ from app.deps import DbSession, Principal, check_version, require
 from app.models import DentalVisit, Patient, PatientFile, User
 from app.models.clinical import FILE_KINDS
 from app.routers.dental import valid_tooth
+from app.scope import check_patient
 from app.services import files as storage
 from app.services.scheduling import local
 
@@ -62,17 +63,21 @@ def _err(code: str, http: int = status.HTTP_422_UNPROCESSABLE_CONTENT, **extra) 
     return HTTPException(http, detail={"code": code, **extra})
 
 
-def _patient(db: Session, pid: int) -> Patient:
+def _patient(db: Session, pid: int, p: Principal | None = None) -> Patient:
+    if p is not None:
+        check_patient(db, p, pid)  # a doctor works with their own patients only
     p = db.get(Patient, pid)
     if p is None or p.deleted_at is not None:
         raise not_found()
     return p
 
 
-def _get(db: Session, fid: int) -> PatientFile:
+def _get(db: Session, fid: int, p: Principal | None = None) -> PatientFile:
     f = db.get(PatientFile, fid)
     if f is None or f.deleted_at is not None:
         raise not_found()
+    if p is not None:
+        check_patient(db, p, f.patient_id)
     return f
 
 
@@ -109,7 +114,7 @@ def list_files(
     visit_id: int | None = None,
     tooth: int | None = None,
 ) -> list[FileOut]:
-    _patient(db, pid)
+    _patient(db, pid, p)
     q = select(PatientFile).where(PatientFile.patient_id == pid, PatientFile.deleted_at.is_(None))
     if kind:
         q = q.where(PatientFile.kind == kind)
@@ -136,7 +141,7 @@ async def upload_file(
     visit_id: Annotated[int | None, Form()] = None,
     tooth_fdi: Annotated[int | None, Form()] = None,
 ) -> FileOut:
-    _patient(db, pid)
+    _patient(db, pid, p)
     _check_links(db, pid, visit_id, tooth_fdi)
     today = local(db.scalar(select(func.now()))).date()
     if taken_on and taken_on > today:
@@ -170,7 +175,7 @@ async def upload_file(
 def file_content(
     fid: int, db: DbSession, p: Principal = View, download: bool = Query(False)
 ) -> FileResponse:
-    f = _get(db, fid)
+    f = _get(db, fid, p)
     path = storage.absolute(f.path)
     if not path.exists():
         raise _err("file_missing", status.HTTP_410_GONE)
@@ -185,7 +190,7 @@ def file_content(
 
 @router.get("/files/{fid}/thumb")
 def file_thumb(fid: int, db: DbSession, p: Principal = View) -> FileResponse:
-    f = _get(db, fid)
+    f = _get(db, fid, p)
     if not f.has_thumb:
         raise not_found()
     path = storage.thumb_path(storage.absolute(f.path))
@@ -198,7 +203,7 @@ def file_thumb(fid: int, db: DbSession, p: Principal = View) -> FileResponse:
 
 @router.patch("/files/{fid}", response_model=FileOut)
 def update_file(fid: int, body: FilePatch, db: DbSession, p: Principal = Upload) -> FileOut:
-    f = _get(db, fid)
+    f = _get(db, fid, p)
     check_version(f.version, body.version, updater_name(db, f), f.updated_at)
     visit = (
         None if body.clear_visit else (body.visit_id if body.visit_id is not None else f.visit_id)
@@ -227,7 +232,7 @@ def update_file(fid: int, body: FilePatch, db: DbSession, p: Principal = Upload)
 @router.delete("/files/{fid}", status_code=204)
 def delete_file(fid: int, db: DbSession, p: Principal = Depends(require("file.delete"))) -> None:
     """Soft delete: the file stays on disk and in backups; it disappears from the patient's files."""
-    f = _get(db, fid)
+    f = _get(db, fid, p)
     f.deleted_at = db.scalar(select(func.now()))
     f.deleted_by = p.user.id
     db.commit()

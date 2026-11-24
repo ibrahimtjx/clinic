@@ -1,6 +1,6 @@
 import { expect, request, test } from '@playwright/test';
 
-import { signIn } from './helpers';
+import { ownPatient, signIn } from './helpers';
 
 test('welcome page greets the user by name', async ({ page }) => {
   await signIn(page, 'reception');
@@ -16,10 +16,10 @@ test('a doctor sees only their own column in the calendar; reception sees everyo
   await expect(page.getByTestId('open-reminders')).toHaveCount(0);
 });
 
-test('doctor writes a sick leave with dates and prints it', async ({ page }) => {
+test('doctor writes a sick leave with dates and prints it', async ({ page, baseURL }) => {
+  const pt = await ownPatient(baseURL, 'dr.reem', `مريضة إجازة ${Date.now() % 100000}`);
   await signIn(page, 'dr.reem');
-  await page.goto('/patients');
-  await page.getByTestId('patients-table').locator('tbody tr').first().click();
+  await page.goto(`/patients/${pt.id}`);
   await page.getByTestId('tab-prescriptions').click();
   await page.getByText(/إجازة مرضية|Sick leave/).first().click();
   await page.getByTestId('new-sick-leave').click();
